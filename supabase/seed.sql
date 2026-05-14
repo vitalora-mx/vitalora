@@ -1,0 +1,2 @@
+-- Datos de prueba para Vitalora
+-- Se ejecutará después de las migraciones
