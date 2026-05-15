@@ -1,25 +1,34 @@
-import type { Metadata } from "next";
-import { Geist } from "next/font/google";
-import "./globals.css";
+import type { Metadata } from 'next'
+import { Cormorant_Garamond, Italiana } from 'next/font/google'
+import './globals.css'
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
+const cormorant = Cormorant_Garamond({
+  subsets: ['latin'],
+  weight: ['300', '400', '500', '600', '700'],
+  variable: '--font-cormorant',
+  display: 'swap',
+})
+
+const italiana = Italiana({
+  subsets: ['latin'],
+  weight: ['400'],
+  variable: '--font-italiana',
+  display: 'swap',
+})
 
 export const metadata: Metadata = {
-  title: "Vitalora",
-  description: "Cosméticos coreanos y suplementos alimenticios en México",
-};
+  title: 'Vitalora — K-Beauty & Bienestar Auténtico',
+  description: 'Cosméticos coreanos auténticos y suplementos de alta pureza para México.',
+}
 
 export default function RootLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+}: {
+  children: React.ReactNode
+}) {
   return (
-    <html lang="es" className={`${geistSans.variable} h-full antialiased`}>
-      <body className="min-h-full flex flex-col">{children}</body>
+    <html lang="es" className={`${cormorant.variable} ${italiana.variable}`}>
+      <body>{children}</body>
     </html>
-  );
+  )
 }
