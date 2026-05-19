@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useState, useRef, useEffect } from 'react'
 
 const todasLasMarcas = [
@@ -44,7 +45,6 @@ export default function CosmeticosProductos({ rutinaActiva }: Props) {
   const [orden, setOrden] = useState('relevancia')
   const dropdownRef = useRef<HTMLDivElement>(null)
 
-  // Cerrar dropdown al hacer clic fuera
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
@@ -116,7 +116,6 @@ export default function CosmeticosProductos({ rutinaActiva }: Props) {
                 minWidth: '280px',
                 zIndex: 200,
               }}>
-                {/* Header dropdown */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', paddingBottom: '12px', borderBottom: '1px solid #E8E0D5' }}>
                   <span style={{ fontSize: '11px', letterSpacing: '0.2em', textTransform: 'uppercase', color: '#6B6B6B' }}>Selecciona marcas</span>
                   {marcasSeleccionadas.length > 0 && (
@@ -125,45 +124,12 @@ export default function CosmeticosProductos({ rutinaActiva }: Props) {
                     </button>
                   )}
                 </div>
-
-                {/* Lista de marcas */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px', maxHeight: '320px', overflowY: 'auto' }}>
                   {todasLasMarcas.map((marca) => {
                     const seleccionada = marcasSeleccionadas.includes(marca)
                     return (
-                      <button
-                        key={marca}
-                        onClick={() => toggleMarca(marca)}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '10px',
-                          padding: '10px 12px',
-                          border: 'none',
-                          background: seleccionada ? 'rgba(201,169,97,0.08)' : 'none',
-                          borderRadius: '4px',
-                          cursor: 'pointer',
-                          fontFamily: 'inherit',
-                          fontSize: '13px',
-                          color: '#2C2C2C',
-                          textAlign: 'left',
-                          transition: 'background 0.2s',
-                        }}
-                      >
-                        {/* Checkbox */}
-                        <div style={{
-                          width: '18px',
-                          height: '18px',
-                          border: '1.5px solid',
-                          borderColor: seleccionada ? 'var(--gold)' : '#D9D2C4',
-                          borderRadius: '3px',
-                          background: seleccionada ? 'var(--gold)' : 'white',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          flexShrink: 0,
-                          transition: 'all 0.2s',
-                        }}>
+                      <button key={marca} onClick={() => toggleMarca(marca)} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', border: 'none', background: seleccionada ? 'rgba(201,169,97,0.08)' : 'none', borderRadius: '4px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '13px', color: '#2C2C2C', textAlign: 'left', transition: 'background 0.2s' }}>
+                        <div style={{ width: '18px', height: '18px', border: '1.5px solid', borderColor: seleccionada ? 'var(--gold)' : '#D9D2C4', borderRadius: '3px', background: seleccionada ? 'var(--gold)' : 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all 0.2s' }}>
                           {seleccionada && <span style={{ color: 'white', fontSize: '11px', fontWeight: 700 }}>✓</span>}
                         </div>
                         {marca}
@@ -175,8 +141,21 @@ export default function CosmeticosProductos({ rutinaActiva }: Props) {
             )}
           </div>
 
-          {/* Ordenar */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {/* Botón Suplementos + Ordenar */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <Link href="/suplementos" style={{
+              padding: '8px 20px',
+              border: '1px solid var(--gold)',
+              borderRadius: '100px',
+              color: 'var(--gold)',
+              textDecoration: 'none',
+              fontSize: '11px',
+              letterSpacing: '0.15em',
+              textTransform: 'uppercase',
+              fontWeight: 500,
+            }}>
+              Suplementos →
+            </Link>
             <span style={{ fontSize: '12px', letterSpacing: '0.1em', textTransform: 'uppercase', color: '#6B6B6B' }}>Ordenar:</span>
             <select value={orden} onChange={(e) => setOrden(e.target.value)} style={{ padding: '8px 16px', border: '1px solid #E8E0D5', borderRadius: '100px', background: 'white', fontSize: '12px', color: '#2C2C2C', fontFamily: 'inherit', cursor: 'pointer', outline: 'none' }}>
               <option value="relevancia">Relevancia</option>
@@ -185,6 +164,7 @@ export default function CosmeticosProductos({ rutinaActiva }: Props) {
               <option value="nuevo">Más Nuevos</option>
             </select>
           </div>
+
         </div>
       </div>
 
@@ -195,7 +175,6 @@ export default function CosmeticosProductos({ rutinaActiva }: Props) {
           {rutinaActiva !== 'Todas' && <span style={{ color: 'var(--gold)', marginLeft: '8px' }}>· {rutinaActiva}</span>}
           {marcasSeleccionadas.length > 0 && <span style={{ color: 'var(--gold)', marginLeft: '8px' }}>· {marcasSeleccionadas.join(', ')}</span>}
         </p>
-
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '24px' }}>
           {productosFiltrados.length === 0 ? (
             <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '80px', color: '#6B6B6B' }}>
