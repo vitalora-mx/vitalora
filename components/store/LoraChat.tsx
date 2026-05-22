@@ -64,10 +64,13 @@ export default function LoraChat() {
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     sendMessage(input)
-  }return (
+  }
+
+  return (
     <>
       {/* Botón flotante */}
       <button
+        id="loraFab"
         onClick={() => setOpen(true)}
         style={{
           position: 'fixed',
@@ -105,7 +108,7 @@ export default function LoraChat() {
           zIndex: 999,
           display: 'flex',
           flexDirection: 'column',
-  boxShadow: '0 30px 80px rgba(0,0,0,0.3)',
+          boxShadow: '0 30px 80px rgba(0,0,0,0.3)',
         }}>
           {/* Header */}
           <div style={{ background: 'var(--black)', color: 'var(--bg-cream)', padding: '20px 24px', display: 'flex', alignItems: 'center', gap: '14px', borderBottom: '1px solid var(--gold)' }}>
@@ -116,6 +119,7 @@ export default function LoraChat() {
             </div>
             <button onClick={() => setOpen(false)} style={{ background: 'none', border: 'none', color: 'var(--bg-cream)', cursor: 'pointer', opacity: 0.6, fontSize: '20px' }}>✕</button>
           </div>
+
           {/* Mensajes */}
           <div style={{ flex: 1, overflowY: 'auto', padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px', background: 'var(--bg-cream)' }}>
             {messages.map((msg, i) => (
@@ -140,6 +144,7 @@ export default function LoraChat() {
             )}
             <div ref={messagesEndRef} />
           </div>
+
           {/* Input */}
           <div style={{ borderTop: '1px solid var(--line)', padding: '16px 20px', background: 'white' }}>
             <p style={{ fontSize: '10px', color: 'var(--text-muted)', textAlign: 'center', marginBottom: '12px' }}>Lora es tu asesora de bienestar. No sustituye consejo médico.</p>
