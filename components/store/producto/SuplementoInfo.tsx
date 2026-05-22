@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useCartStore } from '@/store/cartStore'
 
 interface Props {
   producto: any
@@ -9,8 +10,20 @@ interface Props {
 export default function SuplementoInfo({ producto }: Props) {
   const [cantidad, setCantidad] = useState(1)
   const [agregado, setAgregado] = useState(false)
+  const { agregarItem } = useCartStore()
 
   function handleAgregar() {
+    for (let i = 0; i < cantidad; i++) {
+      agregarItem({
+        id: producto.id,
+        slug: producto.slug || producto.nombre.toLowerCase().replace(/ /g, '-'),
+        nombre: producto.nombre,
+        marca: producto.marca,
+        precio: producto.precio,
+        imagen: '',
+        tipo: 'suplemento',
+      })
+    }
     setAgregado(true)
     setTimeout(() => setAgregado(false), 2000)
   }
@@ -47,16 +60,10 @@ export default function SuplementoInfo({ producto }: Props) {
       </div>
 
       {/* Precio */}
-      <div style={{
-        fontFamily: 'var(--font-cormorant), serif',
-        fontSize: '40px',
-        fontWeight: 600,
-        color: '#111111',
-      }}>
+      <div style={{ fontFamily: 'var(--font-cormorant), serif', fontSize: '40px', fontWeight: 600, color: '#111111' }}>
         ${producto.precio.toLocaleString()} MXN
       </div>
 
-      {/* Divider */}
       <div style={{ height: '1px', background: '#EEEEEE' }} />
 
       {/* Beneficios rápidos */}
@@ -75,24 +82,16 @@ export default function SuplementoInfo({ producto }: Props) {
       {producto.certificaciones && (
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
           {producto.certificaciones.map((cert: string) => (
-            <span key={cert} style={{
-              padding: '4px 12px',
-              border: '1px solid #6B8F6B',
-              borderRadius: '100px',
-              fontSize: '11px',
-              color: '#6B8F6B',
-              letterSpacing: '0.08em',
-              fontWeight: 500,
-            }}>{cert}</span>
+            <span key={cert} style={{ padding: '4px 12px', border: '1px solid #6B8F6B', borderRadius: '100px', fontSize: '11px', color: '#6B8F6B', letterSpacing: '0.08em', fontWeight: 500 }}>
+              {cert}
+            </span>
           ))}
         </div>
       )}
 
       {/* Cantidad */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-        <span style={{ fontSize: '12px', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#999999' }}>
-          Cantidad
-        </span>
+        <span style={{ fontSize: '12px', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#999999' }}>Cantidad</span>
         <div style={{ display: 'flex', alignItems: 'center', border: '1px solid #EEEEEE', borderRadius: '8px' }}>
           <button onClick={() => setCantidad(Math.max(1, cantidad - 1))} style={{ width: '40px', height: '40px', border: 'none', background: 'none', cursor: 'pointer', fontSize: '18px', color: '#333333', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>−</button>
           <span style={{ width: '40px', textAlign: 'center', fontSize: '15px', fontWeight: 500 }}>{cantidad}</span>

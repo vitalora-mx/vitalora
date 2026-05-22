@@ -2,6 +2,8 @@
 
 import Link from 'next/link'
 import { useState } from 'react'
+import { useCartStore } from '@/store/cartStore'
+import CarritoDrawer from '@/components/store/CarritoDrawer'
 
 const marcas = [
   'Abib', 'Anua', 'Celimax', 'COSRX', "D'ALBA", 'Dr Althea',
@@ -12,6 +14,7 @@ const marcas = [
 
 export default function CosmeticosHeader() {
   const [marcasOpen, setMarcasOpen] = useState(false)
+  const { totalItems, abrirCarrito } = useCartStore()
 
   return (
     <>
@@ -76,51 +79,25 @@ export default function CosmeticosHeader() {
               <button
                 onClick={() => setMarcasOpen(!marcasOpen)}
                 style={{
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  fontSize: '13px',
-                  letterSpacing: '0.1em',
-                  textTransform: 'uppercase',
-                  color: '#2C2C2C',
-                  fontFamily: 'inherit',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  fontSize: '13px', letterSpacing: '0.1em', textTransform: 'uppercase',
+                  color: '#2C2C2C', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: '6px',
                 }}
               >
                 Marcas <span style={{ fontSize: '10px' }}>▼</span>
               </button>
               {marcasOpen && (
                 <div style={{
-                  position: 'absolute',
-                  top: '100%',
-                  left: 0,
-                  marginTop: '12px',
-                  background: 'white',
-                  border: '1px solid #E8E0D5',
-                  borderRadius: '4px',
-                  padding: '16px',
-                  boxShadow: '0 20px 60px rgba(0,0,0,0.12)',
-                  display: 'grid',
-                  gridTemplateColumns: '1fr 1fr',
-                  gap: '8px 32px',
-                  minWidth: '320px',
-                  zIndex: 200,
+                  position: 'absolute', top: '100%', left: 0, marginTop: '12px',
+                  background: 'white', border: '1px solid #E8E0D5', borderRadius: '4px',
+                  padding: '16px', boxShadow: '0 20px 60px rgba(0,0,0,0.12)',
+                  display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 32px',
+                  minWidth: '320px', zIndex: 200,
                 }}>
                   {marcas.map((marca) => (
-                    <Link
-                      key={marca}
-                      href={`/cosmeticos?marca=${marca.toLowerCase()}`}
+                    <Link key={marca} href={`/cosmeticos?marca=${marca.toLowerCase()}`}
                       onClick={() => setMarcasOpen(false)}
-                      style={{
-                        fontSize: '13px',
-                        color: '#2C2C2C',
-                        textDecoration: 'none',
-                        padding: '6px 0',
-                        borderBottom: '1px solid #F5F0E8',
-                        transition: 'color 0.2s',
-                      }}
+                      style={{ fontSize: '13px', color: '#2C2C2C', textDecoration: 'none', padding: '6px 0', borderBottom: '1px solid #F5F0E8' }}
                     >
                       {marca}
                     </Link>
@@ -128,11 +105,9 @@ export default function CosmeticosHeader() {
                 </div>
               )}
             </div>
-
             <Link href="/cosmeticos/best-sellers" style={{ fontSize: '13px', letterSpacing: '0.1em', textTransform: 'uppercase', color: '#2C2C2C', textDecoration: 'none' }}>
               Best Sellers
             </Link>
-
             <Link href="/cosmeticos/kits" style={{ fontSize: '13px', letterSpacing: '0.1em', textTransform: 'uppercase', color: '#2C2C2C', textDecoration: 'none' }}>
               Kits de Rutina
             </Link>
@@ -140,21 +115,8 @@ export default function CosmeticosHeader() {
 
           {/* Logo */}
           <Link href="/" style={{ textDecoration: 'none' }}>
-            <div style={{
-              fontFamily: 'var(--font-italiana), serif',
-              fontSize: '28px',
-              letterSpacing: '0.15em',
-              color: '#0E0E0E',
-              textAlign: 'center',
-            }}>VITALORA</div>
-            <div style={{
-              fontSize: '9px',
-              letterSpacing: '0.3em',
-              textTransform: 'uppercase',
-              color: 'var(--gold)',
-              textAlign: 'center',
-              marginTop: '2px',
-            }}>K-Beauty</div>
+            <div style={{ fontFamily: 'var(--font-italiana), serif', fontSize: '28px', letterSpacing: '0.15em', color: '#0E0E0E', textAlign: 'center' }}>VITALORA</div>
+            <div style={{ fontSize: '9px', letterSpacing: '0.3em', textTransform: 'uppercase', color: 'var(--gold)', textAlign: 'center', marginTop: '2px' }}>K-Beauty</div>
           </Link>
 
           {/* Iconos derecha */}
@@ -166,13 +128,27 @@ export default function CosmeticosHeader() {
             <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#2C2C2C', padding: '4px' }}>
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
             </button>
-            <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#2C2C2C', padding: '4px', position: 'relative' }}>
+            <button
+              onClick={abrirCarrito}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#2C2C2C', padding: '4px', position: 'relative' }}
+            >
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+              {totalItems() > 0 && (
+                <span style={{
+                  position: 'absolute', top: '-4px', right: '-8px',
+                  background: 'var(--gold)', color: 'var(--black)',
+                  fontSize: '10px', width: '18px', height: '18px',
+                  borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontWeight: 700,
+                }}>{totalItems()}</span>
+              )}
             </button>
           </div>
 
         </div>
       </header>
+
+      <CarritoDrawer />
     </>
   )
 }

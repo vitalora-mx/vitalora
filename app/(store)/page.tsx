@@ -1,3 +1,5 @@
+'use client'
+
 import AnnouncementBar from '@/components/store/AnnouncementBar'
 import Header from '@/components/store/Header'
 import Hero from '@/components/store/Hero'

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useCartStore } from '@/store/cartStore'
 
 interface Props {
   producto: any
@@ -9,8 +10,20 @@ interface Props {
 export default function ProductoInfo({ producto }: Props) {
   const [cantidad, setCantidad] = useState(1)
   const [agregado, setAgregado] = useState(false)
+  const { agregarItem } = useCartStore()
 
   function handleAgregar() {
+    for (let i = 0; i < cantidad; i++) {
+      agregarItem({
+        id: producto.id,
+        slug: producto.slug || producto.nombre.toLowerCase().replace(/ /g, '-'),
+        nombre: producto.nombre,
+        marca: producto.marca,
+        precio: producto.precio,
+        imagen: '',
+        tipo: 'cosmetico',
+      })
+    }
     setAgregado(true)
     setTimeout(() => setAgregado(false), 2000)
   }
@@ -57,15 +70,9 @@ export default function ProductoInfo({ producto }: Props) {
         ${producto.precio.toLocaleString()} MXN
       </div>
 
-      {/* Divider */}
       <div style={{ height: '1px', background: 'var(--line)' }} />
 
-      {/* Descripción corta */}
-      <p style={{
-        fontSize: '15px',
-        lineHeight: 1.8,
-        color: 'var(--text-muted)',
-      }}>
+      <p style={{ fontSize: '15px', lineHeight: 1.8, color: 'var(--text-muted)' }}>
         {producto.descripcion.split('.')[0]}.
       </p>
 
@@ -75,15 +82,9 @@ export default function ProductoInfo({ producto }: Props) {
           Cantidad
         </span>
         <div style={{ display: 'flex', alignItems: 'center', border: '1px solid var(--line)', borderRadius: '2px' }}>
-          <button
-            onClick={() => setCantidad(Math.max(1, cantidad - 1))}
-            style={{ width: '40px', height: '40px', border: 'none', background: 'none', cursor: 'pointer', fontSize: '18px', color: 'var(--text)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-          >−</button>
+          <button onClick={() => setCantidad(Math.max(1, cantidad - 1))} style={{ width: '40px', height: '40px', border: 'none', background: 'none', cursor: 'pointer', fontSize: '18px', color: 'var(--text)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>−</button>
           <span style={{ width: '40px', textAlign: 'center', fontSize: '15px', fontWeight: 500 }}>{cantidad}</span>
-          <button
-            onClick={() => setCantidad(cantidad + 1)}
-            style={{ width: '40px', height: '40px', border: 'none', background: 'none', cursor: 'pointer', fontSize: '18px', color: 'var(--text)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-          >+</button>
+          <button onClick={() => setCantidad(cantidad + 1)} style={{ width: '40px', height: '40px', border: 'none', background: 'none', cursor: 'pointer', fontSize: '18px', color: 'var(--text)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>+</button>
         </div>
       </div>
 
