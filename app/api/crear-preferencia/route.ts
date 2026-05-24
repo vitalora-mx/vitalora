@@ -8,7 +8,7 @@ const client = new MercadoPagoConfig({
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
-const LOGO_URL = 'https://vitalora.com.mx/images/logos/vitalora-logo.png'
+const LOGO_URL = 'https://vitalora.com.mx/images/logos/vitalora-logo-dark.png'
 
 function generarEmailCliente(data: any) {
   const { items, comprador, direccion, subtotal, costoEnvio, total } = data
