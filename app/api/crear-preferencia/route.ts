@@ -33,7 +33,7 @@ function generarEmailCliente(data: any) {
 
     <!-- Header con logo -->
     <div style="background: #0E0E0E; padding: 32px; text-align: center;">
-      <img src="${LOGO_URL}" alt="Vitalora" style="height: 50px; width: auto; margin-bottom: 8px;" />
+      <h1 style="font-size: 28px; letter-spacing: 0.15em; color: #F5F0E8; margin: 0; font-weight: 400;">VITALORA</h1>
       <div style="font-size: 10px; letter-spacing: 0.3em; color: #C9A961; margin-top: 4px;">WELLNESS</div>
     </div>
 
@@ -92,7 +92,7 @@ function generarEmailCliente(data: any) {
 
     <!-- Footer -->
     <div style="background: #0E0E0E; padding: 32px; text-align: center;">
-      <img src="${LOGO_URL}" alt="Vitalora" style="height: 30px; width: auto; margin-bottom: 16px; opacity: 0.7;" />
+      <div style="font-size: 18px; letter-spacing: 0.15em; color: rgba(245,240,232,0.5); margin-bottom: 16px;">VITALORA</div>
       <p style="font-size: 12px; color: rgba(245,240,232,0.6); margin: 0 0 8px;">¿Tienes dudas? Escríbenos a</p>
       <a href="mailto:hola@vitalora.com.mx" style="font-size: 13px; color: #C9A961; text-decoration: none;">hola@vitalora.com.mx</a>
       <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid rgba(245,240,232,0.1);">
@@ -119,7 +119,7 @@ function generarEmailGabo(data: any) {
 <body style="margin: 0; padding: 0; background: #F5F0E8; font-family: Arial, sans-serif;">
   <div style="max-width: 600px; margin: 0 auto; background: white;">
     <div style="background: #0E0E0E; padding: 24px; text-align: center;">
-      <img src="${LOGO_URL}" alt="Vitalora" style="height: 40px; width: auto; margin-bottom: 8px;" />
+      <h1 style="font-size: 22px; letter-spacing: 0.15em; color: #F5F0E8; margin: 0;">VITALORA</h1>
       <div style="font-size: 10px; letter-spacing: 0.3em; color: #C9A961; margin-top: 4px;">NUEVA VENTA</div>
     </div>
     <div style="padding: 32px;">
