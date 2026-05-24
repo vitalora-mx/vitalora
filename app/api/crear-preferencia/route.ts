@@ -8,6 +8,8 @@ const client = new MercadoPagoConfig({
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
+const LOGO_URL = 'https://vitalora.com.mx/images/logos/vitalora-logo.png'
+
 function generarEmailCliente(data: any) {
   const { items, comprador, direccion, subtotal, costoEnvio, total } = data
 
@@ -28,15 +30,21 @@ function generarEmailCliente(data: any) {
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
 <body style="margin: 0; padding: 0; background: #F5F0E8; font-family: Georgia, 'Times New Roman', serif;">
   <div style="max-width: 600px; margin: 0 auto; background: white;">
+
+    <!-- Header con logo -->
     <div style="background: #0E0E0E; padding: 32px; text-align: center;">
-      <h1 style="font-size: 28px; letter-spacing: 0.15em; color: #F5F0E8; margin: 0; font-weight: 400;">VITALORA</h1>
+      <img src="${LOGO_URL}" alt="Vitalora" style="height: 50px; width: auto; margin-bottom: 8px;" />
       <div style="font-size: 10px; letter-spacing: 0.3em; color: #C9A961; margin-top: 4px;">WELLNESS</div>
     </div>
+
+    <!-- Confirmación -->
     <div style="padding: 40px 32px; text-align: center; border-bottom: 1px solid #E8E0D5;">
       <div style="width: 60px; height: 60px; border-radius: 50%; background: #F0F7F0; border: 2px solid #6B8F6B; display: inline-flex; align-items: center; justify-content: center; font-size: 24px; margin-bottom: 20px;">&#10003;</div>
       <h2 style="font-size: 24px; color: #0E0E0E; margin: 0 0 8px; font-weight: 400;">¡Gracias por tu compra, ${comprador.nombre}!</h2>
       <p style="font-size: 14px; color: #888; margin: 0;">Tu pedido ha sido recibido y está siendo procesado.</p>
     </div>
+
+    <!-- Productos -->
     <div style="padding: 32px;">
       <h3 style="font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: #C9A961; margin: 0 0 20px;">Detalle del pedido</h3>
       <table style="width: 100%; border-collapse: collapse;">
@@ -49,6 +57,8 @@ function generarEmailCliente(data: any) {
         </thead>
         <tbody>${productosHTML}</tbody>
       </table>
+
+      <!-- Totales -->
       <table style="width: 100%; margin-top: 20px; padding-top: 16px; border-top: 1px solid #E8E0D5;">
         <tr><td style="font-size: 13px; color: #888; padding: 4px 0;">Subtotal</td><td style="font-size: 13px; color: #333; text-align: right; padding: 4px 0;">$${subtotal.toLocaleString()} MXN</td></tr>
         <tr><td style="font-size: 13px; color: ${costoEnvio === 0 ? '#6B8F6B' : '#888'}; padding: 4px 0;">Envío</td><td style="font-size: 13px; color: ${costoEnvio === 0 ? '#6B8F6B' : '#333'}; text-align: right; padding: 4px 0;">${costoEnvio === 0 ? 'Gratis' : '$99 MXN'}</td></tr>
@@ -56,6 +66,8 @@ function generarEmailCliente(data: any) {
         <tr><td style="font-size: 18px; font-weight: 600; color: #0E0E0E; padding: 4px 0;">Total</td><td style="font-size: 18px; font-weight: 600; color: #0E0E0E; text-align: right; padding: 4px 0;">$${total.toLocaleString()} MXN</td></tr>
       </table>
     </div>
+
+    <!-- Dirección -->
     <div style="padding: 24px 32px; background: #FAFAF5; border-top: 1px solid #E8E0D5; border-bottom: 1px solid #E8E0D5;">
       <h3 style="font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: #C9A961; margin: 0 0 12px;">Dirección de envío</h3>
       <p style="font-size: 14px; color: #333; line-height: 1.7; margin: 0;">
@@ -66,6 +78,8 @@ function generarEmailCliente(data: any) {
         ${direccion.referencia ? '<br>Ref: ' + direccion.referencia : ''}
       </p>
     </div>
+
+    <!-- Pasos -->
     <div style="padding: 32px; text-align: center;">
       <table style="width: 100%; border-collapse: collapse;">
         <tr>
@@ -75,13 +89,17 @@ function generarEmailCliente(data: any) {
         </tr>
       </table>
     </div>
+
+    <!-- Footer -->
     <div style="background: #0E0E0E; padding: 32px; text-align: center;">
+      <img src="${LOGO_URL}" alt="Vitalora" style="height: 30px; width: auto; margin-bottom: 16px; opacity: 0.7;" />
       <p style="font-size: 12px; color: rgba(245,240,232,0.6); margin: 0 0 8px;">¿Tienes dudas? Escríbenos a</p>
       <a href="mailto:hola@vitalora.com.mx" style="font-size: 13px; color: #C9A961; text-decoration: none;">hola@vitalora.com.mx</a>
       <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid rgba(245,240,232,0.1);">
         <p style="font-size: 11px; color: rgba(245,240,232,0.4); margin: 0;">&copy; 2026 Vitalora. Todos los derechos reservados.</p>
       </div>
     </div>
+
   </div>
 </body>
 </html>`
@@ -101,7 +119,7 @@ function generarEmailGabo(data: any) {
 <body style="margin: 0; padding: 0; background: #F5F0E8; font-family: Arial, sans-serif;">
   <div style="max-width: 600px; margin: 0 auto; background: white;">
     <div style="background: #0E0E0E; padding: 24px; text-align: center;">
-      <h1 style="font-size: 22px; letter-spacing: 0.15em; color: #F5F0E8; margin: 0;">VITALORA</h1>
+      <img src="${LOGO_URL}" alt="Vitalora" style="height: 40px; width: auto; margin-bottom: 8px;" />
       <div style="font-size: 10px; letter-spacing: 0.3em; color: #C9A961; margin-top: 4px;">NUEVA VENTA</div>
     </div>
     <div style="padding: 32px;">
@@ -178,11 +196,10 @@ export async function POST(req: NextRequest) {
       },
     })
 
-    // Enviar emails después de crear la preferencia
+    // Enviar emails
     const emailData = { items, comprador, direccion, subtotal, costoEnvio, total }
 
     try {
-      // Email al cliente
       await resend.emails.send({
         from: 'Vitalora <hola@vitalora.com.mx>',
         to: comprador.email,
@@ -190,7 +207,6 @@ export async function POST(req: NextRequest) {
         html: generarEmailCliente(emailData),
       })
 
-      // Email a Gabo
       await resend.emails.send({
         from: 'Vitalora Ventas <hola@vitalora.com.mx>',
         to: 'gabomaciel7@gmail.com',
