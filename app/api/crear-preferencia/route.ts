@@ -20,7 +20,6 @@ export async function POST(req: NextRequest) {
           quantity: item.cantidad,
           unit_price: item.precio,
           currency_id: 'MXN',
-          dimensions: '10x10x10,300',
         })),
         payer: {
           name: comprador.nombre,
@@ -29,7 +28,7 @@ export async function POST(req: NextRequest) {
           phone: { number: comprador.telefono },
         },
         shipments: {
-          mode: 'me2',
+          mode: 'not_specified',
           cost: costoEnvio,
           receiver_address: {
             zip_code: direccion.cp,
@@ -51,7 +50,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ init_point: result.init_point })
   } catch (error) {
-    console.error('Error Mercado Pago:', error)
-    return NextResponse.json({ error: 'Error al crear preferencia' }, { status: 500 })
+    console.error('Error Mercado Pago:', JSON.stringify(error, null, 2))
+    return NextResponse.json({ error: 'Error al crear preferencia', detalle: JSON.stringify(error) }, { status: 500 })
   }
 }

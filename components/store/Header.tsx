@@ -1,9 +1,10 @@
 'use client'
 
 import Link from 'next/link'
-import { useState } from 'react'
+import dynamic from 'next/dynamic'
 import { useCartStore } from '@/store/cartStore'
-import CarritoDrawer from '@/components/store/CarritoDrawer'
+
+const CarritoDrawer = dynamic(() => import('@/components/store/CarritoDrawer'), { ssr: false })
 
 export default function Header() {
   const { totalItems, abrirCarrito } = useCartStore()
@@ -36,48 +37,30 @@ export default function Header() {
           </nav>
 
           {/* Logo */}
-          <div style={{
-            fontFamily: 'var(--font-italiana), serif',
-            fontSize: '32px',
-            letterSpacing: '0.15em',
-            color: 'var(--black)',
-            textAlign: 'center',
-          }}>
+          <div style={{ fontFamily: 'var(--font-italiana), serif', fontSize: '32px', letterSpacing: '0.15em', color: 'var(--black)', textAlign: 'center' }}>
             <Link href="/" style={{ color: 'inherit', textDecoration: 'none' }}>VITALORA</Link>
           </div>
 
           {/* Iconos derecha */}
           <div style={{ display: 'flex', gap: '20px', alignItems: 'center', justifyContent: 'flex-end' }}>
-            {/* Buscar */}
             <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text)', padding: '4px' }}>
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                 <circle cx="11" cy="11" r="7"/><path d="m21 21-4.35-4.35"/>
               </svg>
             </button>
-
-            {/* Cuenta */}
             <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text)', padding: '4px' }}>
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                 <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
               </svg>
             </button>
-
-            {/* Carrito */}
-            <button
-              onClick={abrirCarrito}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text)', padding: '4px', position: 'relative' }}
-            >
+            <button onClick={abrirCarrito} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text)', padding: '4px', position: 'relative' }}>
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                 <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/>
               </svg>
               {totalItems() > 0 && (
-                <span style={{
-                  position: 'absolute', top: '-4px', right: '-8px',
-                  background: 'var(--gold)', color: 'var(--black)',
-                  fontSize: '10px', width: '18px', height: '18px',
-                  borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontWeight: 700,
-                }}>{totalItems()}</span>
+                <span style={{ position: 'absolute', top: '-4px', right: '-8px', background: 'var(--gold)', color: 'var(--black)', fontSize: '10px', width: '18px', height: '18px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 }}>
+                  {totalItems()}
+                </span>
               )}
             </button>
           </div>
