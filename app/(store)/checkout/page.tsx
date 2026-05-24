@@ -4,6 +4,9 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useCartStore } from '@/store/cartStore'
 
+const ENVIO_GRATIS = 1000
+const COSTO_ENVIO = 99
+
 export default function CheckoutPage() {
   const { items, total } = useCartStore()
   const [mounted, setMounted] = useState(false)
@@ -12,62 +15,36 @@ export default function CheckoutPage() {
   const [datosConfirmados, setDatosConfirmados] = useState(false)
 
   const [form, setForm] = useState({
-    nombre: '',
-    apellido: '',
-    email: '',
-    telefono: '',
-    calle: '',
-    numero: '',
-    interior: '',
-    colonia: '',
-    ciudad: '',
-    estado: '',
-    cp: '',
-    referencia: '',
+    nombre: '', apellido: '', email: '', telefono: '',
+    calle: '', numero: '', interior: '', colonia: '',
+    ciudad: '', estado: '', cp: '', referencia: '',
   })
 
   useEffect(() => { setMounted(true) }, [])
-
   if (!mounted) return null
+
+  const subtotal = total()
+  const costoEnvio = subtotal >= ENVIO_GRATIS ? 0 : COSTO_ENVIO
+  const totalFinal = subtotal + costoEnvio
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) {
     setForm({ ...form, [e.target.name]: e.target.value })
   }
 
-  function validarPaso1() {
-    return form.nombre && form.apellido && form.email && form.telefono
-  }
-
-  function validarPaso2() {
-    return form.calle && form.numero && form.colonia && form.ciudad && form.estado && form.cp.length === 5
-  }
-
-  function validarPaso3() {
-    return datosConfirmados
-  }
+  function validarPaso1() { return form.nombre && form.apellido && form.email && form.telefono }
+  function validarPaso2() { return form.calle && form.numero && form.colonia && form.ciudad && form.estado && form.cp.length === 5 }
+  function validarPaso3() { return datosConfirmados }
 
   async function handlePagar() {
     setEnviando(true)
     try {
-      const costoEnvio = total() >= 1000 ? 0 : 99
       const res = await fetch('/api/crear-preferencia', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           items,
-          comprador: {
-            nombre: form.nombre,
-            apellido: form.apellido,
-            email: form.email,
-            telefono: form.telefono,
-          },
-          direccion: {
-            cp: form.cp,
-            calle: form.calle,
-            numero: form.numero,
-            interior: form.interior,
-            referencia: form.referencia,
-          },
+          comprador: { nombre: form.nombre, apellido: form.apellido, email: form.email, telefono: form.telefono },
+          direccion: { cp: form.cp, calle: form.calle, numero: form.numero, interior: form.interior, referencia: form.referencia },
           costoEnvio,
         }),
       })
@@ -85,17 +62,8 @@ export default function CheckoutPage() {
     }
   }
 
-  const inputStyle = {
-    width: '100%', padding: '12px 16px', border: '1px solid var(--line)',
-    borderRadius: '2px', fontSize: '14px', color: 'var(--text)',
-    fontFamily: 'inherit', outline: 'none', background: 'white',
-    boxSizing: 'border-box' as const,
-  }
-
-  const labelStyle = {
-    display: 'block', fontSize: '11px', letterSpacing: '0.2em',
-    textTransform: 'uppercase' as const, color: 'var(--text-muted)', marginBottom: '8px',
-  }
+  const inputStyle = { width: '100%', padding: '12px 16px', border: '1px solid var(--line)', borderRadius: '2px', fontSize: '14px', color: 'var(--text)', fontFamily: 'inherit', outline: 'none', background: 'white', boxSizing: 'border-box' as const }
+  const labelStyle = { display: 'block', fontSize: '11px', letterSpacing: '0.2em', textTransform: 'uppercase' as const, color: 'var(--text-muted)', marginBottom: '8px' }
 
   if (items.length === 0) {
     return (
@@ -103,9 +71,7 @@ export default function CheckoutPage() {
         <div style={{ textAlign: 'center' }}>
           <div style={{ fontFamily: 'var(--font-italiana), serif', fontSize: '48px', color: 'var(--gold)', marginBottom: '16px' }}>✦</div>
           <h1 style={{ fontFamily: 'var(--font-italiana), serif', fontSize: '32px', marginBottom: '16px' }}>Tu carrito está vacío</h1>
-          <Link href="/" style={{ padding: '14px 32px', background: 'var(--black)', color: 'var(--bg-cream)', textDecoration: 'none', fontSize: '12px', letterSpacing: '0.2em', textTransform: 'uppercase' }}>
-            Seguir comprando
-          </Link>
+          <Link href="/" style={{ padding: '14px 32px', background: 'var(--black)', color: 'var(--bg-cream)', textDecoration: 'none', fontSize: '12px', letterSpacing: '0.2em', textTransform: 'uppercase' }}>Seguir comprando</Link>
         </div>
       </main>
     )
@@ -127,18 +93,10 @@ export default function CheckoutPage() {
           {['Datos personales', 'Dirección de envío', 'Confirmar pedido'].map((label, i) => (
             <div key={i} style={{ display: 'flex', alignItems: 'center' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <div style={{
-                  width: '32px', height: '32px', borderRadius: '50%',
-                  background: paso > i + 1 ? 'var(--sage-deep)' : paso === i + 1 ? 'var(--black)' : 'var(--line)',
-                  color: paso >= i + 1 ? 'white' : 'var(--text-muted)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: '13px', fontWeight: 600,
-                }}>
+                <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: paso > i + 1 ? 'var(--sage-deep)' : paso === i + 1 ? 'var(--black)' : 'var(--line)', color: paso >= i + 1 ? 'white' : 'var(--text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: 600 }}>
                   {paso > i + 1 ? '✓' : i + 1}
                 </div>
-                <span style={{ fontSize: '12px', letterSpacing: '0.1em', textTransform: 'uppercase', color: paso === i + 1 ? 'var(--black)' : 'var(--text-muted)', fontWeight: paso === i + 1 ? 600 : 400 }}>
-                  {label}
-                </span>
+                <span style={{ fontSize: '12px', letterSpacing: '0.1em', textTransform: 'uppercase', color: paso === i + 1 ? 'var(--black)' : 'var(--text-muted)', fontWeight: paso === i + 1 ? 600 : 400 }}>{label}</span>
               </div>
               {i < 2 && <div style={{ width: '60px', height: '1px', background: 'var(--line)', margin: '0 16px' }} />}
             </div>
@@ -173,10 +131,7 @@ export default function CheckoutPage() {
                     </div>
                   ))}
                 </div>
-                <button
-                  onClick={() => validarPaso1() && setPaso(2)}
-                  style={{ marginTop: '32px', width: '100%', padding: '18px', background: validarPaso1() ? 'var(--black)' : 'var(--line)', color: validarPaso1() ? 'var(--bg-cream)' : 'var(--text-muted)', border: 'none', fontSize: '13px', letterSpacing: '0.2em', textTransform: 'uppercase', fontWeight: 500, cursor: validarPaso1() ? 'pointer' : 'not-allowed', fontFamily: 'inherit', borderRadius: '2px' }}
-                >
+                <button onClick={() => validarPaso1() && setPaso(2)} style={{ marginTop: '32px', width: '100%', padding: '18px', background: validarPaso1() ? 'var(--black)' : 'var(--line)', color: validarPaso1() ? 'var(--bg-cream)' : 'var(--text-muted)', border: 'none', fontSize: '13px', letterSpacing: '0.2em', textTransform: 'uppercase', fontWeight: 500, cursor: validarPaso1() ? 'pointer' : 'not-allowed', fontFamily: 'inherit', borderRadius: '2px' }}>
                   Continuar →
                 </button>
               </div>
@@ -234,14 +189,15 @@ export default function CheckoutPage() {
                   </div>
                 </div>
 
-                <div style={{ marginBottom: '24px', padding: '16px', background: total() >= 1000 ? '#F0F7F0' : 'white', border: `1px solid ${total() >= 1000 ? '#A8C5A0' : 'var(--line)'}`, borderRadius: '4px' }}>
+                {/* Envío */}
+                <div style={{ marginBottom: '24px', padding: '16px', background: costoEnvio === 0 ? '#F0F7F0' : 'white', border: `1px solid ${costoEnvio === 0 ? '#A8C5A0' : 'var(--line)'}`, borderRadius: '4px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div>
                       <div style={{ fontSize: '13px', fontWeight: 500, color: 'var(--black)', marginBottom: '4px' }}>Envío — Mercado Envíos</div>
                       <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Entrega estimada: 2-5 días hábiles</div>
                     </div>
-                    <div style={{ fontFamily: 'var(--font-cormorant), serif', fontSize: '18px', fontWeight: 600, color: total() >= 1000 ? '#6B8F6B' : 'var(--black)' }}>
-                      {total() >= 1000 ? 'GRATIS' : 'Calculado al pagar'}
+                    <div style={{ fontFamily: 'var(--font-cormorant), serif', fontSize: '20px', fontWeight: 600, color: costoEnvio === 0 ? '#6B8F6B' : 'var(--black)' }}>
+                      {costoEnvio === 0 ? 'GRATIS' : '$99 MXN'}
                     </div>
                   </div>
                 </div>
@@ -249,22 +205,11 @@ export default function CheckoutPage() {
                 {/* Casilla obligatoria */}
                 <div style={{ marginBottom: '24px', padding: '20px', border: '1px solid', borderColor: datosConfirmados ? '#A8C5A0' : 'var(--line)', borderRadius: '4px', background: datosConfirmados ? '#F0F7F0' : 'white', transition: 'all 0.2s' }}>
                   <label style={{ display: 'flex', gap: '14px', alignItems: 'flex-start', cursor: 'pointer' }}>
-                    <div
-                      onClick={() => setDatosConfirmados(!datosConfirmados)}
-                      style={{
-                        width: '22px', height: '22px', borderRadius: '4px', flexShrink: 0,
-                        border: '2px solid', borderColor: datosConfirmados ? 'var(--sage-deep)' : 'var(--line)',
-                        background: datosConfirmados ? 'var(--sage-deep)' : 'white',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        transition: 'all 0.2s', cursor: 'pointer', marginTop: '2px',
-                      }}
-                    >
+                    <div onClick={() => setDatosConfirmados(!datosConfirmados)} style={{ width: '22px', height: '22px', borderRadius: '4px', flexShrink: 0, border: '2px solid', borderColor: datosConfirmados ? 'var(--sage-deep)' : 'var(--line)', background: datosConfirmados ? 'var(--sage-deep)' : 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s', cursor: 'pointer', marginTop: '2px' }}>
                       {datosConfirmados && <span style={{ color: 'white', fontSize: '13px', fontWeight: 700 }}>✓</span>}
                     </div>
                     <div>
-                      <p style={{ fontSize: '13px', color: 'var(--black)', lineHeight: 1.6, margin: '0 0 8px 0', fontWeight: 500 }}>
-                        Confirmo que todos mis datos son correctos y completos.
-                      </p>
+                      <p style={{ fontSize: '13px', color: 'var(--black)', lineHeight: 1.6, margin: '0 0 8px 0', fontWeight: 500 }}>Confirmo que todos mis datos son correctos y completos.</p>
                       <p style={{ fontSize: '12px', color: 'var(--text-muted)', lineHeight: 1.6, margin: 0 }}>
                         Entiendo que en caso de que la paquetería no pueda entregar mi pedido por información incorrecta o incompleta, <strong style={{ color: 'var(--black)' }}>el costo de envío no será reembolsable.</strong>
                       </p>
@@ -274,11 +219,7 @@ export default function CheckoutPage() {
 
                 <div style={{ display: 'flex', gap: '16px' }}>
                   <button onClick={() => setPaso(2)} style={{ flex: 1, padding: '18px', background: 'none', border: '1px solid var(--line)', fontSize: '13px', letterSpacing: '0.2em', textTransform: 'uppercase', cursor: 'pointer', fontFamily: 'inherit', borderRadius: '2px', color: 'var(--text-muted)' }}>← Regresar</button>
-                  <button
-                    onClick={handlePagar}
-                    disabled={!validarPaso3() || enviando}
-                    style={{ flex: 2, padding: '18px', background: validarPaso3() ? 'var(--gold)' : 'var(--line)', color: validarPaso3() ? 'var(--black)' : 'var(--text-muted)', border: 'none', fontSize: '13px', letterSpacing: '0.2em', textTransform: 'uppercase', fontWeight: 700, cursor: validarPaso3() ? 'pointer' : 'not-allowed', fontFamily: 'inherit', borderRadius: '2px', opacity: enviando ? 0.7 : 1 }}
-                  >
+                  <button onClick={handlePagar} disabled={!validarPaso3() || enviando} style={{ flex: 2, padding: '18px', background: validarPaso3() ? 'var(--gold)' : 'var(--line)', color: validarPaso3() ? 'var(--black)' : 'var(--text-muted)', border: 'none', fontSize: '13px', letterSpacing: '0.2em', textTransform: 'uppercase', fontWeight: 700, cursor: validarPaso3() ? 'pointer' : 'not-allowed', fontFamily: 'inherit', borderRadius: '2px', opacity: enviando ? 0.7 : 1 }}>
                     {enviando ? 'Procesando...' : '✦ Pagar con Mercado Pago'}
                   </button>
                 </div>
@@ -305,14 +246,15 @@ export default function CheckoutPage() {
               </div>
               <div style={{ borderTop: '1px solid var(--line)', paddingTop: '16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: 'var(--text-muted)' }}>
-                  <span>Subtotal</span><span>${total().toLocaleString()} MXN</span>
+                  <span>Subtotal</span><span>${subtotal.toLocaleString()} MXN</span>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: total() >= 1000 ? '#6B8F6B' : 'var(--text-muted)' }}>
-                  <span>Envío</span><span>{total() >= 1000 ? 'Gratis' : 'Por calcular'}</span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: costoEnvio === 0 ? '#6B8F6B' : 'var(--text-muted)' }}>
+                  <span>Envío</span>
+                  <span>{costoEnvio === 0 ? 'Gratis' : '$99 MXN'}</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '10px', borderTop: '1px solid var(--line)' }}>
                   <span style={{ fontFamily: 'var(--font-cormorant), serif', fontSize: '20px', fontWeight: 600, color: 'var(--black)' }}>Total</span>
-                  <span style={{ fontFamily: 'var(--font-cormorant), serif', fontSize: '24px', fontWeight: 600, color: 'var(--black)' }}>${total().toLocaleString()} MXN</span>
+                  <span style={{ fontFamily: 'var(--font-cormorant), serif', fontSize: '24px', fontWeight: 600, color: 'var(--black)' }}>${totalFinal.toLocaleString()} MXN</span>
                 </div>
               </div>
             </div>
