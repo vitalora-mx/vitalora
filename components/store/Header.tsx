@@ -2,12 +2,16 @@
 
 import Link from 'next/link'
 import dynamic from 'next/dynamic'
+import { useState, useEffect } from 'react'
 import { useCartStore } from '@/store/cartStore'
 
 const CarritoDrawer = dynamic(() => import('@/components/store/CarritoDrawer'), { ssr: false })
 
 export default function Header() {
+  const [mounted, setMounted] = useState(false)
   const { totalItems, abrirCarrito } = useCartStore()
+
+  useEffect(() => { setMounted(true) }, [])
 
   return (
     <>
@@ -57,7 +61,7 @@ export default function Header() {
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                 <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/>
               </svg>
-              {totalItems() > 0 && (
+              {mounted && totalItems() > 0 && (
                 <span style={{ position: 'absolute', top: '-4px', right: '-8px', background: 'var(--gold)', color: 'var(--black)', fontSize: '10px', width: '18px', height: '18px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 }}>
                   {totalItems()}
                 </span>
