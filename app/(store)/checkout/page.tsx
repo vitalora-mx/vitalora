@@ -48,10 +48,41 @@ export default function CheckoutPage() {
 
   async function handlePagar() {
     setEnviando(true)
-    setTimeout(() => {
-      alert('Conectando con Mercado Pago...')
+    try {
+      const costoEnvio = total() >= 1000 ? 0 : 99
+      const res = await fetch('/api/crear-preferencia', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          items,
+          comprador: {
+            nombre: form.nombre,
+            apellido: form.apellido,
+            email: form.email,
+            telefono: form.telefono,
+          },
+          direccion: {
+            cp: form.cp,
+            calle: form.calle,
+            numero: form.numero,
+            interior: form.interior,
+            referencia: form.referencia,
+          },
+          costoEnvio,
+        }),
+      })
+      const data = await res.json()
+      if (data.init_point) {
+        window.location.href = data.init_point
+      } else {
+        alert('Error al conectar con Mercado Pago. Intenta de nuevo.')
+        setEnviando(false)
+      }
+    } catch (error) {
+      console.error(error)
+      alert('Error al procesar el pago. Intenta de nuevo.')
       setEnviando(false)
-    }, 1500)
+    }
   }
 
   const inputStyle = {
