@@ -11,7 +11,14 @@ const slides = [
     width: 1942,
     height: 809,
     alt: 'Vitalora — Tu rutina perfecta con ayuda de Lora',
-    boton: { texto: '✦ Descubre tu rutina con Lora', tipo: 'lora' },
+    boton: {
+      texto: '✦ Descubre tu rutina con Lora',
+      tipo: 'lora',
+      // Posición: distancia desde arriba como % de la altura del hero
+      // y centrado horizontal por defecto
+      posicion: { top: '72%', left: '50%' },
+      tamano: 'normal', // 'normal' | 'grande' | 'pequeno'
+    },
   },
   {
     id: 2,
@@ -19,7 +26,13 @@ const slides = [
     width: 1942,
     height: 809,
     alt: 'Vitalora — Cosméticos Coreanos Auténticos',
-    boton: { texto: '✦ Ver Cosméticos Coreanos', tipo: 'link', href: '/cosmeticos' },
+    boton: {
+      texto: '✦ Ver Cosméticos Coreanos',
+      tipo: 'link',
+      href: '/cosmeticos',
+      posicion: { top: '72%', left: '50%' },
+      tamano: 'normal',
+    },
   },
   {
     id: 3,
@@ -27,7 +40,13 @@ const slides = [
     width: 1717,
     height: 916,
     alt: 'Vitalora — Suplementos de Alta Pureza',
-    boton: { texto: '✦ Ver Suplementos', tipo: 'link', href: '/suplementos' },
+    boton: {
+      texto: '✦ Ver Suplementos',
+      tipo: 'link',
+      href: '/suplementos',
+      posicion: { top: '72%', left: '50%' },
+      tamano: 'normal',
+    },
   },
   {
     id: 4,
@@ -39,13 +58,11 @@ const slides = [
   },
 ]
 
-const botonStyle: React.CSSProperties = {
-  padding: '16px 32px',
+// Estilos base del botón — se pueden sobreescribir por tamano
+const botonBase: React.CSSProperties = {
   background: 'var(--gold)',
   color: 'var(--black)',
   border: '1px solid var(--gold)',
-  fontSize: '12px',
-  letterSpacing: '0.2em',
   textTransform: 'uppercase',
   fontWeight: 600,
   cursor: 'pointer',
@@ -57,6 +74,13 @@ const botonStyle: React.CSSProperties = {
   boxShadow: '0 8px 30px rgba(0,0,0,0.2)',
   textDecoration: 'none',
   transition: 'all 0.3s',
+  whiteSpace: 'nowrap' as const,
+}
+
+const tamanos: Record<string, React.CSSProperties> = {
+  normal: { padding: '16px 32px', fontSize: '12px', letterSpacing: '0.2em' },
+  grande: { padding: '20px 44px', fontSize: '14px', letterSpacing: '0.2em' },
+  pequeno: { padding: '12px 24px', fontSize: '11px', letterSpacing: '0.18em' },
 }
 
 export default function Hero() {
@@ -84,6 +108,10 @@ export default function Hero() {
 
   const slide = slides[current]
 
+  const botonStyle: React.CSSProperties = slide.boton
+    ? { ...botonBase, ...tamanos[slide.boton.tamano || 'normal'] }
+    : {}
+
   return (
     <section style={{ position: 'relative', width: '100%', overflow: 'hidden' }}>
 
@@ -107,16 +135,16 @@ export default function Hero() {
         style={{
           position: 'absolute',
           top: '50%',
-          left: '16px',
+          left: '20px',
           transform: 'translateY(-50%)',
-          width: '44px',
-          height: '44px',
+          width: '48px',
+          height: '48px',
           borderRadius: '50%',
-          background: 'rgba(0,0,0,0.4)',
+          background: 'rgba(0,0,0,0.45)',
           color: 'white',
-          border: '1px solid rgba(255,255,255,0.3)',
+          border: '1px solid rgba(255,255,255,0.35)',
           cursor: 'pointer',
-          fontSize: '18px',
+          fontSize: '20px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -124,7 +152,7 @@ export default function Hero() {
           transition: 'background 0.3s',
         }}
         onMouseEnter={e => e.currentTarget.style.background = 'rgba(0,0,0,0.8)'}
-        onMouseLeave={e => e.currentTarget.style.background = 'rgba(0,0,0,0.4)'}
+        onMouseLeave={e => e.currentTarget.style.background = 'rgba(0,0,0,0.45)'}
       >←</button>
 
       {/* Flecha derecha */}
@@ -133,16 +161,16 @@ export default function Hero() {
         style={{
           position: 'absolute',
           top: '50%',
-          right: '16px',
+          right: '20px',
           transform: 'translateY(-50%)',
-          width: '44px',
-          height: '44px',
+          width: '48px',
+          height: '48px',
           borderRadius: '50%',
-          background: 'rgba(0,0,0,0.4)',
+          background: 'rgba(0,0,0,0.45)',
           color: 'white',
-          border: '1px solid rgba(255,255,255,0.3)',
+          border: '1px solid rgba(255,255,255,0.35)',
           cursor: 'pointer',
-          fontSize: '18px',
+          fontSize: '20px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -150,13 +178,13 @@ export default function Hero() {
           transition: 'background 0.3s',
         }}
         onMouseEnter={e => e.currentTarget.style.background = 'rgba(0,0,0,0.8)'}
-        onMouseLeave={e => e.currentTarget.style.background = 'rgba(0,0,0,0.4)'}
+        onMouseLeave={e => e.currentTarget.style.background = 'rgba(0,0,0,0.45)'}
       >→</button>
 
       {/* Puntos de navegación */}
       <div style={{
         position: 'absolute',
-        bottom: '16px',
+        bottom: '20px',
         left: '50%',
         transform: 'translateX(-50%)',
         display: 'flex',
@@ -185,11 +213,10 @@ export default function Hero() {
       {slide.boton && (
         <div style={{
           position: 'absolute',
-          top: '25%',
-          left: '50%',
-          transform: 'translateX(-50%)',
+          top: slide.boton.posicion.top,
+          left: slide.boton.posicion.left,
+          transform: 'translate(-50%, -50%)',
           zIndex: 10,
-          whiteSpace: 'nowrap',
         }}>
           {slide.boton.tipo === 'lora' ? (
             <button
@@ -208,7 +235,7 @@ export default function Hero() {
             </button>
           ) : (
             <Link
-              href={slide.boton.href || '/'}
+              href={(slide.boton as any).href || '/'}
               style={botonStyle}
               onMouseEnter={e => {
                 e.currentTarget.style.background = 'var(--black)'

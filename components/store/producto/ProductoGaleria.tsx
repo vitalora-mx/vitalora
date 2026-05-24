@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 interface Props {
   producto: any
@@ -8,6 +8,9 @@ interface Props {
 
 export default function ProductoGaleria({ producto }: Props) {
   const [seleccionada, setSeleccionada] = useState(0)
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => { setMounted(true) }, [])
 
   const imagenes = [
     { color: producto.color },
@@ -16,10 +19,12 @@ export default function ProductoGaleria({ producto }: Props) {
     { color: 'linear-gradient(135deg, #F5F0E8, #EDE6D8)' },
   ]
 
+  if (!mounted) return null
+
   return (
-    <div style={{ display: 'flex', gap: '16px' }}>
+    <div style={{ display: 'flex', gap: '16px', width: '100%', maxWidth: '600px' }}>
       {/* Miniaturas */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', flexShrink: 0 }}>
         {imagenes.map((img, i) => (
           <button
             key={i}
@@ -34,6 +39,7 @@ export default function ProductoGaleria({ producto }: Props) {
               cursor: 'pointer',
               padding: 0,
               transition: 'border-color 0.2s',
+              flexShrink: 0,
             }}
           />
         ))}
@@ -42,13 +48,15 @@ export default function ProductoGaleria({ producto }: Props) {
       {/* Imagen principal */}
       <div style={{
         flex: 1,
-        aspectRatio: '1',
+        minWidth: 0,
+        aspectRatio: '1 / 1',
         background: imagenes[seleccionada].color,
         borderRadius: '4px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         position: 'relative',
+        overflow: 'hidden',
       }}>
         {producto.tag && (
           <div style={{
