@@ -11,11 +11,10 @@ export async function GET(req: NextRequest) {
   const tipo = searchParams.get('tipo')
   const slug = searchParams.get('slug')
 
-  // Producto individual por slug
   if (slug) {
     const { data, error } = await supabase
       .from('productos')
-      .select('*, producto_imagenes(*)')
+      .select('*, producto_imagenes(*), producto_videos(*)')
       .eq('slug', slug)
       .eq('activo', true)
       .single()
@@ -24,16 +23,13 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(data)
   }
 
-  // Lista de productos por tipo
   let query = supabase
     .from('productos')
-    .select('*, producto_imagenes(*)')
+    .select('*, producto_imagenes(*), producto_videos(*)')
     .eq('activo', true)
     .order('created_at', { ascending: false })
 
-  if (tipo) {
-    query = query.eq('tipo', tipo)
-  }
+  if (tipo) query = query.eq('tipo', tipo)
 
   const { data, error } = await query
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
