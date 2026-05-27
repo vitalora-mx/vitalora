@@ -16,6 +16,7 @@ interface Producto {
 interface Marca { id: number; nombre: string; tipo: string }
 interface KitComponente { producto_id: number; cantidad: number }
 interface VideoItem { youtube_url: string; titulo: string }
+interface ImagenExistente { id: number; url: string }
 
 const categoriasCosmeticos = ['Sérum', 'Crema & Balm', 'Limpiador & Exfoliante', 'Tónico & Mist', 'Protector Solar', 'Cuidado de Ojos', 'Mascarillas & Parche', 'Parches para Acné', 'Labios', 'Make Up', 'Cuidado del Cabello', 'Beauty Dispositivo', 'Kits', 'Cuidado Corporal']
 const categoriasSuplementos = ['Vitaminas', 'Minerales', 'Proteínas', 'Colágeno', 'Probióticos', 'Omega 3', 'Antioxidantes', 'Energía', 'Cabello y Piel', 'Digestión', 'Sueño', 'Kits']
@@ -35,8 +36,9 @@ export default function AdminProductosPage() {
   const [editingId, setEditingId] = useState<number | null>(null)
   const [saving, setSaving] = useState(false)
   const [mensaje, setMensaje] = useState('')
-  const [imagenes, setImagenes] = useState<File[]>([])
-  const [previews, setPreviews] = useState<string[]>([])
+  const [imagenesNuevas, setImagenesNuevas] = useState<File[]>([])
+  const [previewsNuevas, setPreviewsNuevas] = useState<string[]>([])
+  const [imagenesExistentes, setImagenesExistentes] = useState<ImagenExistente[]>([])
   const [componentes, setComponentes] = useState<KitComponente[]>([])
   const [videos, setVideos] = useState<VideoItem[]>([])
   const [form, setForm] = useState(emptyForm)
@@ -77,22 +79,28 @@ export default function AdminProductosPage() {
 
   function handleImagenes(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files || [])
-    setImagenes(prev => [...prev, ...files])
-    setPreviews(prev => [...prev, ...files.map(f => URL.createObjectURL(f))])
+    setImagenesNuevas(prev => [...prev, ...files])
+    setPreviewsNuevas(prev => [...prev, ...files.map(f => URL.createObjectURL(f))])
   }
 
-  function quitarImagen(i: number) { setImagenes(prev => prev.filter((_, idx) => idx !== i)); setPreviews(prev => prev.filter((_, idx) => idx !== i)) }
+  function quitarImagenNueva(i: number) {
+    setImagenesNuevas(prev => prev.filter((_, idx) => idx !== i))
+    setPreviewsNuevas(prev => prev.filter((_, idx) => idx !== i))
+  }
+
+  async function quitarImagenExistente(imgId: number) {
+    await fetch(`/api/admin/delete-image?id=${imgId}`, { method: 'DELETE' })
+    setImagenesExistentes(prev => prev.filter(img => img.id !== imgId))
+  }
 
   function generarSlug(nombre: string) {
     return nombre.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
   }
 
-  // Videos
   function agregarVideo() { setVideos(prev => [...prev, { youtube_url: '', titulo: '' }]) }
   function actualizarVideo(i: number, field: string, value: string) { setVideos(prev => prev.map((v, idx) => idx === i ? { ...v, [field]: value } : v)) }
   function quitarVideo(i: number) { setVideos(prev => prev.filter((_, idx) => idx !== i)) }
 
-  // Kits
   function agregarComponente() { setComponentes(prev => [...prev, { producto_id: 0, cantidad: 1 }]) }
   function actualizarComponente(i: number, field: string, value: any) { setComponentes(prev => prev.map((c, idx) => idx === i ? { ...c, [field]: value } : c)) }
   function quitarComponente(i: number) { setComponentes(prev => prev.filter((_, idx) => idx !== i)) }
@@ -121,12 +129,14 @@ export default function AdminProductosPage() {
     })
     setComponentes([])
     setVideos(p.producto_videos?.sort((a, b) => a.posicion - b.posicion).map(v => ({ youtube_url: v.youtube_url, titulo: v.titulo })) || [])
-    setImagenes([]); setPreviews(p.producto_imagenes?.map(img => img.url) || [])
+    setImagenesNuevas([])
+    setPreviewsNuevas([])
+    setImagenesExistentes(p.producto_imagenes?.sort((a, b) => a.posicion - b.posicion).map(img => ({ id: img.id, url: img.url })) || [])
     setShowForm(true)
   }
 
-  function abrirNuevo() { setEditingId(null); setForm(emptyForm); setImagenes([]); setPreviews([]); setComponentes([]); setVideos([]); setShowForm(true) }
-  function cerrarForm() { setShowForm(false); setEditingId(null); setForm(emptyForm); setImagenes([]); setPreviews([]); setComponentes([]); setVideos([]) }
+  function abrirNuevo() { setEditingId(null); setForm(emptyForm); setImagenesNuevas([]); setPreviewsNuevas([]); setImagenesExistentes([]); setComponentes([]); setVideos([]); setShowForm(true) }
+  function cerrarForm() { setShowForm(false); setEditingId(null); setForm(emptyForm); setImagenesNuevas([]); setPreviewsNuevas([]); setImagenesExistentes([]); setComponentes([]); setVideos([]) }
 
   async function handleSubmit() {
     if (!form.nombre || !form.marca || !form.categoria || !form.precio) { setMensaje('Completa: nombre, marca, categoría y precio'); return }
@@ -153,11 +163,14 @@ export default function AdminProductosPage() {
         producto = await res.json()
       }
       if (producto.error) { setMensaje('Error: ' + producto.error); setSaving(false); return }
-      const nuevasImg = imagenes.filter(f => f instanceof File)
-      for (let i = 0; i < nuevasImg.length; i++) {
-        const fd = new FormData(); fd.append('file', nuevasImg[i]); fd.append('producto_id', String(editingId || producto.id)); fd.append('posicion', String(i))
+
+      // Subir solo imágenes nuevas
+      const startPos = imagenesExistentes.length
+      for (let i = 0; i < imagenesNuevas.length; i++) {
+        const fd = new FormData(); fd.append('file', imagenesNuevas[i]); fd.append('producto_id', String(editingId || producto.id)); fd.append('posicion', String(startPos + i))
         await fetch('/api/admin/upload', { method: 'POST', body: fd })
       }
+
       setMensaje(editingId ? 'Producto actualizado' : 'Producto creado exitosamente')
       cerrarForm(); cargarProductos()
     } catch { setMensaje('Error al guardar') }
@@ -225,7 +238,7 @@ export default function AdminProductosPage() {
           </div>
 
           {/* Descripción */}
-          <div style={{ marginBottom: '16px' }}><label style={L}>Descripción</label><textarea name="descripcion" value={form.descripcion} onChange={handleChange} rows={3} placeholder="Descripción..." style={{ ...S, resize: 'vertical' }} /></div>
+          <div style={{ marginBottom: '16px' }}><label style={L}>Descripción</label><textarea name="descripcion" value={form.descripcion} onChange={handleChange} rows={3} style={{ ...S, resize: 'vertical' }} /></div>
 
           {/* Ingredientes y Cómo usar */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
@@ -279,11 +292,11 @@ export default function AdminProductosPage() {
               <label style={{ ...L, margin: 0 }}>🎬 Videos YouTube</label>
               <button onClick={agregarVideo} style={{ padding: '6px 16px', background: '#111', color: 'white', border: 'none', borderRadius: '6px', fontSize: '12px', cursor: 'pointer', fontFamily: 'inherit' }}>+ Agregar video</button>
             </div>
-            {videos.length === 0 ? <p style={{ fontSize: '13px', color: '#888', textAlign: 'center' }}>Sin videos — agrega URLs de YouTube</p> : (
+            {videos.length === 0 ? <p style={{ fontSize: '13px', color: '#888', textAlign: 'center' }}>Sin videos</p> : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 {videos.map((v, i) => (
                   <div key={i} style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                    <input value={v.titulo} onChange={e => actualizarVideo(i, 'titulo', e.target.value)} placeholder="Título del video" style={{ ...S, flex: 1 }} />
+                    <input value={v.titulo} onChange={e => actualizarVideo(i, 'titulo', e.target.value)} placeholder="Título" style={{ ...S, flex: 1 }} />
                     <input value={v.youtube_url} onChange={e => actualizarVideo(i, 'youtube_url', e.target.value)} placeholder="https://youtube.com/watch?v=..." style={{ ...S, flex: 2 }} />
                     <button onClick={() => quitarVideo(i)} style={{ width: '32px', height: '32px', borderRadius: '6px', background: '#FEE', border: '1px solid #FAA', color: '#A33', cursor: 'pointer', fontSize: '14px', flexShrink: 0 }}>✕</button>
                   </div>
@@ -294,11 +307,36 @@ export default function AdminProductosPage() {
 
           {/* Imágenes */}
           <div style={{ marginBottom: '24px' }}>
-            <label style={L}>Imágenes (800x800px)</label>
+            <label style={L}>Imágenes del producto</label>
+
+            {/* Imágenes existentes */}
+            {imagenesExistentes.length > 0 && (
+              <div style={{ marginBottom: '12px' }}>
+                <p style={{ fontSize: '12px', color: '#888', marginBottom: '8px' }}>Imágenes actuales — click en ✕ para eliminar de Supabase:</p>
+                <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                  {imagenesExistentes.map(img => (
+                    <div key={img.id} style={{ position: 'relative' }}>
+                      <img src={img.url} alt="" style={{ width: '100px', height: '100px', objectFit: 'contain', borderRadius: '8px', border: '1px solid #DDD', background: 'white' }} />
+                      <button onClick={() => quitarImagenExistente(img.id)} style={{ position: 'absolute', top: '-6px', right: '-6px', width: '22px', height: '22px', borderRadius: '50%', background: '#F33', color: 'white', border: 'none', cursor: 'pointer', fontSize: '12px', fontWeight: 700 }}>✕</button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Agregar nuevas */}
             <input type="file" accept="image/*" multiple onChange={handleImagenes} style={{ marginBottom: '12px' }} />
-            {previews.length > 0 && <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>{previews.map((src, i) => (
-              <div key={i} style={{ position: 'relative' }}><img src={src} alt="" style={{ width: '100px', height: '100px', objectFit: 'cover', borderRadius: '8px', border: '1px solid #DDD' }} /><button onClick={() => quitarImagen(i)} style={{ position: 'absolute', top: '-6px', right: '-6px', width: '22px', height: '22px', borderRadius: '50%', background: '#F33', color: 'white', border: 'none', cursor: 'pointer', fontSize: '12px', fontWeight: 700 }}>✕</button></div>
-            ))}</div>}
+            {previewsNuevas.length > 0 && (
+              <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                {previewsNuevas.map((src, i) => (
+                  <div key={i} style={{ position: 'relative' }}>
+                    <img src={src} alt="" style={{ width: '100px', height: '100px', objectFit: 'contain', borderRadius: '8px', border: '1px solid #4A4', background: 'white' }} />
+                    <button onClick={() => quitarImagenNueva(i)} style={{ position: 'absolute', top: '-6px', right: '-6px', width: '22px', height: '22px', borderRadius: '50%', background: '#F33', color: 'white', border: 'none', cursor: 'pointer', fontSize: '12px', fontWeight: 700 }}>✕</button>
+                    <div style={{ position: 'absolute', bottom: '4px', left: '4px', padding: '2px 6px', background: '#4A4', color: 'white', fontSize: '9px', borderRadius: '3px' }}>Nueva</div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Botones */}
@@ -318,8 +356,8 @@ export default function AdminProductosPage() {
         <div style={{ display: 'grid', gap: '12px' }}>
           {productos.map(p => (
             <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '16px 20px', background: 'white', borderRadius: '8px', border: '1px solid #E5E5E5' }}>
-              <div style={{ width: '64px', height: '64px', borderRadius: '8px', background: '#F5F0E8', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, overflow: 'hidden' }}>
-                {p.producto_imagenes?.[0] ? <img src={p.producto_imagenes[0].url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ fontSize: '24px', color: '#CCC' }}>V</span>}
+              <div style={{ width: '64px', height: '64px', borderRadius: '8px', background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, overflow: 'hidden', border: '1px solid #EEE' }}>
+                {p.producto_imagenes?.[0] ? <img src={p.producto_imagenes[0].url} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain' }} /> : <span style={{ fontSize: '24px', color: '#CCC' }}>V</span>}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', flexWrap: 'wrap' }}>
@@ -327,6 +365,7 @@ export default function AdminProductosPage() {
                   {p.tag && <span style={{ fontSize: '10px', padding: '2px 8px', background: '#F5F0E8', borderRadius: '4px', color: '#888' }}>{p.tag}</span>}
                   {p.categoria === 'Kits' && <span style={{ fontSize: '10px', padding: '2px 8px', background: '#E8F0E8', borderRadius: '4px', color: '#3A3' }}>📦 Kit</span>}
                   {p.producto_videos?.length > 0 && <span style={{ fontSize: '10px', padding: '2px 8px', background: '#F0F0FF', borderRadius: '4px', color: '#55A' }}>🎬 {p.producto_videos.length}</span>}
+                  {p.producto_imagenes?.length > 0 && <span style={{ fontSize: '10px', padding: '2px 8px', background: '#FFF5E5', borderRadius: '4px', color: '#A85' }}>📷 {p.producto_imagenes.length}</span>}
                 </div>
                 <div style={{ fontSize: '12px', color: '#888' }}>{p.sku && <span style={{ color: '#666', marginRight: '8px' }}>[{p.sku}]</span>}{p.marca} · {p.categoria}</div>
               </div>

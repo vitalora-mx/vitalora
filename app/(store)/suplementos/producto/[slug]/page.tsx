@@ -117,7 +117,7 @@ export default function ProductoSuplementoPage() {
                 {imagenes.map((img, i) => (
                   <button key={img.id} onClick={() => setSeleccionada(i)}
                     style={{ width: '72px', height: '72px', border: '2px solid', borderColor: seleccionada === i ? '#6B8F6B' : '#EEE', borderRadius: '4px', cursor: 'pointer', padding: 0, overflow: 'hidden', flexShrink: 0 }}>
-                    <img src={img.url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <img src={img.url} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                   </button>
                 ))}
               </div>
@@ -130,7 +130,7 @@ export default function ProductoSuplementoPage() {
                 <div style={{ position: 'absolute', top: '20px', right: '20px', padding: '6px 14px', background: '#D33', color: 'white', fontSize: '11px', letterSpacing: '0.15em', textTransform: 'uppercase', fontWeight: 600, borderRadius: '100px', zIndex: 2 }}>Agotado</div>
               )}
               {imagenes[seleccionada] ? (
-                <img src={imagenes[seleccionada].url} alt={producto.nombre} style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: agotado ? 0.5 : 1 }} />
+                <img src={imagenes[seleccionada].url} alt={producto.nombre} style={{ width: '100%', height: '100%', objectFit: 'contain', opacity: agotado ? 0.5 : 1 }} />
               ) : (
                 <div style={{ fontFamily: 'var(--font-italiana), serif', fontSize: '80px', color: 'rgba(107,143,107,0.2)' }}>V</div>
               )}

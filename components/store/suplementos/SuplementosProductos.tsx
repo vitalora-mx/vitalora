@@ -165,7 +165,7 @@ export default function SuplementosProductos({ categoriaActiva }: Props) {
                   <div style={{ aspectRatio: '1', background: '#F0F7F0', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden' }}>
                     {producto.tag && <div style={{ position: 'absolute', top: '12px', left: '12px', padding: '4px 10px', background: '#6B8F6B', color: 'white', fontSize: '10px', letterSpacing: '0.1em', borderRadius: '100px', fontWeight: 600, zIndex: 2 }}>{producto.tag}</div>}
                     {getImagen(producto) ? (
-                      <img src={getImagen(producto)!} alt={producto.nombre} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      <img src={getImagen(producto)!} alt={producto.nombre} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                     ) : (
                       <div style={{ fontFamily: 'var(--font-italiana), serif', fontSize: '40px', color: 'rgba(107,143,107,0.2)' }}>V</div>
                     )}
