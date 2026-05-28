@@ -3,16 +3,27 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useCartStore } from '@/store/cartStore'
+import { useAuthStore } from '@/store/authStore'
 
 const ENVIO_GRATIS = 1000
 const COSTO_ENVIO = 99
 
+interface Direccion {
+  id: number; nombre_etiqueta: string; calle: string; numero: string; interior: string
+  colonia: string; ciudad: string; estado: string; cp: string; referencia: string; es_principal: boolean
+}
+
 export default function CheckoutPage() {
   const { items, total } = useCartStore()
+  const { user, isLoggedIn } = useAuthStore()
   const [mounted, setMounted] = useState(false)
   const [paso, setPaso] = useState(1)
   const [enviando, setEnviando] = useState(false)
   const [datosConfirmados, setDatosConfirmados] = useState(false)
+  const [direcciones, setDirecciones] = useState<Direccion[]>([])
+  const [direccionSeleccionada, setDireccionSeleccionada] = useState<number | null>(null)
+  const [usarNuevaDireccion, setUsarNuevaDireccion] = useState(false)
+  const [perfilCargado, setPerfilCargado] = useState(false)
 
   const [form, setForm] = useState({
     nombre: '', apellido: '', email: '', telefono: '',
@@ -21,11 +32,75 @@ export default function CheckoutPage() {
   })
 
   useEffect(() => { setMounted(true) }, [])
+
+  // Auto-llenar datos si está logueado
+  useEffect(() => {
+    if (mounted && isLoggedIn() && user && !perfilCargado) {
+      cargarDatosUsuario()
+    }
+  }, [mounted, user])
+
+  async function cargarDatosUsuario() {
+    if (!user) return
+    try {
+      // Cargar perfil
+      const perfilRes = await fetch('/api/cuenta/perfil', { headers: { 'x-user-id': user.id } })
+      if (perfilRes.ok) {
+        const perfil = await perfilRes.json()
+        setForm(prev => ({
+          ...prev,
+          nombre: perfil.nombre || '', apellido: perfil.apellido || '',
+          email: user.email || '', telefono: perfil.telefono || '',
+        }))
+      }
+
+      // Cargar direcciones
+      const dirRes = await fetch('/api/cuenta/direcciones', { headers: { 'x-user-id': user.id } })
+      if (dirRes.ok) {
+        const dirs = await dirRes.json()
+        if (Array.isArray(dirs) && dirs.length > 0) {
+          setDirecciones(dirs)
+          const principal = dirs.find((d: Direccion) => d.es_principal) || dirs[0]
+          setDireccionSeleccionada(principal.id)
+          aplicarDireccion(principal)
+        } else {
+          setUsarNuevaDireccion(true)
+        }
+      }
+      setPerfilCargado(true)
+    } catch (e) { console.error(e) }
+  }
+
+  function aplicarDireccion(d: Direccion) {
+    setForm(prev => ({
+      ...prev,
+      calle: d.calle, numero: d.numero, interior: d.interior || '',
+      colonia: d.colonia || '', ciudad: d.ciudad || '', estado: d.estado || '',
+      cp: d.cp, referencia: d.referencia || '',
+    }))
+  }
+
+  function seleccionarDireccion(id: number) {
+    const dir = direcciones.find(d => d.id === id)
+    if (dir) {
+      setDireccionSeleccionada(id)
+      setUsarNuevaDireccion(false)
+      aplicarDireccion(dir)
+    }
+  }
+
+  function activarNuevaDireccion() {
+    setUsarNuevaDireccion(true)
+    setDireccionSeleccionada(null)
+    setForm(prev => ({ ...prev, calle: '', numero: '', interior: '', colonia: '', ciudad: '', estado: '', cp: '', referencia: '' }))
+  }
+
   if (!mounted) return null
 
   const subtotal = total()
   const costoEnvio = subtotal >= ENVIO_GRATIS ? 0 : COSTO_ENVIO
   const totalFinal = subtotal + costoEnvio
+  const logueado = isLoggedIn()
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) {
     setForm({ ...form, [e.target.name]: e.target.value })
@@ -44,8 +119,9 @@ export default function CheckoutPage() {
         body: JSON.stringify({
           items,
           comprador: { nombre: form.nombre, apellido: form.apellido, email: form.email, telefono: form.telefono },
-          direccion: { cp: form.cp, calle: form.calle, numero: form.numero, interior: form.interior, referencia: form.referencia },
+          direccion: { cp: form.cp, calle: form.calle, numero: form.numero, interior: form.interior, colonia: form.colonia, ciudad: form.ciudad, estado: form.estado, referencia: form.referencia },
           costoEnvio,
+          userId: user?.id || null,
         }),
       })
       const data = await res.json()
@@ -86,6 +162,11 @@ export default function CheckoutPage() {
           <Link href="/" style={{ textDecoration: 'none' }}>
             <div style={{ fontFamily: 'var(--font-italiana), serif', fontSize: '32px', letterSpacing: '0.15em', color: 'var(--black)' }}>VITALORA</div>
           </Link>
+          {logueado && (
+            <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '8px' }}>
+              Comprando como <strong style={{ color: 'var(--black)' }}>{user?.email}</strong>
+            </div>
+          )}
         </div>
 
         {/* Pasos */}
@@ -112,12 +193,32 @@ export default function CheckoutPage() {
             {paso === 1 && (
               <div>
                 <h2 style={{ fontFamily: 'var(--font-italiana), serif', fontSize: '28px', marginBottom: '8px', color: 'var(--black)' }}>Datos personales</h2>
+
+                {logueado && perfilCargado && (
+                  <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start', padding: '12px 16px', background: '#F0F7F0', border: '1px solid #A8C5A0', borderRadius: '4px', marginBottom: '20px' }}>
+                    <span style={{ fontSize: '16px', flexShrink: 0 }}>✓</span>
+                    <p style={{ fontSize: '12px', color: '#3A5A3A', lineHeight: 1.6, margin: 0 }}>
+                      Datos auto-llenados desde tu cuenta. Puedes modificarlos si necesitas.
+                    </p>
+                  </div>
+                )}
+
+                {!logueado && (
+                  <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start', padding: '12px 16px', background: '#F5F0FF', border: '1px solid #D5C8F0', borderRadius: '4px', marginBottom: '20px' }}>
+                    <span style={{ fontSize: '16px', flexShrink: 0 }}>💡</span>
+                    <p style={{ fontSize: '12px', color: '#5A3A8A', lineHeight: 1.6, margin: 0 }}>
+                      <Link href="/cuenta" style={{ color: '#5A3A8A', fontWeight: 600 }}>Inicia sesión</Link> para auto-llenar tus datos y obtener <strong>5% de descuento</strong> en tu primera compra.
+                    </p>
+                  </div>
+                )}
+
                 <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start', padding: '12px 16px', background: '#FFF8E7', border: '1px solid #F0D080', borderRadius: '4px', marginBottom: '28px' }}>
                   <span style={{ fontSize: '16px', flexShrink: 0 }}>⚠️</span>
                   <p style={{ fontSize: '12px', color: '#7A6000', lineHeight: 1.6, margin: 0 }}>
                     <strong>Importante:</strong> El nombre debe ser exactamente como aparece en tu identificación oficial (INE, pasaporte o licencia). La paquetería solo entregará el pedido al titular con identificación que coincida con los datos del envío.
                   </p>
                 </div>
+
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                   {[
                     { name: 'nombre', label: 'Nombre (como en tu ID)', placeholder: 'Tu nombre' },
@@ -141,23 +242,73 @@ export default function CheckoutPage() {
             {paso === 2 && (
               <div>
                 <h2 style={{ fontFamily: 'var(--font-italiana), serif', fontSize: '28px', marginBottom: '32px', color: 'var(--black)' }}>Dirección de envío</h2>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-                  {[
-                    { name: 'calle', label: 'Calle', placeholder: 'Nombre de la calle', span: 2 },
-                    { name: 'numero', label: 'Número exterior', placeholder: 'Ej: 123', span: 1 },
-                    { name: 'interior', label: 'Interior / Depto (opcional)', placeholder: 'Ej: A', span: 1 },
-                    { name: 'colonia', label: 'Colonia', placeholder: 'Tu colonia', span: 2 },
-                    { name: 'ciudad', label: 'Ciudad / Municipio', placeholder: 'Tu ciudad', span: 1 },
-                    { name: 'estado', label: 'Estado', placeholder: 'Tu estado', span: 1 },
-                    { name: 'cp', label: 'Código Postal', placeholder: '5 dígitos', span: 1 },
-                    { name: 'referencia', label: 'Referencia (opcional)', placeholder: 'Ej: Casa azul, entre calles Juárez y Morelos', span: 2 },
-                  ].map((field) => (
-                    <div key={field.name} style={{ gridColumn: `span ${field.span}` }}>
-                      <label style={labelStyle}>{field.label}</label>
-                      <input name={field.name} value={(form as any)[field.name]} onChange={handleChange} placeholder={field.placeholder} maxLength={field.name === 'cp' ? 5 : undefined} style={inputStyle} />
+
+                {/* Selector de direcciones guardadas */}
+                {logueado && direcciones.length > 0 && (
+                  <div style={{ marginBottom: '24px' }}>
+                    <label style={{ ...labelStyle, marginBottom: '12px' }}>Selecciona una dirección guardada</label>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' }}>
+                      {direcciones.map(d => (
+                        <button key={d.id} onClick={() => seleccionarDireccion(d.id)}
+                          style={{
+                            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                            padding: '14px 16px', border: '2px solid', textAlign: 'left', cursor: 'pointer',
+                            borderColor: direccionSeleccionada === d.id && !usarNuevaDireccion ? 'var(--black)' : 'var(--line)',
+                            background: direccionSeleccionada === d.id && !usarNuevaDireccion ? 'rgba(14,14,14,0.02)' : 'white',
+                            borderRadius: '4px', fontFamily: 'inherit', width: '100%',
+                          }}>
+                          <div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                              <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--black)' }}>{d.nombre_etiqueta}</span>
+                              {d.es_principal && <span style={{ fontSize: '9px', padding: '2px 8px', background: 'var(--black)', color: 'white', borderRadius: '100px' }}>PRINCIPAL</span>}
+                            </div>
+                            <div style={{ fontSize: '12px', color: 'var(--text-muted)', lineHeight: 1.5 }}>
+                              {d.calle} {d.numero}{d.interior ? `, Int. ${d.interior}` : ''}, {d.colonia}, {d.ciudad}, {d.estado} CP {d.cp}
+                            </div>
+                          </div>
+                          <div style={{ width: '20px', height: '20px', borderRadius: '50%', border: '2px solid', borderColor: direccionSeleccionada === d.id && !usarNuevaDireccion ? 'var(--black)' : 'var(--line)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                            {direccionSeleccionada === d.id && !usarNuevaDireccion && <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: 'var(--black)' }} />}
+                          </div>
+                        </button>
+                      ))}
+                      <button onClick={activarNuevaDireccion}
+                        style={{
+                          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                          padding: '14px 16px', border: '2px solid', textAlign: 'left', cursor: 'pointer',
+                          borderColor: usarNuevaDireccion ? 'var(--black)' : 'var(--line)',
+                          background: usarNuevaDireccion ? 'rgba(14,14,14,0.02)' : 'white',
+                          borderRadius: '4px', fontFamily: 'inherit', width: '100%',
+                        }}>
+                        <span style={{ fontSize: '13px', color: 'var(--black)' }}>+ Usar una dirección diferente</span>
+                        <div style={{ width: '20px', height: '20px', borderRadius: '50%', border: '2px solid', borderColor: usarNuevaDireccion ? 'var(--black)' : 'var(--line)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          {usarNuevaDireccion && <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: 'var(--black)' }} />}
+                        </div>
+                      </button>
                     </div>
-                  ))}
-                </div>
+                  </div>
+                )}
+
+                {/* Formulario de dirección (siempre visible si no hay guardadas, o si eligió nueva) */}
+                {(!logueado || direcciones.length === 0 || usarNuevaDireccion) && (
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                    {[
+                      { name: 'calle', label: 'Calle', placeholder: 'Nombre de la calle', span: 2 },
+                      { name: 'numero', label: 'Número exterior', placeholder: 'Ej: 123', span: 1 },
+                      { name: 'interior', label: 'Interior / Depto (opcional)', placeholder: 'Ej: A', span: 1 },
+                      { name: 'colonia', label: 'Colonia', placeholder: 'Tu colonia', span: 2 },
+                      { name: 'ciudad', label: 'Ciudad / Municipio', placeholder: 'Tu ciudad', span: 1 },
+                      { name: 'estado', label: 'Estado', placeholder: 'Tu estado', span: 1 },
+                      { name: 'cp', label: 'Código Postal', placeholder: '5 dígitos', span: 1 },
+                      { name: 'referencia', label: 'Referencia (opcional)', placeholder: 'Ej: Casa azul, entre calles Juárez y Morelos', span: 2 },
+                    ].map((field) => (
+                      <div key={field.name} style={{ gridColumn: `span ${field.span}` }}>
+                        <label style={labelStyle}>{field.label}</label>
+                        <input name={field.name} value={(form as any)[field.name]} onChange={handleChange} placeholder={field.placeholder} maxLength={field.name === 'cp' ? 5 : undefined} style={inputStyle} />
+                      </div>
+                    ))}
+                  </div>
+                )}
+
                 <div style={{ display: 'flex', gap: '16px', marginTop: '32px' }}>
                   <button onClick={() => setPaso(1)} style={{ flex: 1, padding: '18px', background: 'none', border: '1px solid var(--line)', fontSize: '13px', letterSpacing: '0.2em', textTransform: 'uppercase', cursor: 'pointer', fontFamily: 'inherit', borderRadius: '2px', color: 'var(--text-muted)' }}>← Regresar</button>
                   <button onClick={() => validarPaso2() && setPaso(3)} style={{ flex: 2, padding: '18px', background: validarPaso2() ? 'var(--black)' : 'var(--line)', color: validarPaso2() ? 'var(--bg-cream)' : 'var(--text-muted)', border: 'none', fontSize: '13px', letterSpacing: '0.2em', textTransform: 'uppercase', fontWeight: 500, cursor: validarPaso2() ? 'pointer' : 'not-allowed', fontFamily: 'inherit', borderRadius: '2px' }}>Continuar →</button>
@@ -171,7 +322,10 @@ export default function CheckoutPage() {
                 <h2 style={{ fontFamily: 'var(--font-italiana), serif', fontSize: '28px', marginBottom: '32px', color: 'var(--black)' }}>Confirmar pedido</h2>
 
                 <div style={{ marginBottom: '16px', padding: '20px', background: 'var(--bg-cream-deep)', borderRadius: '4px' }}>
-                  <div style={{ fontSize: '11px', letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '12px' }}>Datos personales</div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                    <div style={{ fontSize: '11px', letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>Datos personales</div>
+                    <button onClick={() => setPaso(1)} style={{ background: 'none', border: 'none', fontSize: '11px', color: 'var(--gold)', cursor: 'pointer', fontFamily: 'inherit', letterSpacing: '0.1em' }}>Editar</button>
+                  </div>
                   <div style={{ fontSize: '14px', color: 'var(--text)', lineHeight: 1.8 }}>
                     <div>{form.nombre} {form.apellido}</div>
                     <div>{form.email}</div>
@@ -180,7 +334,10 @@ export default function CheckoutPage() {
                 </div>
 
                 <div style={{ marginBottom: '24px', padding: '20px', background: 'var(--bg-cream-deep)', borderRadius: '4px' }}>
-                  <div style={{ fontSize: '11px', letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '12px' }}>Dirección de envío</div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                    <div style={{ fontSize: '11px', letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>Dirección de envío</div>
+                    <button onClick={() => setPaso(2)} style={{ background: 'none', border: 'none', fontSize: '11px', color: 'var(--gold)', cursor: 'pointer', fontFamily: 'inherit', letterSpacing: '0.1em' }}>Cambiar</button>
+                  </div>
                   <div style={{ fontSize: '14px', color: 'var(--text)', lineHeight: 1.8 }}>
                     <div>{form.calle} {form.numero}{form.interior ? `, Int. ${form.interior}` : ''}</div>
                     <div>{form.colonia}</div>
@@ -189,7 +346,6 @@ export default function CheckoutPage() {
                   </div>
                 </div>
 
-                {/* Envío */}
                 <div style={{ marginBottom: '24px', padding: '16px', background: costoEnvio === 0 ? '#F0F7F0' : 'white', border: `1px solid ${costoEnvio === 0 ? '#A8C5A0' : 'var(--line)'}`, borderRadius: '4px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div>
@@ -202,7 +358,6 @@ export default function CheckoutPage() {
                   </div>
                 </div>
 
-                {/* Casilla obligatoria */}
                 <div style={{ marginBottom: '24px', padding: '20px', border: '1px solid', borderColor: datosConfirmados ? '#A8C5A0' : 'var(--line)', borderRadius: '4px', background: datosConfirmados ? '#F0F7F0' : 'white', transition: 'all 0.2s' }}>
                   <label style={{ display: 'flex', gap: '14px', alignItems: 'flex-start', cursor: 'pointer' }}>
                     <div onClick={() => setDatosConfirmados(!datosConfirmados)} style={{ width: '22px', height: '22px', borderRadius: '4px', flexShrink: 0, border: '2px solid', borderColor: datosConfirmados ? 'var(--sage-deep)' : 'var(--line)', background: datosConfirmados ? 'var(--sage-deep)' : 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s', cursor: 'pointer', marginTop: '2px' }}>
@@ -235,7 +390,9 @@ export default function CheckoutPage() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '24px' }}>
                 {items.map((item) => (
                   <div key={item.id} style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                    <div style={{ width: '56px', height: '56px', background: 'var(--bg-cream-deep)', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-italiana), serif', fontSize: '20px', color: 'var(--text-muted)', flexShrink: 0 }}>V</div>
+                    <div style={{ width: '56px', height: '56px', background: 'var(--bg-cream-deep)', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, overflow: 'hidden' }}>
+                      {item.imagen ? <img src={item.imagen} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain' }} /> : <span style={{ fontFamily: 'var(--font-italiana), serif', fontSize: '20px', color: 'var(--text-muted)' }}>V</span>}
+                    </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: '13px', fontWeight: 500, color: 'var(--black)', lineHeight: 1.3 }}>{item.nombre}</div>
                       <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{item.marca} · x{item.cantidad}</div>
