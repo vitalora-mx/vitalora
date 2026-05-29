@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import dynamic from 'next/dynamic'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useCartStore } from '@/store/cartStore'
 
 const CarritoDrawer = dynamic(() => import('@/components/store/CarritoDrawer'), { ssr: false })
@@ -14,7 +14,10 @@ const categorias = [
 
 export default function SuplementosHeader() {
   const [catOpen, setCatOpen] = useState(false)
+  const [mounted, setMounted] = useState(false)
   const { totalItems, abrirCarrito } = useCartStore()
+
+  useEffect(() => { setMounted(true) }, [])
 
   return (
     <>
@@ -51,7 +54,7 @@ export default function SuplementosHeader() {
                 </div>
               )}
             </div>
-            <Link href="/suplementos/ritual" style={{ fontSize: '13px', letterSpacing: '0.1em', textTransform: 'uppercase', color: '#F5F2EC', textDecoration: 'none' }}>Ritual</Link>
+            <Link href="/ritual" style={{ fontSize: '13px', letterSpacing: '0.1em', textTransform: 'uppercase', color: '#F5F2EC', textDecoration: 'none' }}>Ritual</Link>
             <Link href="/suplementos/kits" style={{ fontSize: '13px', letterSpacing: '0.1em', textTransform: 'uppercase', color: '#F5F2EC', textDecoration: 'none' }}>Kits</Link>
           </nav>
 
@@ -72,7 +75,7 @@ export default function SuplementosHeader() {
             </button>
             <button onClick={abrirCarrito} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#F5F2EC', padding: '4px', position: 'relative' }}>
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
-              {totalItems() > 0 && (
+              {mounted && totalItems() > 0 && (
                 <span style={{ position: 'absolute', top: '-4px', right: '-8px', background: '#A8C5A0', color: '#0E0E0E', fontSize: '10px', width: '18px', height: '18px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 }}>
                   {totalItems()}
                 </span>
