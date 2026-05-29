@@ -8,7 +8,7 @@ const supabaseAdmin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, proces
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const { items, comprador, direccion, costoEnvio, userId, descuento, descuentoTipo } = body
+    const { items, comprador, direccion, costoEnvio, userId, descuento, descuentoTipo, codigoDescuento } = body
 
     const subtotal = items.reduce((sum: number, item: any) => sum + item.precio * item.cantidad, 0)
     const montoDescuento = descuento || 0
@@ -37,6 +37,7 @@ export async function POST(req: NextRequest) {
         costo_envio: costoEnvio,
         total,
         user_id: userId || null,
+        codigo_descuento: codigoDescuento || null,
       })
       .select()
       .single()

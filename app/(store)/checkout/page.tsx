@@ -25,6 +25,10 @@ export default function CheckoutPage() {
   const [usarNuevaDireccion, setUsarNuevaDireccion] = useState(false)
   const [perfilCargado, setPerfilCargado] = useState(false)
   const [descuentoPrimeraCompra, setDescuentoPrimeraCompra] = useState(false)
+  const [codigoInput, setCodigoInput] = useState('')
+  const [codigoAplicado, setCodigoAplicado] = useState<{ codigo: string; tipo: string; valor: number; montoDescuento: number; descripcion: string } | null>(null)
+  const [codigoError, setCodigoError] = useState('')
+  const [validandoCodigo, setValidandoCodigo] = useState(false)
 
   const [form, setForm] = useState({
     nombre: '', apellido: '', email: '', telefono: '',
@@ -97,11 +101,36 @@ export default function CheckoutPage() {
     setForm(prev => ({ ...prev, calle: '', numero: '', interior: '', colonia: '', ciudad: '', estado: '', cp: '', referencia: '' }))
   }
 
+  async function validarCodigo() {
+    if (!codigoInput.trim()) return
+    setValidandoCodigo(true); setCodigoError('')
+    try {
+      const res = await fetch('/api/validar-codigo', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ codigo: codigoInput, subtotal: total() }),
+      })
+      const data = await res.json()
+      if (data.error) { setCodigoError(data.error) }
+      else { setCodigoAplicado(data); setDescuentoPrimeraCompra(false) }
+    } catch { setCodigoError('Error validando código') }
+    setValidandoCodigo(false)
+  }
+
+  function quitarCodigo() {
+    setCodigoAplicado(null); setCodigoInput('')
+    // Restaurar descuento primera compra si aplica
+    if (isLoggedIn() && user) {
+      fetch('/api/cuenta/perfil', { headers: { 'x-user-id': user.id } })
+        .then(r => r.json())
+        .then(p => { if (!p.primera_compra_usada) setDescuentoPrimeraCompra(true) })
+    }
+  }
+
   if (!mounted) return null
 
   const subtotal = total()
   const costoEnvio = subtotal >= ENVIO_GRATIS ? 0 : COSTO_ENVIO
-  const montoDescuento = descuentoPrimeraCompra ? Math.round(subtotal * 0.05) : 0
+  const montoDescuento = codigoAplicado ? codigoAplicado.montoDescuento : (descuentoPrimeraCompra ? Math.round(subtotal * 0.05) : 0)
   const totalFinal = subtotal - montoDescuento + costoEnvio
   const logueado = isLoggedIn()
 
@@ -126,7 +155,8 @@ export default function CheckoutPage() {
           costoEnvio,
           userId: user?.id || null,
           descuento: montoDescuento,
-          descuentoTipo: descuentoPrimeraCompra ? 'primera_compra' : null,
+          descuentoTipo: codigoAplicado ? 'codigo' : (descuentoPrimeraCompra ? 'primera_compra' : null),
+          codigoDescuento: codigoAplicado?.codigo || null,
         }),
       })
       const data = await res.json()
@@ -346,8 +376,8 @@ export default function CheckoutPage() {
                   </div>
                 </div>
 
-                {/* Descuento primera compra */}
-                {descuentoPrimeraCompra && (
+                {/* Descuento aplicado */}
+                {descuentoPrimeraCompra && !codigoAplicado && (
                   <div style={{ marginBottom: '24px', padding: '16px', background: '#F0F7F0', border: '1px solid #A8C5A0', borderRadius: '4px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -358,6 +388,24 @@ export default function CheckoutPage() {
                         </div>
                       </div>
                       <div style={{ fontFamily: 'var(--font-cormorant), serif', fontSize: '20px', fontWeight: 600, color: '#3A5A3A' }}>-${montoDescuento.toLocaleString()}</div>
+                    </div>
+                  </div>
+                )}
+
+                {codigoAplicado && (
+                  <div style={{ marginBottom: '24px', padding: '16px', background: '#F0F7F0', border: '1px solid #A8C5A0', borderRadius: '4px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <span style={{ fontSize: '18px' }}>🏷️</span>
+                        <div>
+                          <div style={{ fontSize: '13px', fontWeight: 600, color: '#3A5A3A' }}>Código {codigoAplicado.codigo} aplicado</div>
+                          <div style={{ fontSize: '11px', color: '#6B8F6B' }}>{codigoAplicado.descripcion}</div>
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <div style={{ fontFamily: 'var(--font-cormorant), serif', fontSize: '20px', fontWeight: 600, color: '#3A5A3A' }}>-${codigoAplicado.montoDescuento.toLocaleString()}</div>
+                        <button onClick={quitarCodigo} style={{ background: 'none', border: 'none', fontSize: '14px', color: '#A33', cursor: 'pointer' }}>✕</button>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -421,9 +469,9 @@ export default function CheckoutPage() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: 'var(--text-muted)' }}>
                   <span>Subtotal</span><span>${subtotal.toLocaleString()} MXN</span>
                 </div>
-                {descuentoPrimeraCompra && (
+                {montoDescuento > 0 && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: '#3A8A3A', fontWeight: 500 }}>
-                    <span>🎉 Descuento 5%</span><span>-${montoDescuento.toLocaleString()} MXN</span>
+                    <span>{codigoAplicado ? '🏷️ ' + codigoAplicado.codigo : '🎉 Descuento 5%'}</span><span>-${montoDescuento.toLocaleString()} MXN</span>
                   </div>
                 )}
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: costoEnvio === 0 ? '#6B8F6B' : 'var(--text-muted)' }}>
@@ -435,6 +483,29 @@ export default function CheckoutPage() {
                   <span style={{ fontFamily: 'var(--font-cormorant), serif', fontSize: '24px', fontWeight: 600, color: 'var(--black)' }}>${totalFinal.toLocaleString()} MXN</span>
                 </div>
               </div>
+            </div>
+
+            {/* Campo de código de descuento */}
+            <div style={{ marginTop: '16px', background: 'white', padding: '20px', borderRadius: '4px', border: '1px solid var(--line)' }}>
+              <div style={{ fontSize: '11px', letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '10px' }}>Código de descuento</div>
+              {codigoAplicado ? (
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ padding: '4px 10px', background: '#111', color: 'white', borderRadius: '4px', fontFamily: 'monospace', fontSize: '13px', fontWeight: 700, letterSpacing: '0.1em' }}>{codigoAplicado.codigo}</span>
+                    <span style={{ fontSize: '12px', color: '#3A8A3A' }}>✓</span>
+                  </div>
+                  <button onClick={quitarCodigo} style={{ background: 'none', border: 'none', fontSize: '12px', color: '#A33', cursor: 'pointer', fontFamily: 'inherit' }}>Quitar</button>
+                </div>
+              ) : (
+                <div>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <input value={codigoInput} onChange={e => { setCodigoInput(e.target.value.toUpperCase()); setCodigoError('') }} placeholder="Ej: BIENVENIDO10" onKeyDown={e => e.key === 'Enter' && validarCodigo()} style={{ flex: 1, padding: '10px 12px', border: '1px solid var(--line)', borderRadius: '2px', fontSize: '13px', fontFamily: 'monospace', textTransform: 'uppercase', letterSpacing: '0.1em', outline: 'none' }} />
+                    <button onClick={validarCodigo} disabled={validandoCodigo || !codigoInput.trim()} style={{ padding: '10px 16px', background: codigoInput.trim() ? 'var(--black)' : 'var(--line)', color: codigoInput.trim() ? 'white' : 'var(--text-muted)', border: 'none', borderRadius: '2px', fontSize: '12px', cursor: codigoInput.trim() ? 'pointer' : 'not-allowed', fontFamily: 'inherit', fontWeight: 600 }}>{validandoCodigo ? '...' : 'Aplicar'}</button>
+                  </div>
+                  {codigoError && <p style={{ fontSize: '11px', color: '#D33', marginTop: '6px', marginBottom: 0 }}>{codigoError}</p>}
+                  {descuentoPrimeraCompra && <p style={{ fontSize: '11px', color: '#888', marginTop: '6px', marginBottom: 0 }}>Nota: los códigos no son acumulables con el descuento de primera compra</p>}
+                </div>
+              )}
             </div>
 
             {!logueado && (

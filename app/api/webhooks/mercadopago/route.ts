@@ -21,14 +21,13 @@ export async function POST(req: NextRequest) {
       const paymentData = await payment.get({ id: paymentId })
 
       const status = paymentData.status // approved, rejected, pending, in_process, cancelled, refunded
-      const preferenceId = (paymentData as any).preference_id
-      const externalRef = (paymentData as any).external_reference
+      const preferenceId = paymentData.preference_id
 
       // Buscar pedido en DB
       const { data: pedido } = await supabaseAdmin
         .from('pedidos')
         .select('*, pedido_items(*)')
-        .eq('id', parseInt(externalRef || '0'))
+        .eq('mp_preference_id', preferenceId)
         .single()
 
       if (!pedido) {
@@ -59,6 +58,11 @@ export async function POST(req: NextRequest) {
             .from('perfiles')
             .update({ primera_compra_usada: true })
             .eq('id', pedido.user_id)
+        }
+
+        // Incrementar usos del código de descuento
+        if (pedido.codigo_descuento) {
+          await supabaseAdmin.rpc('incrementar_uso_codigo', { codigo_param: pedido.codigo_descuento })
         }
       }
     }
