@@ -56,7 +56,7 @@ export default function CosmeticosHeader() {
                 </div>
               )}
             </div>
-            <Link href="/cosmeticos/best-sellers" style={{ fontSize: '13px', letterSpacing: '0.1em', textTransform: 'uppercase', color: '#2C2C2C', textDecoration: 'none' }}>Best Sellers</Link>
+            <Link href="/cosmeticos/ritual" style={{ fontSize: '13px', letterSpacing: '0.1em', textTransform: 'uppercase', color: '#2C2C2C', textDecoration: 'none' }}>Ritual</Link>
             <Link href="/cosmeticos/kits" style={{ fontSize: '13px', letterSpacing: '0.1em', textTransform: 'uppercase', color: '#2C2C2C', textDecoration: 'none' }}>Kits de Rutina</Link>
           </nav>
 

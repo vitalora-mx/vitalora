@@ -51,7 +51,7 @@ export default function SuplementosHeader() {
                 </div>
               )}
             </div>
-            <Link href="/suplementos/best-sellers" style={{ fontSize: '13px', letterSpacing: '0.1em', textTransform: 'uppercase', color: '#F5F2EC', textDecoration: 'none' }}>Best Sellers</Link>
+            <Link href="/suplementos/ritual" style={{ fontSize: '13px', letterSpacing: '0.1em', textTransform: 'uppercase', color: '#F5F2EC', textDecoration: 'none' }}>Ritual</Link>
             <Link href="/suplementos/kits" style={{ fontSize: '13px', letterSpacing: '0.1em', textTransform: 'uppercase', color: '#F5F2EC', textDecoration: 'none' }}>Kits</Link>
           </nav>
 

@@ -37,7 +37,7 @@ export default function Header() {
           <nav style={{ display: 'flex', gap: '32px', fontSize: '13px', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
             <Link href="/cosmeticos" style={{ color: 'var(--text)', textDecoration: 'none' }}>Cosméticos</Link>
             <Link href="/suplementos" style={{ color: 'var(--text)', textDecoration: 'none' }}>Suplementos</Link>
-            <Link href="/nosotros" style={{ color: 'var(--text)', textDecoration: 'none' }}>Nosotros</Link>
+            <Link href="/ritual" style={{ color: 'var(--text)', textDecoration: 'none' }}>Ritual</Link>
           </nav>
 
           {/* Logo */}
