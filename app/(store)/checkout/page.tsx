@@ -107,7 +107,7 @@ export default function CheckoutPage() {
     try {
       const res = await fetch('/api/validar-codigo', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ codigo: codigoInput, subtotal: total() }),
+        body: JSON.stringify({ codigo: codigoInput, subtotal: total(), email: form.email }),
       })
       const data = await res.json()
       if (data.error) { setCodigoError(data.error) }

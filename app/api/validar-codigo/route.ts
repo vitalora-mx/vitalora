@@ -4,7 +4,7 @@ import { createClient } from '@supabase/supabase-js'
 const supabaseAdmin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 
 export async function POST(req: NextRequest) {
-  const { codigo, subtotal } = await req.json()
+  const { codigo, subtotal, email } = await req.json()
 
   if (!codigo) return NextResponse.json({ error: 'Código requerido' }, { status: 400 })
 
@@ -17,9 +17,23 @@ export async function POST(req: NextRequest) {
 
   if (error || !data) return NextResponse.json({ error: 'Código no válido' }, { status: 400 })
 
-  // Verificar usos
+  // Verificar usos totales
   if (data.max_usos && data.usos_actuales >= data.max_usos) {
     return NextResponse.json({ error: 'Este código ya alcanzó el límite de usos' }, { status: 400 })
+  }
+
+  // Verificar si este email ya usó el código
+  if (email) {
+    const { data: usado } = await supabaseAdmin
+      .from('codigos_usados')
+      .select('id')
+      .eq('codigo', codigo.toUpperCase().trim())
+      .eq('email', email.toLowerCase().trim())
+      .single()
+
+    if (usado) {
+      return NextResponse.json({ error: 'Ya utilizaste este código anteriormente' }, { status: 400 })
+    }
   }
 
   // Verificar fechas

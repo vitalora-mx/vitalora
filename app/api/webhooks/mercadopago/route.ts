@@ -65,6 +65,16 @@ export async function POST(req: NextRequest) {
         if (pedido.codigo_descuento) {
           await supabaseAdmin.rpc('incrementar_uso_codigo', { codigo_param: pedido.codigo_descuento })
         }
+        // Registrar que este email ya usó el código
+        if (pedido.codigo_descuento && pedido.email) {
+          try {
+            await supabaseAdmin.from('codigos_usados').insert({
+              codigo: pedido.codigo_descuento,
+              email: pedido.email.toLowerCase(),
+              pedido_id: pedido.id,
+            })
+          } catch {}
+        }
       }
     }
 
