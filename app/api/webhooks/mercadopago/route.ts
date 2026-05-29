@@ -48,9 +48,17 @@ export async function POST(req: NextRequest) {
         .update({ estado: nuevoEstado, mp_payment_id: String(paymentId) })
         .eq('id', pedido.id)
 
-      // Si fue aprobado y antes no estaba pagado, enviar emails
+      // Si fue aprobado y antes no estaba pagado, enviar emails y marcar primera compra
       if (status === 'approved' && pedido.estado !== 'pagado') {
         await enviarEmails(pedido)
+
+        // Marcar primera_compra_usada si aplica
+        if (pedido.user_id && pedido.descuento_tipo === 'primera_compra') {
+          await supabaseAdmin
+            .from('perfiles')
+            .update({ primera_compra_usada: true })
+            .eq('id', pedido.user_id)
+        }
       }
     }
 

@@ -8,12 +8,13 @@ const supabaseAdmin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, proces
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const { items, comprador, direccion, costoEnvio, userId } = body
+    const { items, comprador, direccion, costoEnvio, userId, descuento, descuentoTipo } = body
 
     const subtotal = items.reduce((sum: number, item: any) => sum + item.precio * item.cantidad, 0)
-    const total = subtotal + costoEnvio
+    const montoDescuento = descuento || 0
+    const total = subtotal - montoDescuento + costoEnvio
 
-    // 1. Guardar pedido en Supabase como "pendiente"
+    // 1. Guardar pedido en Supabase
     const { data: pedido, error: pedidoError } = await supabaseAdmin
       .from('pedidos')
       .insert({
@@ -31,6 +32,8 @@ export async function POST(req: NextRequest) {
         cp: direccion.cp,
         referencia: direccion.referencia || null,
         subtotal,
+        descuento: montoDescuento,
+        descuento_tipo: descuentoTipo || null,
         costo_envio: costoEnvio,
         total,
         user_id: userId || null,
@@ -43,7 +46,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Error guardando pedido' }, { status: 500 })
     }
 
-    // 2. Guardar items del pedido
+    // 2. Guardar items
     const pedidoItems = items.map((item: any) => ({
       pedido_id: pedido.id,
       producto_id: item.id,
@@ -52,21 +55,34 @@ export async function POST(req: NextRequest) {
       precio: item.precio,
       cantidad: item.cantidad,
     }))
-
     await supabaseAdmin.from('pedido_items').insert(pedidoItems)
 
-    // 3. Crear preferencia en Mercado Pago
+    // 3. Crear items para MP (con descuento aplicado como item negativo)
+    const mpItems = items.map((item: any) => ({
+      id: String(item.id),
+      title: item.nombre,
+      quantity: item.cantidad,
+      unit_price: item.precio,
+      currency_id: 'MXN',
+    }))
+
+    // Agregar descuento como item negativo si aplica
+    if (montoDescuento > 0) {
+      mpItems.push({
+        id: 'descuento',
+        title: 'Descuento 5% primera compra',
+        quantity: 1,
+        unit_price: -montoDescuento,
+        currency_id: 'MXN',
+      })
+    }
+
+    // 4. Crear preferencia en MP
     const preference = new Preference(client)
 
     const result = await preference.create({
       body: {
-        items: items.map((item: any) => ({
-          id: String(item.id),
-          title: item.nombre,
-          quantity: item.cantidad,
-          unit_price: item.precio,
-          currency_id: 'MXN',
-        })),
+        items: mpItems,
         payer: {
           name: comprador.nombre,
           surname: comprador.apellido,
@@ -96,7 +112,7 @@ export async function POST(req: NextRequest) {
       },
     })
 
-    // 4. Guardar el preference_id en el pedido
+    // 5. Guardar preference_id
     await supabaseAdmin
       .from('pedidos')
       .update({ mp_preference_id: result.id })

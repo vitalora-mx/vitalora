@@ -24,6 +24,7 @@ export default function CheckoutPage() {
   const [direccionSeleccionada, setDireccionSeleccionada] = useState<number | null>(null)
   const [usarNuevaDireccion, setUsarNuevaDireccion] = useState(false)
   const [perfilCargado, setPerfilCargado] = useState(false)
+  const [descuentoPrimeraCompra, setDescuentoPrimeraCompra] = useState(false)
 
   const [form, setForm] = useState({
     nombre: '', apellido: '', email: '', telefono: '',
@@ -33,7 +34,6 @@ export default function CheckoutPage() {
 
   useEffect(() => { setMounted(true) }, [])
 
-  // Auto-llenar datos si está logueado
   useEffect(() => {
     if (mounted && isLoggedIn() && user && !perfilCargado) {
       cargarDatosUsuario()
@@ -43,7 +43,6 @@ export default function CheckoutPage() {
   async function cargarDatosUsuario() {
     if (!user) return
     try {
-      // Cargar perfil
       const perfilRes = await fetch('/api/cuenta/perfil', { headers: { 'x-user-id': user.id } })
       if (perfilRes.ok) {
         const perfil = await perfilRes.json()
@@ -52,9 +51,12 @@ export default function CheckoutPage() {
           nombre: perfil.nombre || '', apellido: perfil.apellido || '',
           email: user.email || '', telefono: perfil.telefono || '',
         }))
+        // Verificar si tiene descuento de primera compra
+        if (!perfil.primera_compra_usada) {
+          setDescuentoPrimeraCompra(true)
+        }
       }
 
-      // Cargar direcciones
       const dirRes = await fetch('/api/cuenta/direcciones', { headers: { 'x-user-id': user.id } })
       if (dirRes.ok) {
         const dirs = await dirRes.json()
@@ -99,7 +101,8 @@ export default function CheckoutPage() {
 
   const subtotal = total()
   const costoEnvio = subtotal >= ENVIO_GRATIS ? 0 : COSTO_ENVIO
-  const totalFinal = subtotal + costoEnvio
+  const montoDescuento = descuentoPrimeraCompra ? Math.round(subtotal * 0.05) : 0
+  const totalFinal = subtotal - montoDescuento + costoEnvio
   const logueado = isLoggedIn()
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) {
@@ -122,6 +125,8 @@ export default function CheckoutPage() {
           direccion: { cp: form.cp, calle: form.calle, numero: form.numero, interior: form.interior, colonia: form.colonia, ciudad: form.ciudad, estado: form.estado, referencia: form.referencia },
           costoEnvio,
           userId: user?.id || null,
+          descuento: montoDescuento,
+          descuentoTipo: descuentoPrimeraCompra ? 'primera_compra' : null,
         }),
       })
       const data = await res.json()
@@ -157,7 +162,6 @@ export default function CheckoutPage() {
     <main style={{ background: 'var(--bg-cream)', minHeight: '100vh', padding: '60px 40px' }}>
       <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
 
-        {/* Logo */}
         <div style={{ textAlign: 'center', marginBottom: '48px' }}>
           <Link href="/" style={{ textDecoration: 'none' }}>
             <div style={{ fontFamily: 'var(--font-italiana), serif', fontSize: '32px', letterSpacing: '0.15em', color: 'var(--black)' }}>VITALORA</div>
@@ -169,7 +173,6 @@ export default function CheckoutPage() {
           )}
         </div>
 
-        {/* Pasos */}
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '48px' }}>
           {['Datos personales', 'Dirección de envío', 'Confirmar pedido'].map((label, i) => (
             <div key={i} style={{ display: 'flex', alignItems: 'center' }}>
@@ -186,7 +189,6 @@ export default function CheckoutPage() {
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 400px', gap: '40px', alignItems: 'start' }}>
 
-          {/* Formulario */}
           <div style={{ background: 'white', padding: '40px', borderRadius: '4px', border: '1px solid var(--line)' }}>
 
             {/* Paso 1 */}
@@ -243,7 +245,6 @@ export default function CheckoutPage() {
               <div>
                 <h2 style={{ fontFamily: 'var(--font-italiana), serif', fontSize: '28px', marginBottom: '32px', color: 'var(--black)' }}>Dirección de envío</h2>
 
-                {/* Selector de direcciones guardadas */}
                 {logueado && direcciones.length > 0 && (
                   <div style={{ marginBottom: '24px' }}>
                     <label style={{ ...labelStyle, marginBottom: '12px' }}>Selecciona una dirección guardada</label>
@@ -288,7 +289,6 @@ export default function CheckoutPage() {
                   </div>
                 )}
 
-                {/* Formulario de dirección (siempre visible si no hay guardadas, o si eligió nueva) */}
                 {(!logueado || direcciones.length === 0 || usarNuevaDireccion) && (
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                     {[
@@ -345,6 +345,22 @@ export default function CheckoutPage() {
                     {form.referencia && <div style={{ color: 'var(--text-muted)', fontSize: '13px' }}>Ref: {form.referencia}</div>}
                   </div>
                 </div>
+
+                {/* Descuento primera compra */}
+                {descuentoPrimeraCompra && (
+                  <div style={{ marginBottom: '24px', padding: '16px', background: '#F0F7F0', border: '1px solid #A8C5A0', borderRadius: '4px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <span style={{ fontSize: '18px' }}>🎉</span>
+                        <div>
+                          <div style={{ fontSize: '13px', fontWeight: 600, color: '#3A5A3A' }}>Descuento de primera compra aplicado</div>
+                          <div style={{ fontSize: '11px', color: '#6B8F6B' }}>5% de descuento por ser tu primera compra como usuario registrado</div>
+                        </div>
+                      </div>
+                      <div style={{ fontFamily: 'var(--font-cormorant), serif', fontSize: '20px', fontWeight: 600, color: '#3A5A3A' }}>-${montoDescuento.toLocaleString()}</div>
+                    </div>
+                  </div>
+                )}
 
                 <div style={{ marginBottom: '24px', padding: '16px', background: costoEnvio === 0 ? '#F0F7F0' : 'white', border: `1px solid ${costoEnvio === 0 ? '#A8C5A0' : 'var(--line)'}`, borderRadius: '4px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -405,6 +421,11 @@ export default function CheckoutPage() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: 'var(--text-muted)' }}>
                   <span>Subtotal</span><span>${subtotal.toLocaleString()} MXN</span>
                 </div>
+                {descuentoPrimeraCompra && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: '#3A8A3A', fontWeight: 500 }}>
+                    <span>🎉 Descuento 5%</span><span>-${montoDescuento.toLocaleString()} MXN</span>
+                  </div>
+                )}
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: costoEnvio === 0 ? '#6B8F6B' : 'var(--text-muted)' }}>
                   <span>Envío</span>
                   <span>{costoEnvio === 0 ? 'Gratis' : '$99 MXN'}</span>
@@ -415,6 +436,15 @@ export default function CheckoutPage() {
                 </div>
               </div>
             </div>
+
+            {!logueado && (
+              <div style={{ marginTop: '16px', padding: '16px', background: '#F5F0FF', border: '1px solid #D5C8F0', borderRadius: '4px', textAlign: 'center' }}>
+                <p style={{ fontSize: '12px', color: '#5A3A8A', margin: '0 0 8px', lineHeight: 1.6 }}>
+                  <strong>¿Sabías que?</strong> Al crear una cuenta obtienes 5% de descuento en tu primera compra.
+                </p>
+                <Link href="/cuenta" style={{ fontSize: '12px', color: '#5A3A8A', fontWeight: 600, textDecoration: 'underline' }}>Crear cuenta</Link>
+              </div>
+            )}
           </div>
 
         </div>
