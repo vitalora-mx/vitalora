@@ -113,7 +113,7 @@ export default function AdminProductosPage() {
     return Math.min(...stocks)
   }
 
-  function abrirEdicion(p: Producto) {
+  async function abrirEdicion(p: Producto) {
     setEditingId(p.id)
     setForm({
       nombre: p.nombre, marca: p.marca, categoria: p.categoria, tipo: p.tipo,
@@ -127,7 +127,15 @@ export default function AdminProductosPage() {
       ancho_cm: p.ancho_cm ? String(p.ancho_cm) : '', largo_cm: p.largo_cm ? String(p.largo_cm) : '',
       stock: String(p.stock || 0), sku: p.sku || '', codigo_barras: p.codigo_barras || '',
     })
-    setComponentes([])
+    if (p.categoria === 'Kits') {
+      try {
+        const res = await fetch('/api/admin/productos/componentes?kit_id=' + p.id)
+        const comps = await res.json()
+        setComponentes(Array.isArray(comps) ? comps.map((c: any) => ({ producto_id: c.producto_id, cantidad: c.cantidad })) : [])
+      } catch { setComponentes([]) }
+    } else {
+      setComponentes([])
+    }
     setVideos(p.producto_videos?.sort((a, b) => a.posicion - b.posicion).map(v => ({ youtube_url: v.youtube_url, titulo: v.titulo })) || [])
     setImagenesNuevas([])
     setPreviewsNuevas([])

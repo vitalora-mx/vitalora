@@ -41,7 +41,6 @@ export async function POST(req: NextRequest) {
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-    // Guardar videos
     if (videos && videos.length > 0) {
       const videosData = videos.filter((v: any) => v.youtube_url && v.titulo).map((v: any, i: number) => ({
         producto_id: producto.id, youtube_url: v.youtube_url, titulo: v.titulo, posicion: i,
@@ -49,8 +48,7 @@ export async function POST(req: NextRequest) {
       if (videosData.length > 0) await supabaseAdmin.from('producto_videos').insert(videosData)
     }
 
-    // Guardar componentes kit
-    if (campos.tipo === 'kit' && componentes && componentes.length > 0) {
+    if (campos.categoria === 'Kits' && componentes && componentes.length > 0) {
       const comps = componentes.map((c: any) => ({ kit_id: producto.id, producto_id: c.producto_id, cantidad: c.cantidad || 1 }))
       await supabaseAdmin.from('kit_componentes').insert(comps)
     }
@@ -73,7 +71,6 @@ export async function PUT(req: NextRequest) {
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-    // Actualizar videos
     if (videos !== undefined) {
       await supabaseAdmin.from('producto_videos').delete().eq('producto_id', id)
       if (videos.length > 0) {
@@ -84,8 +81,7 @@ export async function PUT(req: NextRequest) {
       }
     }
 
-    // Actualizar componentes kit
-    if (campos.tipo === 'kit' && componentes) {
+    if (campos.categoria === 'Kits' && componentes) {
       await supabaseAdmin.from('kit_componentes').delete().eq('kit_id', id)
       if (componentes.length > 0) {
         const comps = componentes.map((c: any) => ({ kit_id: id, producto_id: c.producto_id, cantidad: c.cantidad || 1 }))
@@ -108,7 +104,7 @@ export async function DELETE(req: NextRequest) {
   if (imagenes) {
     for (const img of imagenes) {
       const path = img.url.split('/productos/')[1]
-      if (path) await supabaseAdmin.storage.from('productos').remove([path])
+      if (path) await supabaseAdmin.storage.from('productos').remove([decodeURIComponent(path)])
     }
   }
 
