@@ -21,13 +21,14 @@ export async function POST(req: NextRequest) {
       const paymentData = await payment.get({ id: paymentId })
 
       const status = paymentData.status // approved, rejected, pending, in_process, cancelled, refunded
-      const preferenceId = paymentData.preference_id
+      const preferenceId = (paymentData as any).preference_id
+      const externalRef = (paymentData as any).external_reference
 
       // Buscar pedido en DB
       const { data: pedido } = await supabaseAdmin
         .from('pedidos')
         .select('*, pedido_items(*)')
-        .eq('mp_preference_id', preferenceId)
+        .eq('id', parseInt(externalRef || '0'))
         .single()
 
       if (!pedido) {
