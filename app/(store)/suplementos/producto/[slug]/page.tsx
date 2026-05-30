@@ -3,9 +3,12 @@
 import { useState, useEffect } from 'react'
 import { useParams } from 'next/navigation'
 import SuplementosHeader from '@/components/store/suplementos/SuplementosHeader'
+import ProductoVideos from '@/components/store/producto/ProductoVideos'
 import Footer from '@/components/store/Footer'
 import LoraChat from '@/components/store/LoraChat'
 import { useCartStore } from '@/store/cartStore'
+
+interface ProductoVideo { id: number; youtube_url: string; titulo: string; posicion: number }
 
 interface Producto {
   id: number; slug: string; nombre: string; marca: string; categoria: string
@@ -14,6 +17,7 @@ interface Producto {
   para_quien: string; advertencias: string; video_url: string; stock: number
   seo_title: string | null; seo_description: string | null
   producto_imagenes: { id: number; url: string; posicion: number }[]
+  producto_videos: ProductoVideo[]
 }
 
 export default function ProductoSuplementoPage() {
@@ -84,6 +88,16 @@ export default function ProductoSuplementoPage() {
 
   const imagenes = producto.producto_imagenes?.sort((a, b) => a.posicion - b.posicion) || []
   const agotado = producto.stock <= 0
+
+  // Armar lista de videos: 1) los de "Videos YouTube" (producto_videos)
+  // 2) respaldo al video_url viejo si no hay ninguno
+  const videosOrdenados = (producto.producto_videos || [])
+    .slice()
+    .sort((a, b) => a.posicion - b.posicion)
+  let videosParaMostrar = videosOrdenados.map(v => ({ id: v.youtube_url, titulo: v.titulo }))
+  if (videosParaMostrar.length === 0 && producto.video_url) {
+    videosParaMostrar = [{ id: producto.video_url, titulo: 'Video del producto' }]
+  }
 
   function handleAgregar() {
     if (!producto || agotado) return
@@ -297,17 +311,8 @@ export default function ProductoSuplementoPage() {
         </div>
       </div>
 
-      {producto.video_url && (
-        <section style={{ padding: '80px 40px', background: '#0E0E0E' }}>
-          <div style={{ maxWidth: '800px', margin: '0 auto', textAlign: 'center' }}>
-            <div style={{ fontSize: '11px', letterSpacing: '0.4em', textTransform: 'uppercase', color: '#6B8F6B', marginBottom: '12px' }}>Aprende más</div>
-            <h2 style={{ fontFamily: 'var(--font-italiana), serif', fontSize: '40px', color: '#F5F2EC', marginBottom: '32px' }}>Video del producto</h2>
-            <div style={{ borderRadius: '4px', overflow: 'hidden', aspectRatio: '16/9' }}>
-              <iframe width="100%" height="100%" src={producto.video_url.replace('watch?v=', 'embed/')} frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen style={{ display: 'block' }} />
-            </div>
-          </div>
-        </section>
-      )}
+      {/* Videos del producto (seccion "Videos YouTube" + respaldo video_url) */}
+      <ProductoVideos videos={videosParaMostrar} />
 
       <Footer />
       <LoraChat />
