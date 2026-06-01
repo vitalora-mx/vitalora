@@ -9,7 +9,7 @@ export default function RitualBanner() {
       //  2. Borra la linea "background:" de abajo y descomenta estas dos:
       // backgroundImage: 'url(/images/ritual/banner.jpg)',
       // backgroundSize: 'cover', backgroundPosition: 'center',
-      background: 'linear-gradient(135deg, #1a1a1a 0%, #2C3A2E 50%, #0E0E0E 100%)',
+      background: 'linear-gradient(135deg, #1a1a1a 0%, #20281f 50%, #0E0E0E 100%)',
       // ───────────────────────────────────────────────────────
       display: 'flex',
       alignItems: 'center',
@@ -17,11 +17,11 @@ export default function RitualBanner() {
       position: 'relative',
       overflow: 'hidden',
     }}>
-      {/* Brillo dorado decorativo */}
+      {/* Brillo verde sage decorativo */}
       <div style={{
         position: 'absolute',
         inset: 0,
-        background: 'radial-gradient(circle at 70% 50%, rgba(201,169,97,0.18) 0%, transparent 60%)',
+        background: 'radial-gradient(circle at 70% 50%, rgba(168,181,160,0.18) 0%, transparent 60%)',
       }} />
       {/* Capa oscura para que el texto se lea sobre la futura imagen */}
       <div style={{
@@ -30,14 +30,14 @@ export default function RitualBanner() {
         background: 'rgba(0,0,0,0.25)',
       }} />
       <div style={{ textAlign: 'center', position: 'relative', zIndex: 2 }}>
-        <div style={{ fontSize: '11px', letterSpacing: '0.4em', textTransform: 'uppercase', color: 'var(--gold)', marginBottom: '16px' }}>
+        <div style={{ fontSize: '11px', letterSpacing: '0.4em', textTransform: 'uppercase', color: '#A8B5A0', marginBottom: '16px' }}>
           Vitalora Ritual
         </div>
         <h1 style={{
           fontFamily: 'var(--font-italiana), serif',
           fontSize: 'clamp(40px, 6vw, 80px)',
           letterSpacing: '0.02em',
-          color: '#F5F0E8',
+          color: '#E8E4DA',
           lineHeight: 1.1,
           marginBottom: '16px',
         }}>
@@ -45,7 +45,7 @@ export default function RitualBanner() {
         </h1>
         <p style={{
           fontSize: '15px',
-          color: 'rgba(245,240,232,0.75)',
+          color: 'rgba(232,228,218,0.75)',
           maxWidth: '520px',
           lineHeight: 1.7,
           margin: '0 auto',

@@ -1,10 +1,12 @@
 'use client'
 
 import { useState } from 'react'
+import { useIsMobile } from '@/hooks/useIsMobile'
 
 export default function Newsletter() {
   const [email, setEmail] = useState('')
   const [sent, setSent] = useState(false)
+  const isMobile = useIsMobile()
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -13,7 +15,7 @@ export default function Newsletter() {
 
   return (
     <section style={{
-      padding: '120px 40px',
+      padding: isMobile ? '64px 20px' : '120px 40px',
       background: 'var(--bg-cream-deep)',
       textAlign: 'center',
       position: 'relative',
@@ -59,7 +61,7 @@ export default function Newsletter() {
 
         <h2 style={{
           fontFamily: 'var(--font-italiana), serif',
-          fontSize: '48px',
+          fontSize: isMobile ? '34px' : '48px',
           marginBottom: '16px',
           letterSpacing: '0.02em',
         }}>
@@ -115,19 +117,21 @@ export default function Newsletter() {
                 color: 'var(--text)',
                 outline: 'none',
                 fontFamily: 'inherit',
+                minWidth: 0,
               }}
             />
             <button type="submit" style={{
-              padding: '16px 24px',
+              padding: isMobile ? '16px 12px' : '16px 24px',
               background: 'none',
               border: 'none',
               cursor: 'pointer',
-              fontSize: '12px',
-              letterSpacing: '0.2em',
+              fontSize: isMobile ? '11px' : '12px',
+              letterSpacing: '0.15em',
               textTransform: 'uppercase',
               color: 'var(--black)',
               fontWeight: 500,
               fontFamily: 'inherit',
+              whiteSpace: 'nowrap',
             }}>
               Suscribirme →
             </button>

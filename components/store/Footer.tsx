@@ -1,27 +1,32 @@
+'use client'
+
 import Link from 'next/link'
+import { useIsMobile } from '@/hooks/useIsMobile'
 
 export default function Footer() {
+  const isMobile = useIsMobile()
+
   return (
     <footer style={{
       background: 'var(--black)',
       color: 'var(--bg-cream)',
-      padding: '80px 40px 40px',
+      padding: isMobile ? '56px 20px 32px' : '80px 40px 40px',
     }}>
       <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
 
         {/* Top */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: '2fr 1fr 1fr 1fr',
-          gap: '60px',
-          paddingBottom: '60px',
+          gridTemplateColumns: isMobile ? '1fr 1fr' : '2fr 1fr 1fr 1fr',
+          gap: isMobile ? '32px 24px' : '60px',
+          paddingBottom: isMobile ? '40px' : '60px',
           borderBottom: '1px solid rgba(245,240,232,0.1)',
         }}>
           {/* Marca */}
-          <div>
+          <div style={{ gridColumn: isMobile ? '1 / -1' : 'auto' }}>
             <div style={{
               fontFamily: 'var(--font-italiana), serif',
-              fontSize: '36px',
+              fontSize: isMobile ? '30px' : '36px',
               letterSpacing: '0.15em',
               marginBottom: '20px',
             }}>VITALORA</div>
@@ -63,10 +68,10 @@ export default function Footer() {
               fontWeight: 500,
               letterSpacing: '0.1em',
               textTransform: 'uppercase',
-              marginBottom: '24px',
+              marginBottom: isMobile ? '16px' : '24px',
               color: 'var(--gold)',
             }}>Tienda</h4>
-            <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '12px', padding: 0, margin: 0 }}>
               {[
                 { label: 'Cosméticos', href: '/cosmeticos' },
                 { label: 'Suplementos', href: '/suplementos' },
@@ -90,10 +95,10 @@ export default function Footer() {
               fontWeight: 500,
               letterSpacing: '0.1em',
               textTransform: 'uppercase',
-              marginBottom: '24px',
+              marginBottom: isMobile ? '16px' : '24px',
               color: 'var(--gold)',
             }}>Ayuda</h4>
-            <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '12px', padding: 0, margin: 0 }}>
               {[
                 { label: 'Envíos', href: '/envios' },
                 { label: 'Devoluciones', href: '/devoluciones' },
@@ -117,10 +122,10 @@ export default function Footer() {
               fontWeight: 500,
               letterSpacing: '0.1em',
               textTransform: 'uppercase',
-              marginBottom: '24px',
+              marginBottom: isMobile ? '16px' : '24px',
               color: 'var(--gold)',
             }}>Legal</h4>
-            <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '12px', padding: 0, margin: 0 }}>
               {[
                 { label: 'Aviso de Privacidad', href: '/privacidad' },
                 { label: 'Términos y Condiciones', href: '/terminos' },
@@ -147,9 +152,11 @@ export default function Footer() {
           color: 'rgba(245,240,232,0.4)',
           flexWrap: 'wrap',
           gap: '16px',
+          flexDirection: isMobile ? 'column' : 'row',
+          textAlign: isMobile ? 'center' : 'left',
         }}>
           <span>© 2026 Vitalora. Todos los derechos reservados.</span>
-          <div style={{ display: 'flex', gap: '8px' }}>
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'center' }}>
             {['Mercado Pago', 'Visa', 'Mastercard', 'OXXO'].map((badge) => (
               <span key={badge} style={{
                 padding: '4px 10px',

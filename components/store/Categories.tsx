@@ -1,9 +1,22 @@
+'use client'
+
 import Link from 'next/link'
+import Image from 'next/image'
+import { useIsMobile } from '@/hooks/useIsMobile'
 
 export default function Categories() {
+  const isMobile = useIsMobile()
+
+  const cosmeticosImg = isMobile
+    ? '/images/categoria-cosmeticos-mobile.png'
+    : '/images/categoria-cosmeticos-desktop.png'
+  const suplementosImg = isMobile
+    ? '/images/categoria-suplementos-mobile.png'
+    : '/images/categoria-suplementos-desktop.png'
+
   return (
     <section style={{
-      padding: '120px 40px',
+      padding: isMobile ? '64px 20px' : '120px 40px',
       maxWidth: '1400px',
       margin: '0 auto',
     }}>
@@ -27,7 +40,7 @@ export default function Categories() {
         fontFamily: 'var(--font-italiana), serif',
         fontSize: 'clamp(36px, 5vw, 64px)',
         textAlign: 'center',
-        marginBottom: '80px',
+        marginBottom: isMobile ? '48px' : '80px',
         letterSpacing: '0.02em',
       }}>
         Dos mundos,{' '}
@@ -42,128 +55,52 @@ export default function Categories() {
 
       <div style={{
         display: 'grid',
-        gridTemplateColumns: '1fr 1fr',
+        gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
         gap: '24px',
       }}>
         {/* Cosméticos */}
-        <Link href="/cosmeticos" style={{ textDecoration: 'none' }}>
+        <Link href="/cosmeticos" style={{ textDecoration: 'none', display: 'block' }}>
           <div style={{
             position: 'relative',
-            height: '560px',
             overflow: 'hidden',
             borderRadius: '2px',
             cursor: 'pointer',
-            background: 'linear-gradient(135deg, #F5E8E0 0%, #E8C9C0 50%, #D9BE7B 100%)',
-          }}>
-            <div style={{
-              position: 'absolute',
-              inset: 0,
-              background: 'linear-gradient(180deg, transparent 50%, rgba(14,14,14,0.4) 100%)',
-            }} />
-            <div style={{
-              position: 'absolute',
-              inset: 0,
-              padding: '48px',
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'space-between',
-            }}>
-              <div style={{
-                fontFamily: 'var(--font-italiana), serif',
-                fontSize: '14px',
-                letterSpacing: '0.3em',
-                color: 'var(--black)',
-                opacity: 0.6,
-              }}>— 01</div>
-              <div>
-                <div style={{ fontSize: '11px', letterSpacing: '0.3em', textTransform: 'uppercase', marginBottom: '12px', color: 'var(--bg-cream)', opacity: 0.9 }}>Colección K-Beauty</div>
-                <h3 style={{
-                  fontFamily: 'var(--font-italiana), serif',
-                  fontSize: '48px',
-                  letterSpacing: '0.02em',
-                  color: 'var(--bg-cream)',
-                  lineHeight: 1,
-                  marginBottom: '16px',
-                }}>Cosméticos<br />Coreanos</h3>
-                <p style={{ fontSize: '14px', color: 'rgba(245,240,232,0.85)', marginBottom: '24px', maxWidth: '380px' }}>
-                  Rituales de cuidado facial inspirados en siglos de tradición coreana, formulados con la ciencia más avanzada.
-                </p>
-                <span style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '12px',
-                  fontSize: '12px',
-                  letterSpacing: '0.2em',
-                  textTransform: 'uppercase',
-                  color: 'var(--bg-cream)',
-                  borderBottom: '1px solid var(--bg-cream)',
-                  paddingBottom: '6px',
-                }}>
-                  Explorar Colección →
-                </span>
-              </div>
-            </div>
+            aspectRatio: isMobile ? '1122 / 1402' : '1390 / 1132',
+            transition: 'transform 0.4s, box-shadow 0.4s',
+          }}
+            onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.02)'; e.currentTarget.style.boxShadow = '0 20px 50px rgba(0,0,0,0.15)' }}
+            onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = 'none' }}
+          >
+            <Image
+              src={cosmeticosImg}
+              alt="Cosméticos Coreanos — Colección K-Beauty"
+              fill
+              sizes={isMobile ? '100vw' : '50vw'}
+              style={{ objectFit: 'cover' }}
+            />
           </div>
         </Link>
 
         {/* Suplementos */}
-        <Link href="/suplementos" style={{ textDecoration: 'none' }}>
+        <Link href="/suplementos" style={{ textDecoration: 'none', display: 'block' }}>
           <div style={{
             position: 'relative',
-            height: '560px',
             overflow: 'hidden',
             borderRadius: '2px',
             cursor: 'pointer',
-            background: 'linear-gradient(135deg, #E8EBE2 0%, #A8B5A0 50%, #8A9882 100%)',
-          }}>
-            <div style={{
-              position: 'absolute',
-              inset: 0,
-              background: 'linear-gradient(180deg, transparent 50%, rgba(14,14,14,0.4) 100%)',
-            }} />
-            <div style={{
-              position: 'absolute',
-              inset: 0,
-              padding: '48px',
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'space-between',
-            }}>
-              <div style={{
-                fontFamily: 'var(--font-italiana), serif',
-                fontSize: '14px',
-                letterSpacing: '0.3em',
-                color: 'var(--black)',
-                opacity: 0.6,
-              }}>— 02</div>
-              <div>
-                <div style={{ fontSize: '11px', letterSpacing: '0.3em', textTransform: 'uppercase', marginBottom: '12px', color: 'var(--bg-cream)', opacity: 0.9 }}>Colección Wellness</div>
-                <h3 style={{
-                  fontFamily: 'var(--font-italiana), serif',
-                  fontSize: '48px',
-                  letterSpacing: '0.02em',
-                  color: 'var(--bg-cream)',
-                  lineHeight: 1,
-                  marginBottom: '16px',
-                }}>Suplementos<br />Alimenticios</h3>
-                <p style={{ fontSize: '14px', color: 'rgba(245,240,232,0.85)', marginBottom: '24px', maxWidth: '380px' }}>
-                  Fórmulas de alta pureza diseñadas para nutrir tu cuerpo desde dentro y elevar tu vitalidad diaria.
-                </p>
-                <span style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '12px',
-                  fontSize: '12px',
-                  letterSpacing: '0.2em',
-                  textTransform: 'uppercase',
-                  color: 'var(--bg-cream)',
-                  borderBottom: '1px solid var(--bg-cream)',
-                  paddingBottom: '6px',
-                }}>
-                  Explorar Colección →
-                </span>
-              </div>
-            </div>
+            aspectRatio: isMobile ? '1122 / 1402' : '1390 / 1132',
+            transition: 'transform 0.4s, box-shadow 0.4s',
+          }}
+            onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.02)'; e.currentTarget.style.boxShadow = '0 20px 50px rgba(0,0,0,0.15)' }}
+            onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = 'none' }}
+          >
+            <Image
+              src={suplementosImg}
+              alt="Suplementos Alimenticios — Colección Wellness"
+              fill
+              sizes={isMobile ? '100vw' : '50vw'}
+              style={{ objectFit: 'cover' }}
+            />
           </div>
         </Link>
       </div>

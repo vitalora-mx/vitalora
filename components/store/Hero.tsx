@@ -3,62 +3,72 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
+import { useIsMobile } from '@/hooks/useIsMobile'
 
 const slides = [
   {
     id: 1,
     desktop: '/images/hero/slide-1-desktop.png',
-    width: 1942,
-    height: 809,
+    mobile: '/images/hero/slide-1-mobile.png',
+    width: 1942, height: 809,
+    widthMobile: 936, heightMobile: 1681,
     alt: 'Vitalora — Tu rutina perfecta con ayuda de Lora',
     boton: {
       texto: '✦ Descubre tu rutina con Lora',
       tipo: 'lora',
-      // Posición: distancia desde arriba como % de la altura del hero
-      // y centrado horizontal por defecto
+      // Posicion y tamano por separado para desktop y movil.
+      // top/left son % de la altura/ancho del hero. Ajusta a tu gusto.
       posicion: { top: '72%', left: '50%' },
-      tamano: 'normal', // 'normal' | 'grande' | 'pequeno'
+      posicionMobile: { top: '85%', left: '50%' },
+      tamano: 'normal',        // 'normal' | 'grande' | 'pequeno'
+      tamanoMobile: 'pequeno',
     },
   },
   {
     id: 2,
     desktop: '/images/hero/slide-2-desktop.png',
-    width: 1942,
-    height: 809,
+    mobile: '/images/hero/slide-2-mobile.png',
+    width: 1942, height: 809,
+    widthMobile: 936, heightMobile: 1681,
     alt: 'Vitalora — Cosméticos Coreanos Auténticos',
     boton: {
       texto: '✦ Ver Cosméticos Coreanos',
       tipo: 'link',
       href: '/cosmeticos',
       posicion: { top: '72%', left: '50%' },
+      posicionMobile: { top: '85%', left: '50%' },
       tamano: 'normal',
+      tamanoMobile: 'pequeno',
     },
   },
   {
     id: 3,
     desktop: '/images/hero/slide-3-desktop.png',
-    width: 1717,
-    height: 916,
+    mobile: '/images/hero/slide-3-mobile.png',
+    width: 1717, height: 916,
+    widthMobile: 936, heightMobile: 1681,
     alt: 'Vitalora — Suplementos de Alta Pureza',
     boton: {
       texto: '✦ Ver Suplementos',
       tipo: 'link',
       href: '/suplementos',
       posicion: { top: '72%', left: '50%' },
+      posicionMobile: { top: '85%', left: '50%' },
       tamano: 'normal',
+      tamanoMobile: 'pequeno',
     },
   },
   {
     id: 4,
     desktop: '/images/hero/slide-4-desktop.png',
-    width: 1774,
-    height: 887,
+    mobile: '/images/hero/slide-4-mobile.png',
+    width: 1774, height: 887,
+    widthMobile: 936, heightMobile: 1681,
     alt: 'Vitalora — Belleza sin fronteras, sin complicaciones',
     boton: null,
   },
 ]
 
-// Estilos base del botón — se pueden sobreescribir por tamano
 const botonBase: React.CSSProperties = {
   background: 'var(--gold)',
   color: 'var(--black)',
@@ -80,11 +90,12 @@ const botonBase: React.CSSProperties = {
 const tamanos: Record<string, React.CSSProperties> = {
   normal: { padding: '16px 32px', fontSize: '12px', letterSpacing: '0.2em' },
   grande: { padding: '20px 44px', fontSize: '14px', letterSpacing: '0.2em' },
-  pequeno: { padding: '12px 24px', fontSize: '11px', letterSpacing: '0.18em' },
+  pequeno: { padding: '10px 18px', fontSize: '10px', letterSpacing: '0.12em' },
 }
 
 export default function Hero() {
   const [current, setCurrent] = useState(0)
+  const isMobile = useIsMobile()
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -109,8 +120,14 @@ export default function Hero() {
   const slide = slides[current]
 
   const botonStyle: React.CSSProperties = slide.boton
-    ? { ...botonBase, ...tamanos[slide.boton.tamano || 'normal'] }
+    ? { ...botonBase, ...tamanos[(isMobile ? slide.boton.tamanoMobile : slide.boton.tamano) || 'normal'] }
     : {}
+
+  const botonPos = slide.boton
+    ? (isMobile ? slide.boton.posicionMobile : slide.boton.posicion)
+    : { top: '72%', left: '50%' }
+
+  const flechaSize = isMobile ? 36 : 48
 
   return (
     <section style={{ position: 'relative', width: '100%', overflow: 'hidden' }}>
@@ -119,10 +136,10 @@ export default function Hero() {
       {slides.map((s, i) => (
         <div key={s.id} style={{ display: i === current ? 'block' : 'none' }}>
           <Image
-            src={s.desktop}
+            src={isMobile ? s.mobile : s.desktop}
             alt={s.alt}
-            width={s.width}
-            height={s.height}
+            width={isMobile ? s.widthMobile : s.width}
+            height={isMobile ? s.heightMobile : s.height}
             style={{ width: '100%', height: 'auto', display: 'block' }}
             priority={i === 0}
           />
@@ -135,16 +152,16 @@ export default function Hero() {
         style={{
           position: 'absolute',
           top: '50%',
-          left: '20px',
+          left: isMobile ? '12px' : '20px',
           transform: 'translateY(-50%)',
-          width: '48px',
-          height: '48px',
+          width: `${flechaSize}px`,
+          height: `${flechaSize}px`,
           borderRadius: '50%',
           background: 'rgba(0,0,0,0.45)',
           color: 'white',
           border: '1px solid rgba(255,255,255,0.35)',
           cursor: 'pointer',
-          fontSize: '20px',
+          fontSize: isMobile ? '16px' : '20px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -161,16 +178,16 @@ export default function Hero() {
         style={{
           position: 'absolute',
           top: '50%',
-          right: '20px',
+          right: isMobile ? '12px' : '20px',
           transform: 'translateY(-50%)',
-          width: '48px',
-          height: '48px',
+          width: `${flechaSize}px`,
+          height: `${flechaSize}px`,
           borderRadius: '50%',
           background: 'rgba(0,0,0,0.45)',
           color: 'white',
           border: '1px solid rgba(255,255,255,0.35)',
           cursor: 'pointer',
-          fontSize: '20px',
+          fontSize: isMobile ? '16px' : '20px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -184,7 +201,7 @@ export default function Hero() {
       {/* Puntos de navegación */}
       <div style={{
         position: 'absolute',
-        bottom: '20px',
+        bottom: isMobile ? '14px' : '20px',
         left: '50%',
         transform: 'translateX(-50%)',
         display: 'flex',
@@ -213,8 +230,8 @@ export default function Hero() {
       {slide.boton && (
         <div style={{
           position: 'absolute',
-          top: slide.boton.posicion.top,
-          left: slide.boton.posicion.left,
+          top: botonPos.top,
+          left: botonPos.left,
           transform: 'translate(-50%, -50%)',
           zIndex: 10,
         }}>

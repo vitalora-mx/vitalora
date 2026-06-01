@@ -1,7 +1,13 @@
+'use client'
+
+import { useIsMobile } from '@/hooks/useIsMobile'
+
 export default function Editorial() {
+  const isMobile = useIsMobile()
+
   return (
     <section style={{
-      padding: '120px 40px',
+      padding: isMobile ? '64px 20px' : '120px 40px',
       background: 'var(--black)',
       color: 'var(--bg-cream)',
       position: 'relative',
@@ -17,15 +23,15 @@ export default function Editorial() {
         maxWidth: '1400px',
         margin: '0 auto',
         display: 'grid',
-        gridTemplateColumns: '1fr 1fr',
-        gap: '80px',
+        gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
+        gap: isMobile ? '40px' : '80px',
         alignItems: 'center',
         position: 'relative',
         zIndex: 2,
       }}>
         {/* Visual */}
         <div style={{
-          height: '600px',
+          height: isMobile ? '320px' : '600px',
           background: 'linear-gradient(135deg, #1A1A1A 0%, #0E0E0E 100%)',
           border: '1px solid rgba(201,169,97,0.2)',
           display: 'flex',
@@ -38,7 +44,7 @@ export default function Editorial() {
             inset: '20px',
             border: '1px solid rgba(201,169,97,0.15)',
           }} />
-          <span style={{ fontSize: '160px', opacity: 0.3 }}>🌿</span>
+          <span style={{ fontSize: isMobile ? '100px' : '160px', opacity: 0.3 }}>🌿</span>
         </div>
 
         {/* Texto */}
@@ -59,7 +65,7 @@ export default function Editorial() {
 
           <h2 style={{
             fontFamily: 'var(--font-italiana), serif',
-            fontSize: '56px',
+            fontSize: isMobile ? '38px' : '56px',
             lineHeight: 1.1,
             marginBottom: '32px',
             letterSpacing: '0.02em',
@@ -75,7 +81,7 @@ export default function Editorial() {
           </h2>
 
           <p style={{
-            fontSize: '16px',
+            fontSize: isMobile ? '15px' : '16px',
             lineHeight: 1.8,
             color: 'rgba(245,240,232,0.7)',
             marginBottom: '24px',
@@ -86,7 +92,7 @@ export default function Editorial() {
           {/* Valores */}
           <div style={{
             display: 'grid',
-            gridTemplateColumns: '1fr 1fr',
+            gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
             gap: '24px',
             marginTop: '40px',
           }}>

@@ -1,15 +1,17 @@
 'use client'
-
 import Link from 'next/link'
 import dynamic from 'next/dynamic'
 import { useState, useEffect } from 'react'
 import { useCartStore } from '@/store/cartStore'
+import { useIsMobile } from '@/hooks/useIsMobile'
 
 const CarritoDrawer = dynamic(() => import('@/components/store/CarritoDrawer'), { ssr: false })
 
 export default function Header() {
   const [mounted, setMounted] = useState(false)
+  const [menuAbierto, setMenuAbierto] = useState(false)
   const { totalItems, abrirCarrito } = useCartStore()
+  const isMobile = useIsMobile()
 
   useEffect(() => { setMounted(true) }, [])
 
@@ -26,32 +28,42 @@ export default function Header() {
         <div style={{
           maxWidth: '1400px',
           margin: '0 auto',
-          padding: '20px 40px',
+          padding: isMobile ? '14px 20px' : '20px 40px',
           display: 'grid',
-          gridTemplateColumns: '1fr auto 1fr',
+          gridTemplateColumns: isMobile ? 'auto 1fr auto' : '1fr auto 1fr',
           alignItems: 'center',
-          gap: '40px',
+          gap: isMobile ? '12px' : '40px',
         }}>
 
-          {/* Nav izquierda */}
-          <nav style={{ display: 'flex', gap: '32px', fontSize: '13px', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
-            <Link href="/cosmeticos" style={{ color: 'var(--text)', textDecoration: 'none' }}>Cosméticos</Link>
-            <Link href="/suplementos" style={{ color: 'var(--text)', textDecoration: 'none' }}>Suplementos</Link>
-            <Link href="/ritual" style={{ color: 'var(--text)', textDecoration: 'none' }}>Ritual</Link>
-          </nav>
+          {/* Izquierda: nav (desktop) o boton hamburguesa (movil) */}
+          {isMobile ? (
+            <button onClick={() => setMenuAbierto(!menuAbierto)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text)', padding: '4px', display: 'flex', alignItems: 'center' }} aria-label="Menú">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                {menuAbierto ? <path d="M18 6 6 18M6 6l12 12"/> : <><path d="M3 12h18"/><path d="M3 6h18"/><path d="M3 18h18"/></>}
+              </svg>
+            </button>
+          ) : (
+            <nav style={{ display: 'flex', gap: '32px', fontSize: '13px', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+              <Link href="/cosmeticos" style={{ color: 'var(--text)', textDecoration: 'none' }}>Cosméticos</Link>
+              <Link href="/suplementos" style={{ color: 'var(--text)', textDecoration: 'none' }}>Suplementos</Link>
+              <Link href="/ritual" style={{ color: 'var(--text)', textDecoration: 'none' }}>Ritual</Link>
+            </nav>
+          )}
 
           {/* Logo */}
-          <div style={{ fontFamily: 'var(--font-italiana), serif', fontSize: '32px', letterSpacing: '0.15em', color: 'var(--black)', textAlign: 'center' }}>
+          <div style={{ fontFamily: 'var(--font-italiana), serif', fontSize: isMobile ? '24px' : '32px', letterSpacing: '0.15em', color: 'var(--black)', textAlign: 'center' }}>
             <Link href="/" style={{ color: 'inherit', textDecoration: 'none' }}>VITALORA</Link>
           </div>
 
           {/* Iconos derecha */}
-          <div style={{ display: 'flex', gap: '20px', alignItems: 'center', justifyContent: 'flex-end' }}>
-            <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text)', padding: '4px' }}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                <circle cx="11" cy="11" r="7"/><path d="m21 21-4.35-4.35"/>
-              </svg>
-            </button>
+          <div style={{ display: 'flex', gap: isMobile ? '14px' : '20px', alignItems: 'center', justifyContent: 'flex-end' }}>
+            {!isMobile && (
+              <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text)', padding: '4px' }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <circle cx="11" cy="11" r="7"/><path d="m21 21-4.35-4.35"/>
+                </svg>
+              </button>
+            )}
             <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text)', padding: '4px' }}>
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                 <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
@@ -68,10 +80,17 @@ export default function Header() {
               )}
             </button>
           </div>
-
         </div>
-      </header>
 
+        {/* Menu desplegable movil */}
+        {isMobile && menuAbierto && (
+          <nav style={{ borderTop: '1px solid var(--line)', padding: '8px 20px 16px', display: 'flex', flexDirection: 'column' }}>
+            <Link href="/cosmeticos" onClick={() => setMenuAbierto(false)} style={{ color: 'var(--text)', textDecoration: 'none', fontSize: '14px', letterSpacing: '0.1em', textTransform: 'uppercase', padding: '14px 0', borderBottom: '1px solid var(--line-soft)' }}>Cosméticos</Link>
+            <Link href="/suplementos" onClick={() => setMenuAbierto(false)} style={{ color: 'var(--text)', textDecoration: 'none', fontSize: '14px', letterSpacing: '0.1em', textTransform: 'uppercase', padding: '14px 0', borderBottom: '1px solid var(--line-soft)' }}>Suplementos</Link>
+            <Link href="/ritual" onClick={() => setMenuAbierto(false)} style={{ color: 'var(--text)', textDecoration: 'none', fontSize: '14px', letterSpacing: '0.1em', textTransform: 'uppercase', padding: '14px 0' }}>Ritual</Link>
+          </nav>
+        )}
+      </header>
       <CarritoDrawer />
     </>
   )
