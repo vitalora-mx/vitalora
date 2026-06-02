@@ -6,7 +6,13 @@ import { useState, useEffect } from 'react'
 // Uso: const isMobile = useIsMobile()  -> true en pantallas <= 768px
 // Tambien acepta un breakpoint custom: useIsMobile(1024)
 export function useIsMobile(breakpoint: number = 768): boolean {
-  const [isMobile, setIsMobile] = useState(false)
+  // Inicializa leyendo el ancho real si ya estamos en el navegador.
+  const [isMobile, setIsMobile] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      return window.innerWidth <= breakpoint
+    }
+    return false
+  })
 
   useEffect(() => {
     function check() {
@@ -14,7 +20,11 @@ export function useIsMobile(breakpoint: number = 768): boolean {
     }
     check()
     window.addEventListener('resize', check)
-    return () => window.removeEventListener('resize', check)
+    window.addEventListener('orientationchange', check)
+    return () => {
+      window.removeEventListener('resize', check)
+      window.removeEventListener('orientationchange', check)
+    }
   }, [breakpoint])
 
   return isMobile
