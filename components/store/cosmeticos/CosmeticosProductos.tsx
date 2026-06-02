@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { useState, useRef, useEffect } from 'react'
+import { useIsMobile } from '@/hooks/useIsMobile'
 
 interface Producto {
   id: number; slug: string; marca: string; categoria: string; nombre: string
@@ -23,6 +24,7 @@ export default function CosmeticosProductos({ rutinaActiva }: Props) {
   const [orden, setOrden] = useState('relevancia')
   const [loading, setLoading] = useState(true)
   const dropdownRef = useRef<HTMLDivElement>(null)
+  const isMobile = useIsMobile()
 
   useEffect(() => {
     async function cargar() {
@@ -69,15 +71,15 @@ export default function CosmeticosProductos({ rutinaActiva }: Props) {
   return (
     <div style={{ background: '#F9F5F0', minHeight: '600px' }}>
       {/* Barra de filtros */}
-      <div style={{ background: 'white', borderBottom: '1px solid #E8E0D5', position: 'sticky', top: '73px', zIndex: 90, padding: '14px 40px' }}>
-        <div style={{ maxWidth: '1400px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '16px' }}>
+      <div style={{ background: 'white', borderBottom: '1px solid #E8E0D5', position: 'sticky', top: isMobile ? '61px' : '73px', zIndex: 90, padding: isMobile ? '12px 16px' : '14px 40px' }}>
+        <div style={{ maxWidth: '1400px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: isMobile ? '10px' : '16px', flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
           <div style={{ position: 'relative' }} ref={dropdownRef}>
             <button onClick={() => setDropdownOpen(!dropdownOpen)}
-              style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px', border: '1px solid', borderColor: marcasSeleccionadas.length > 0 ? 'var(--gold)' : '#E8E0D5', borderRadius: '100px', background: marcasSeleccionadas.length > 0 ? 'var(--gold)' : 'white', color: marcasSeleccionadas.length > 0 ? 'white' : '#2C2C2C', fontSize: '12px', letterSpacing: '0.1em', textTransform: 'uppercase', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 500 }}>
+              style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: isMobile ? '8px 16px' : '10px 20px', border: '1px solid', borderColor: marcasSeleccionadas.length > 0 ? 'var(--gold)' : '#E8E0D5', borderRadius: '100px', background: marcasSeleccionadas.length > 0 ? 'var(--gold)' : 'white', color: marcasSeleccionadas.length > 0 ? 'white' : '#2C2C2C', fontSize: isMobile ? '11px' : '12px', letterSpacing: '0.1em', textTransform: 'uppercase', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 500 }}>
               Marcas {marcasSeleccionadas.length > 0 ? `(${marcasSeleccionadas.length})` : ''} <span style={{ fontSize: '10px' }}>{dropdownOpen ? '▲' : '▼'}</span>
             </button>
             {dropdownOpen && (
-              <div style={{ position: 'absolute', top: 'calc(100% + 8px)', left: 0, background: 'white', border: '1px solid #E8E0D5', borderRadius: '8px', boxShadow: '0 20px 60px rgba(0,0,0,0.12)', padding: '16px', minWidth: '280px', zIndex: 200 }}>
+              <div style={{ position: 'absolute', top: 'calc(100% + 8px)', left: 0, background: 'white', border: '1px solid #E8E0D5', borderRadius: '8px', boxShadow: '0 20px 60px rgba(0,0,0,0.12)', padding: '16px', minWidth: isMobile ? '240px' : '280px', maxWidth: isMobile ? '85vw' : 'none', zIndex: 200 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', paddingBottom: '12px', borderBottom: '1px solid #E8E0D5' }}>
                   <span style={{ fontSize: '11px', letterSpacing: '0.2em', textTransform: 'uppercase', color: '#6B6B6B' }}>Selecciona marcas</span>
                   {marcasSeleccionadas.length > 0 && <button onClick={limpiarMarcas} style={{ background: 'none', border: 'none', fontSize: '11px', color: 'var(--gold)', cursor: 'pointer', fontFamily: 'inherit' }}>Limpiar</button>}
@@ -98,10 +100,10 @@ export default function CosmeticosProductos({ rutinaActiva }: Props) {
               </div>
             )}
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <Link href="/suplementos" style={{ padding: '8px 20px', border: '1px solid var(--gold)', borderRadius: '100px', color: 'var(--gold)', textDecoration: 'none', fontSize: '11px', letterSpacing: '0.15em', textTransform: 'uppercase', fontWeight: 500 }}>Suplementos →</Link>
-            <span style={{ fontSize: '12px', letterSpacing: '0.1em', textTransform: 'uppercase', color: '#6B6B6B' }}>Ordenar:</span>
-            <select value={orden} onChange={e => setOrden(e.target.value)} style={{ padding: '8px 16px', border: '1px solid #E8E0D5', borderRadius: '100px', background: 'white', fontSize: '12px', color: '#2C2C2C', fontFamily: 'inherit', cursor: 'pointer', outline: 'none' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '10px' : '16px' }}>
+            {!isMobile && <Link href="/suplementos" style={{ padding: '8px 20px', border: '1px solid var(--gold)', borderRadius: '100px', color: 'var(--gold)', textDecoration: 'none', fontSize: '11px', letterSpacing: '0.15em', textTransform: 'uppercase', fontWeight: 500 }}>Suplementos →</Link>}
+            {!isMobile && <span style={{ fontSize: '12px', letterSpacing: '0.1em', textTransform: 'uppercase', color: '#6B6B6B' }}>Ordenar:</span>}
+            <select value={orden} onChange={e => setOrden(e.target.value)} style={{ padding: isMobile ? '8px 12px' : '8px 16px', border: '1px solid #E8E0D5', borderRadius: '100px', background: 'white', fontSize: isMobile ? '11px' : '12px', color: '#2C2C2C', fontFamily: 'inherit', cursor: 'pointer', outline: 'none' }}>
               <option value="relevancia">Relevancia</option>
               <option value="precio-asc">Precio: Menor a Mayor</option>
               <option value="precio-desc">Precio: Mayor a Menor</option>
@@ -111,8 +113,8 @@ export default function CosmeticosProductos({ rutinaActiva }: Props) {
       </div>
 
       {/* Grid */}
-      <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '40px' }}>
-        <p style={{ fontSize: '13px', color: '#6B6B6B', marginBottom: '32px' }}>
+      <div style={{ maxWidth: '1400px', margin: '0 auto', padding: isMobile ? '24px 16px' : '40px' }}>
+        <p style={{ fontSize: '13px', color: '#6B6B6B', marginBottom: isMobile ? '20px' : '32px' }}>
           {productosFiltrados.length} productos encontrados
           {rutinaActiva !== 'Todas' && <span style={{ color: 'var(--gold)', marginLeft: '8px' }}>· {rutinaActiva}</span>}
           {marcasSeleccionadas.length > 0 && <span style={{ color: 'var(--gold)', marginLeft: '8px' }}>· {marcasSeleccionadas.join(', ')}</span>}
@@ -126,7 +128,7 @@ export default function CosmeticosProductos({ rutinaActiva }: Props) {
             <p>No hay productos en esta categoría todavía.</p>
           </div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '24px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: isMobile ? '12px' : '24px' }}>
             {productosFiltrados.map(producto => (
               <Link key={producto.id} href={`/cosmeticos/producto/${producto.slug}`} style={{ textDecoration: 'none' }}>
                 <div style={{ cursor: 'pointer', background: 'white', borderRadius: '4px', overflow: 'hidden', border: '1px solid #E8E0D5', transition: 'transform 0.3s, box-shadow 0.3s' }}
@@ -140,17 +142,17 @@ export default function CosmeticosProductos({ rutinaActiva }: Props) {
                       <div style={{ fontFamily: 'var(--font-italiana), serif', fontSize: '32px', color: 'rgba(0,0,0,0.2)' }}>V</div>
                     )}
                   </div>
-                  <div style={{ padding: '16px' }}>
+                  <div style={{ padding: isMobile ? '12px' : '16px' }}>
                     <div style={{ fontSize: '10px', letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--gold)', marginBottom: '6px' }}>{producto.marca}</div>
-                    <h3 style={{ fontFamily: 'var(--font-cormorant), serif', fontSize: '16px', fontWeight: 500, color: '#0E0E0E', marginBottom: '8px', lineHeight: 1.4 }}>{producto.nombre}</h3>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <h3 style={{ fontFamily: 'var(--font-cormorant), serif', fontSize: isMobile ? '15px' : '16px', fontWeight: 500, color: '#0E0E0E', marginBottom: '8px', lineHeight: 1.4 }}>{producto.nombre}</h3>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '6px' }}>
                       <div>
                         {producto.precio_original && producto.precio_original > producto.precio && (
-                          <span style={{ fontSize: '13px', color: '#999', textDecoration: 'line-through', marginRight: '8px' }}>${producto.precio_original.toLocaleString()}</span>
+                          <span style={{ fontSize: '12px', color: '#999', textDecoration: 'line-through', marginRight: '6px' }}>${producto.precio_original.toLocaleString()}</span>
                         )}
-                        <span style={{ fontFamily: 'var(--font-cormorant), serif', fontSize: '18px', fontWeight: 600, color: '#0E0E0E' }}>${producto.precio.toLocaleString()} MXN</span>
+                        <span style={{ fontFamily: 'var(--font-cormorant), serif', fontSize: isMobile ? '16px' : '18px', fontWeight: 600, color: '#0E0E0E' }}>${producto.precio.toLocaleString()} MXN</span>
                       </div>
-                      <span style={{ padding: '8px 16px', background: '#0E0E0E', color: 'white', fontSize: '11px', letterSpacing: '0.1em', borderRadius: '2px' }}>+ Agregar</span>
+                      {!isMobile && <span style={{ padding: '8px 16px', background: '#0E0E0E', color: 'white', fontSize: '11px', letterSpacing: '0.1em', borderRadius: '2px' }}>+ Agregar</span>}
                     </div>
                   </div>
                 </div>

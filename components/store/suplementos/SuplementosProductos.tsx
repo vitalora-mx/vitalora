@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
+import { useIsMobile } from '@/hooks/useIsMobile'
 
 interface Producto {
   id: number; slug: string; marca: string; categoria: string; nombre: string
@@ -25,6 +26,7 @@ export default function SuplementosProductos({ categoriaActiva }: Props) {
   const [catsOpen, setCatsOpen] = useState(false)
   const marcasRef = useRef<HTMLDivElement>(null)
   const catsRef = useRef<HTMLDivElement>(null)
+  const isMobile = useIsMobile()
 
   useEffect(() => {
     async function cargar() {
@@ -71,25 +73,26 @@ export default function SuplementosProductos({ categoriaActiva }: Props) {
   const hayFiltros = marcasSeleccionadas.length > 0 || categoriasSeleccionadas.length > 0
 
   const dropBtnStyle = (active: boolean): React.CSSProperties => ({
-    display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px',
+    display: 'flex', alignItems: 'center', gap: '8px', padding: isMobile ? '8px 14px' : '10px 20px',
     border: '1px solid', borderColor: active ? '#6B8F6B' : '#DDDDDD', borderRadius: '8px',
     background: active ? '#6B8F6B' : 'white', color: active ? 'white' : '#333333',
-    fontSize: '13px', letterSpacing: '0.05em', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 500,
+    fontSize: isMobile ? '12px' : '13px', letterSpacing: '0.05em', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 500,
+    whiteSpace: 'nowrap',
   })
 
   return (
     <div style={{ background: '#FFFFFF', minHeight: '600px' }}>
       {/* Filtros */}
-      <div style={{ background: '#FFFFFF', borderBottom: '1px solid #EEEEEE', position: 'sticky', top: '73px', zIndex: 90, padding: '14px 40px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+      <div style={{ background: '#FFFFFF', borderBottom: '1px solid #EEEEEE', position: 'sticky', top: isMobile ? '61px' : '73px', zIndex: 90, padding: isMobile ? '12px 16px' : '14px 40px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
         <div style={{ maxWidth: '1400px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '8px' : '12px', flexWrap: 'wrap' }}>
             {/* Dropdown Marcas */}
             <div ref={marcasRef} style={{ position: 'relative' }}>
               <button onClick={() => setMarcasOpen(!marcasOpen)} style={dropBtnStyle(marcasSeleccionadas.length > 0)}>
                 Marcas {marcasSeleccionadas.length > 0 ? `(${marcasSeleccionadas.length})` : ''} <span style={{ fontSize: '10px' }}>{marcasOpen ? '▲' : '▼'}</span>
               </button>
               {marcasOpen && (
-                <div style={{ position: 'absolute', top: 'calc(100% + 8px)', left: 0, background: 'white', border: '1px solid #EEE', borderRadius: '8px', boxShadow: '0 8px 30px rgba(0,0,0,0.1)', padding: '12px', minWidth: '220px', zIndex: 200 }}>
+                <div style={{ position: 'absolute', top: 'calc(100% + 8px)', left: 0, background: 'white', border: '1px solid #EEE', borderRadius: '8px', boxShadow: '0 8px 30px rgba(0,0,0,0.1)', padding: '12px', minWidth: '220px', maxWidth: isMobile ? '80vw' : 'none', maxHeight: '320px', overflowY: 'auto', zIndex: 200 }}>
                   {marcas.map(m => {
                     const sel = marcasSeleccionadas.includes(m)
                     return (
@@ -110,7 +113,7 @@ export default function SuplementosProductos({ categoriaActiva }: Props) {
                 Categoría {categoriasSeleccionadas.length > 0 ? `(${categoriasSeleccionadas.length})` : ''} <span style={{ fontSize: '10px' }}>{catsOpen ? '▲' : '▼'}</span>
               </button>
               {catsOpen && (
-                <div style={{ position: 'absolute', top: 'calc(100% + 8px)', left: 0, background: 'white', border: '1px solid #EEE', borderRadius: '8px', boxShadow: '0 8px 30px rgba(0,0,0,0.1)', padding: '12px', minWidth: '220px', zIndex: 200 }}>
+                <div style={{ position: 'absolute', top: 'calc(100% + 8px)', left: 0, background: 'white', border: '1px solid #EEE', borderRadius: '8px', boxShadow: '0 8px 30px rgba(0,0,0,0.1)', padding: '12px', minWidth: '220px', maxWidth: isMobile ? '80vw' : 'none', maxHeight: '320px', overflowY: 'auto', zIndex: 200 }}>
                   {categorias.map(c => {
                     const sel = categoriasSeleccionadas.includes(c)
                     return (
@@ -130,8 +133,8 @@ export default function SuplementosProductos({ categoriaActiva }: Props) {
             )}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <Link href="/cosmeticos" style={{ padding: '8px 20px', border: '1px solid #6B8F6B', borderRadius: '8px', color: '#6B8F6B', textDecoration: 'none', fontSize: '13px', fontWeight: 500 }}>Ver Cosméticos →</Link>
-            <select value={orden} onChange={e => setOrden(e.target.value)} style={{ padding: '8px 16px', border: '1px solid #DDD', borderRadius: '8px', background: 'white', fontSize: '13px', color: '#333', fontFamily: 'inherit', cursor: 'pointer', outline: 'none' }}>
+            {!isMobile && <Link href="/cosmeticos" style={{ padding: '8px 20px', border: '1px solid #6B8F6B', borderRadius: '8px', color: '#6B8F6B', textDecoration: 'none', fontSize: '13px', fontWeight: 500 }}>Ver Cosméticos →</Link>}
+            <select value={orden} onChange={e => setOrden(e.target.value)} style={{ padding: isMobile ? '8px 12px' : '8px 16px', border: '1px solid #DDD', borderRadius: '8px', background: 'white', fontSize: isMobile ? '12px' : '13px', color: '#333', fontFamily: 'inherit', cursor: 'pointer', outline: 'none' }}>
               <option value="relevancia">Relevancia</option>
               <option value="precio-asc">Precio: Menor a Mayor</option>
               <option value="precio-desc">Precio: Mayor a Menor</option>
@@ -141,8 +144,8 @@ export default function SuplementosProductos({ categoriaActiva }: Props) {
       </div>
 
       {/* Grid */}
-      <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '40px' }}>
-        <p style={{ fontSize: '13px', color: '#999', marginBottom: '32px' }}>
+      <div style={{ maxWidth: '1400px', margin: '0 auto', padding: isMobile ? '24px 16px' : '40px' }}>
+        <p style={{ fontSize: '13px', color: '#999', marginBottom: isMobile ? '20px' : '32px' }}>
           {productosFiltrados.length} productos encontrados
           {marcasSeleccionadas.length > 0 && <span style={{ color: '#6B8F6B', marginLeft: '8px' }}>· {marcasSeleccionadas.join(', ')}</span>}
           {categoriasSeleccionadas.length > 0 && <span style={{ color: '#6B8F6B', marginLeft: '8px' }}>· {categoriasSeleccionadas.join(', ')}</span>}
@@ -156,7 +159,7 @@ export default function SuplementosProductos({ categoriaActiva }: Props) {
             <p>No hay productos con esos filtros.</p>
           </div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '20px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: isMobile ? '12px' : '20px' }}>
             {productosFiltrados.map(producto => (
               <Link key={producto.id} href={`/suplementos/producto/${producto.slug}`} style={{ textDecoration: 'none' }}>
                 <div style={{ cursor: 'pointer', background: 'white', borderRadius: '12px', overflow: 'hidden', border: '1px solid #EEE', transition: 'transform 0.3s, box-shadow 0.3s' }}
@@ -170,20 +173,20 @@ export default function SuplementosProductos({ categoriaActiva }: Props) {
                       <div style={{ fontFamily: 'var(--font-italiana), serif', fontSize: '40px', color: 'rgba(107,143,107,0.2)' }}>V</div>
                     )}
                   </div>
-                  <div style={{ padding: '16px' }}>
+                  <div style={{ padding: isMobile ? '12px' : '16px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
                       <span style={{ fontSize: '10px', letterSpacing: '0.2em', textTransform: 'uppercase', color: '#6B8F6B', fontWeight: 600 }}>{producto.categoria}</span>
                       <span style={{ fontSize: '10px', color: '#AAA' }}>{producto.marca}</span>
                     </div>
-                    <h3 style={{ fontFamily: 'var(--font-cormorant), serif', fontSize: '17px', fontWeight: 500, color: '#111', marginBottom: '4px', lineHeight: 1.4 }}>{producto.nombre}</h3>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px' }}>
+                    <h3 style={{ fontFamily: 'var(--font-cormorant), serif', fontSize: isMobile ? '16px' : '17px', fontWeight: 500, color: '#111', marginBottom: '4px', lineHeight: 1.4 }}>{producto.nombre}</h3>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px', flexWrap: 'wrap', gap: '6px' }}>
                       <div>
                         {producto.precio_original && producto.precio_original > producto.precio && (
-                          <span style={{ fontSize: '13px', color: '#999', textDecoration: 'line-through', marginRight: '8px' }}>${producto.precio_original.toLocaleString()}</span>
+                          <span style={{ fontSize: '12px', color: '#999', textDecoration: 'line-through', marginRight: '6px' }}>${producto.precio_original.toLocaleString()}</span>
                         )}
-                        <span style={{ fontFamily: 'var(--font-cormorant), serif', fontSize: '20px', fontWeight: 600, color: '#111' }}>${producto.precio.toLocaleString()} MXN</span>
+                        <span style={{ fontFamily: 'var(--font-cormorant), serif', fontSize: isMobile ? '18px' : '20px', fontWeight: 600, color: '#111' }}>${producto.precio.toLocaleString()} MXN</span>
                       </div>
-                      <span style={{ padding: '8px 16px', background: '#6B8F6B', color: 'white', fontSize: '12px', borderRadius: '8px', fontWeight: 600 }}>+ Agregar</span>
+                      {!isMobile && <span style={{ padding: '8px 16px', background: '#6B8F6B', color: 'white', fontSize: '12px', borderRadius: '8px', fontWeight: 600 }}>+ Agregar</span>}
                     </div>
                   </div>
                 </div>
