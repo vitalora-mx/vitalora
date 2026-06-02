@@ -112,7 +112,11 @@ export default function SuplementosHeader() {
             <Link href="/cosmeticos" onClick={() => setMenuAbierto(false)} style={{ color: '#F5F2EC', textDecoration: 'none', fontSize: '14px', letterSpacing: '0.1em', textTransform: 'uppercase', padding: '14px 0', borderBottom: '1px solid #2A2A2A' }}>Cosméticos</Link>
             <Link href="/suplementos" onClick={() => setMenuAbierto(false)} style={{ color: '#F5F2EC', textDecoration: 'none', fontSize: '14px', letterSpacing: '0.1em', textTransform: 'uppercase', padding: '14px 0', borderBottom: '1px solid #2A2A2A' }}>Suplementos</Link>
             <Link href="/ritual" onClick={() => setMenuAbierto(false)} style={{ color: '#F5F2EC', textDecoration: 'none', fontSize: '14px', letterSpacing: '0.1em', textTransform: 'uppercase', padding: '14px 0', borderBottom: '1px solid #2A2A2A' }}>Ritual</Link>
-            <Link href="/suplementos/kits" onClick={() => setMenuAbierto(false)} style={{ color: '#F5F2EC', textDecoration: 'none', fontSize: '14px', letterSpacing: '0.1em', textTransform: 'uppercase', padding: '14px 0' }}>Kits</Link>
+            <Link href="/suplementos/kits" onClick={() => setMenuAbierto(false)} style={{ color: '#F5F2EC', textDecoration: 'none', fontSize: '14px', letterSpacing: '0.1em', textTransform: 'uppercase', padding: '14px 0', borderBottom: '1px solid #2A2A2A' }}>Kits</Link>
+            <Link href="/cuenta" onClick={() => setMenuAbierto(false)} style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#F5F2EC', textDecoration: 'none', fontSize: '14px', letterSpacing: '0.1em', textTransform: 'uppercase', padding: '14px 0' }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              Mi cuenta
+            </Link>
           </nav>
         )}
       </header>
