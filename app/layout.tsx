@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { Cormorant_Garamond, Italiana } from 'next/font/google'
 import './globals.css'
 
@@ -8,7 +8,6 @@ const cormorant = Cormorant_Garamond({
   variable: '--font-cormorant',
   display: 'swap',
 })
-
 const italiana = Italiana({
   subsets: ['latin'],
   weight: ['400'],
@@ -19,6 +18,12 @@ const italiana = Italiana({
 export const metadata: Metadata = {
   title: 'Vitalora — K-Beauty & Bienestar Auténtico',
   description: 'Cosméticos coreanos auténticos y suplementos de alta pureza para México.',
+}
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 5,
 }
 
 export default function RootLayout({
