@@ -7,6 +7,7 @@ import ProductoVideos from '@/components/store/producto/ProductoVideos'
 import Footer from '@/components/store/Footer'
 import LoraChat from '@/components/store/LoraChat'
 import { useCartStore } from '@/store/cartStore'
+import { useIsMobile } from '@/hooks/useIsMobile'
 
 interface ProductoVideo { id: number; youtube_url: string; titulo: string; posicion: number }
 
@@ -30,6 +31,7 @@ export default function ProductoCosmeticoPage() {
   const [agregado, setAgregado] = useState(false)
   const [mounted, setMounted] = useState(false)
   const { agregarItem } = useCartStore()
+  const isMobile = useIsMobile()
 
   useEffect(() => { setMounted(true) }, [])
 
@@ -39,14 +41,12 @@ export default function ProductoCosmeticoPage() {
       if (res.ok) {
         const data = await res.json()
         setProducto(data)
-        // SEO dinámico
         const title = data.seo_title || `${data.nombre} — ${data.marca} | Vitalora K-Beauty México`
         const desc = data.seo_description || `${data.descripcion?.slice(0, 155) || data.nombre}. Envío a todo México. Compra en Vitalora.`
         document.title = title
         const metaDesc = document.querySelector('meta[name="description"]')
         if (metaDesc) metaDesc.setAttribute('content', desc)
         else { const m = document.createElement('meta'); m.name = 'description'; m.content = desc; document.head.appendChild(m) }
-        // Open Graph
         function setOG(prop: string, content: string) {
           let el = document.querySelector(`meta[property="${prop}"]`) as HTMLMetaElement
           if (el) el.content = content
@@ -89,9 +89,6 @@ export default function ProductoCosmeticoPage() {
   const imagenes = producto.producto_imagenes?.sort((a, b) => a.posicion - b.posicion) || []
   const agotado = producto.stock <= 0
 
-  // Armar lista de videos para el componente.
-  // 1) Los de la seccion "Videos YouTube" (producto_videos)
-  // 2) Si no hay ninguno pero existe el video_url viejo, usar ese como respaldo
   const videosOrdenados = (producto.producto_videos || [])
     .slice()
     .sort((a, b) => a.posicion - b.posicion)
@@ -122,13 +119,28 @@ export default function ProductoCosmeticoPage() {
   return (
     <main style={{ background: 'white' }}>
       <CosmeticosHeader />
-      <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '60px 40px' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '80px', marginBottom: '80px' }}>
+      <div style={{ maxWidth: '1400px', margin: '0 auto', padding: isMobile ? '24px 16px' : '60px 40px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: isMobile ? '32px' : '80px', marginBottom: isMobile ? '48px' : '80px' }}>
 
           {/* Galería */}
-          <div style={{ display: 'flex', gap: '16px', width: '100%', maxWidth: '600px' }}>
+          <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: '16px', width: '100%', maxWidth: isMobile ? 'none' : '600px' }}>
+            {/* Imagen principal */}
+            <div style={{ order: isMobile ? 1 : 2, flex: 1, minWidth: 0, aspectRatio: '1 / 1', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden', background: '#F5F0E8' }}>
+              {producto.tag && !agotado && (
+                <div style={{ position: 'absolute', top: '20px', left: '20px', padding: '6px 14px', background: 'var(--gold)', color: 'white', fontSize: '11px', letterSpacing: '0.15em', textTransform: 'uppercase', fontWeight: 600, borderRadius: '2px', zIndex: 2 }}>{producto.tag}</div>
+              )}
+              {agotado && (
+                <div style={{ position: 'absolute', top: '20px', right: '20px', padding: '6px 14px', background: '#C0392B', color: 'white', fontSize: '11px', letterSpacing: '0.15em', textTransform: 'uppercase', fontWeight: 700, borderRadius: '2px', zIndex: 2 }}>Agotado</div>
+              )}
+              {imagenes[seleccionada] ? (
+                <img src={imagenes[seleccionada].url} alt={producto.nombre} style={{ width: '100%', height: '100%', objectFit: 'contain', opacity: agotado ? 0.5 : 1, filter: agotado ? 'grayscale(60%)' : 'none' }} />
+              ) : (
+                <div style={{ fontFamily: 'var(--font-italiana), serif', fontSize: '80px', color: 'rgba(0,0,0,0.1)' }}>V</div>
+              )}
+            </div>
+            {/* Miniaturas */}
             {imagenes.length > 1 && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', flexShrink: 0 }}>
+              <div style={{ order: isMobile ? 2 : 1, display: 'flex', flexDirection: isMobile ? 'row' : 'column', gap: '12px', flexShrink: 0, overflowX: isMobile ? 'auto' : 'visible' }}>
                 {imagenes.map((img, i) => (
                   <button key={img.id} onClick={() => setSeleccionada(i)}
                     style={{ width: '72px', height: '72px', border: '2px solid', borderColor: seleccionada === i ? 'var(--gold)' : '#E8E0D5', borderRadius: '4px', cursor: 'pointer', padding: 0, overflow: 'hidden', flexShrink: 0 }}>
@@ -137,30 +149,17 @@ export default function ProductoCosmeticoPage() {
                 ))}
               </div>
             )}
-            <div style={{ flex: 1, minWidth: 0, aspectRatio: '1 / 1', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden', background: '#F5F0E8' }}>
-              {producto.tag && (
-                <div style={{ position: 'absolute', top: '20px', left: '20px', padding: '6px 14px', background: 'var(--gold)', color: 'white', fontSize: '11px', letterSpacing: '0.15em', textTransform: 'uppercase', fontWeight: 600, borderRadius: '2px', zIndex: 2 }}>{producto.tag}</div>
-              )}
-              {agotado && (
-                <div style={{ position: 'absolute', top: '20px', right: '20px', padding: '6px 14px', background: '#D33', color: 'white', fontSize: '11px', letterSpacing: '0.15em', textTransform: 'uppercase', fontWeight: 600, borderRadius: '2px', zIndex: 2 }}>Agotado</div>
-              )}
-              {imagenes[seleccionada] ? (
-                <img src={imagenes[seleccionada].url} alt={producto.nombre} style={{ width: '100%', height: '100%', objectFit: 'contain', opacity: agotado ? 0.5 : 1 }} />
-              ) : (
-                <div style={{ fontFamily: 'var(--font-italiana), serif', fontSize: '80px', color: 'rgba(0,0,0,0.1)' }}>V</div>
-              )}
-            </div>
           </div>
 
           {/* Info */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? '18px' : '24px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <span style={{ fontSize: '11px', letterSpacing: '0.3em', textTransform: 'uppercase', color: 'var(--gold)', fontWeight: 600 }}>{producto.marca}</span>
               <span style={{ color: '#D9D2C4' }}>·</span>
               <span style={{ fontSize: '11px', letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>{producto.categoria}</span>
             </div>
 
-            <h1 style={{ fontFamily: 'var(--font-italiana), serif', fontSize: 'clamp(32px, 4vw, 48px)', lineHeight: 1.1, letterSpacing: '0.02em', color: 'var(--black)' }}>{producto.nombre}</h1>
+            <h1 style={{ fontFamily: 'var(--font-italiana), serif', fontSize: 'clamp(28px, 4vw, 48px)', lineHeight: 1.1, letterSpacing: '0.02em', color: 'var(--black)' }}>{producto.nombre}</h1>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <span style={{ color: 'var(--gold)', fontSize: '16px', letterSpacing: '2px' }}>★★★★★</span>
@@ -171,7 +170,7 @@ export default function ProductoCosmeticoPage() {
               {producto.precio_original && producto.precio_original > producto.precio && (
                 <span style={{ fontFamily: 'var(--font-cormorant), serif', fontSize: '24px', color: '#999', textDecoration: 'line-through' }}>${producto.precio_original.toLocaleString()}</span>
               )}
-              <span style={{ fontFamily: 'var(--font-cormorant), serif', fontSize: '40px', fontWeight: 600, color: 'var(--black)' }}>${producto.precio.toLocaleString()} MXN</span>
+              <span style={{ fontFamily: 'var(--font-cormorant), serif', fontSize: isMobile ? '32px' : '40px', fontWeight: 600, color: 'var(--black)' }}>${producto.precio.toLocaleString()} MXN</span>
             </div>
 
             <div style={{ height: '1px', background: 'var(--line)' }} />
@@ -216,11 +215,11 @@ export default function ProductoCosmeticoPage() {
         </div>
 
         {/* Tabs */}
-        <div style={{ borderTop: '1px solid var(--line)', paddingTop: '60px', marginBottom: '80px' }}>
-          <div style={{ display: 'flex', borderBottom: '1px solid var(--line)', marginBottom: '48px' }}>
+        <div style={{ borderTop: '1px solid var(--line)', paddingTop: isMobile ? '40px' : '60px', marginBottom: isMobile ? '48px' : '80px' }}>
+          <div style={{ display: 'flex', borderBottom: '1px solid var(--line)', marginBottom: isMobile ? '32px' : '48px', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
             {tabs.map(tab => (
               <button key={tab} onClick={() => setTabActiva(tab)}
-                style={{ padding: '16px 32px', border: 'none', borderBottom: tabActiva === tab ? '2px solid var(--black)' : '2px solid transparent', background: 'none', fontSize: '13px', letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: tabActiva === tab ? 600 : 400, color: tabActiva === tab ? 'var(--black)' : 'var(--text-muted)', cursor: 'pointer', fontFamily: 'inherit', marginBottom: '-1px' }}>
+                style={{ padding: isMobile ? '14px 20px' : '16px 32px', border: 'none', borderBottom: tabActiva === tab ? '2px solid var(--black)' : '2px solid transparent', background: 'none', fontSize: isMobile ? '12px' : '13px', letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: tabActiva === tab ? 600 : 400, color: tabActiva === tab ? 'var(--black)' : 'var(--text-muted)', cursor: 'pointer', fontFamily: 'inherit', marginBottom: '-1px', whiteSpace: 'nowrap' }}>
                 {tab}
               </button>
             ))}
@@ -273,7 +272,6 @@ export default function ProductoCosmeticoPage() {
         </div>
       </div>
 
-      {/* Videos del producto (seccion "Videos YouTube" + respaldo video_url) */}
       <ProductoVideos videos={videosParaMostrar} />
 
       <Footer />
