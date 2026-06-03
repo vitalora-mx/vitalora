@@ -6,7 +6,7 @@ import { useIsMobile } from '@/hooks/useIsMobile'
 
 interface Producto {
   id: number; slug: string; marca: string; categoria: string; nombre: string
-  precio: number; precio_original: number | null; tag: string; descripcion: string
+  precio: number; precio_original: number | null; tag: string; descripcion: string; stock: number
   producto_imagenes: { url: string; posicion: number }[]
 }
 
@@ -166,14 +166,15 @@ export default function SuplementosProductos({ categoriaActiva }: Props) {
                   onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 12px 40px rgba(0,0,0,0.08)' }}
                   onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none' }}>
                   <div style={{ aspectRatio: '1', background: '#F0F7F0', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden' }}>
-                    {producto.tag && <div style={{ position: 'absolute', top: '12px', left: '12px', padding: '4px 10px', background: '#6B8F6B', color: 'white', fontSize: '10px', letterSpacing: '0.1em', borderRadius: '100px', fontWeight: 600, zIndex: 2 }}>{producto.tag}</div>}
+                    {producto.stock === 0 && <div style={{ position: 'absolute', top: '12px', left: '12px', padding: '5px 12px', background: '#C0392B', color: 'white', fontSize: '10px', letterSpacing: '0.1em', borderRadius: '100px', fontWeight: 700, zIndex: 3, textTransform: 'uppercase' }}>Agotado</div>}
                     {getImagen(producto) ? (
-                      <img src={getImagen(producto)!} alt={producto.nombre} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                      <img src={getImagen(producto)!} alt={producto.nombre} style={{ width: '100%', height: '100%', objectFit: 'contain', opacity: producto.stock === 0 ? 0.45 : 1, filter: producto.stock === 0 ? 'grayscale(60%)' : 'none' }} />
                     ) : (
                       <div style={{ fontFamily: 'var(--font-italiana), serif', fontSize: '40px', color: 'rgba(107,143,107,0.2)' }}>V</div>
                     )}
                   </div>
                   <div style={{ padding: isMobile ? '12px' : '16px' }}>
+                    {producto.tag && producto.stock !== 0 && <div style={{ display: 'inline-block', marginBottom: '8px', padding: '4px 10px', background: '#6B8F6B', color: 'white', fontSize: '10px', letterSpacing: '0.1em', borderRadius: '100px', fontWeight: 600 }}>{producto.tag}</div>}
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
                       <span style={{ fontSize: '10px', letterSpacing: '0.2em', textTransform: 'uppercase', color: '#6B8F6B', fontWeight: 600 }}>{producto.categoria}</span>
                       <span style={{ fontSize: '10px', color: '#AAA' }}>{producto.marca}</span>
