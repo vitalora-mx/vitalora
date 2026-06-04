@@ -10,6 +10,12 @@ import { useCartStore } from '@/store/cartStore'
 import { useIsMobile } from '@/hooks/useIsMobile'
 
 interface ProductoVideo { id: number; youtube_url: string; titulo: string; posicion: number }
+interface VarianteImagen { id: number; url: string; posicion: number }
+interface Variante {
+  id: number; nombre: string; tipo: string | null; sku: string | null
+  codigo_barras: string | null; stock: number; precio: number | null; posicion: number
+  variante_imagenes: VarianteImagen[]
+}
 
 interface Producto {
   id: number; slug: string; nombre: string; marca: string; categoria: string
@@ -18,6 +24,7 @@ interface Producto {
   seo_title: string | null; seo_description: string | null
   producto_imagenes: { id: number; url: string; posicion: number }[]
   producto_videos: ProductoVideo[]
+  producto_variantes: Variante[]
 }
 
 export default function ProductoCosmeticoPage() {
@@ -30,6 +37,7 @@ export default function ProductoCosmeticoPage() {
   const [cantidad, setCantidad] = useState(1)
   const [agregado, setAgregado] = useState(false)
   const [mounted, setMounted] = useState(false)
+  const [varianteSel, setVarianteSel] = useState<number | null>(null)
   const { agregarItem } = useCartStore()
   const isMobile = useIsMobile()
 
@@ -41,6 +49,12 @@ export default function ProductoCosmeticoPage() {
       if (res.ok) {
         const data = await res.json()
         setProducto(data)
+        // Elegir variante inicial: primera con stock > 0; si ninguna, la primera
+        const vars: Variante[] = (data.producto_variantes || []).slice().sort((a: Variante, b: Variante) => a.posicion - b.posicion)
+        if (vars.length > 0) {
+          const primeraConStock = vars.find(v => v.stock > 0)
+          setVarianteSel(primeraConStock ? primeraConStock.id : vars[0].id)
+        }
         const title = data.seo_title || `${data.nombre} — ${data.marca} | Vitalora K-Beauty México`
         const desc = data.seo_description || `${data.descripcion?.slice(0, 155) || data.nombre}. Envío a todo México. Compra en Vitalora.`
         document.title = title
@@ -86,8 +100,24 @@ export default function ProductoCosmeticoPage() {
     </main>
   )
 
-  const imagenes = producto.producto_imagenes?.sort((a, b) => a.posicion - b.posicion) || []
-  const agotado = producto.stock <= 0
+  // ---- Variantes ----
+  const variantes = (producto.producto_variantes || []).slice().sort((a, b) => a.posicion - b.posicion)
+  const tieneVariantes = variantes.length > 0
+  const variante = tieneVariantes ? (variantes.find(v => v.id === varianteSel) || variantes[0]) : null
+
+  // Imagenes: las de la variante si tiene; si no, las del producto
+  const imagenesVariante = variante && variante.variante_imagenes?.length > 0
+    ? variante.variante_imagenes.slice().sort((a, b) => a.posicion - b.posicion).map(img => ({ id: img.id, url: img.url, posicion: img.posicion }))
+    : null
+  const imagenes = imagenesVariante || (producto.producto_imagenes?.slice().sort((a, b) => a.posicion - b.posicion) || [])
+
+  // Precio y stock efectivos
+  const precioEfectivo = variante ? (variante.precio != null ? variante.precio : producto.precio) : producto.precio
+  const stockEfectivo = tieneVariantes ? (variante ? variante.stock : 0) : producto.stock
+  const agotado = tieneVariantes
+    ? variantes.every(v => v.stock <= 0)   // producto agotado solo si TODAS las variantes lo estan
+    : producto.stock <= 0
+  const varianteAgotada = tieneVariantes && variante ? variante.stock <= 0 : false
 
   const videosOrdenados = (producto.producto_videos || [])
     .slice()
@@ -97,18 +127,42 @@ export default function ProductoCosmeticoPage() {
     videosParaMostrar = [{ id: producto.video_url, titulo: 'Video del producto' }]
   }
 
+  function seleccionarVariante(id: number) {
+    setVarianteSel(id)
+    setSeleccionada(0)  // resetear a la primera foto de la nueva variante
+    setCantidad(1)
+  }
+
   function handleAgregar() {
-    if (!producto || agotado) return
-    for (let i = 0; i < cantidad; i++) {
-      agregarItem({
-        id: producto.id,
-        slug: producto.slug,
-        nombre: producto.nombre,
-        marca: producto.marca,
-        precio: producto.precio,
-        imagen: imagenes[0]?.url || '',
-        tipo: 'cosmetico',
-      })
+    if (!producto) return
+    if (tieneVariantes) {
+      if (!variante || variante.stock <= 0) return
+      for (let i = 0; i < cantidad; i++) {
+        agregarItem({
+          id: producto.id,
+          slug: producto.slug,
+          nombre: producto.nombre,
+          marca: producto.marca,
+          precio: precioEfectivo,
+          imagen: imagenes[0]?.url || '',
+          tipo: 'cosmetico',
+          varianteId: variante.id,
+          varianteNombre: variante.tipo ? `${variante.tipo}: ${variante.nombre}` : variante.nombre,
+        })
+      }
+    } else {
+      if (agotado) return
+      for (let i = 0; i < cantidad; i++) {
+        agregarItem({
+          id: producto.id,
+          slug: producto.slug,
+          nombre: producto.nombre,
+          marca: producto.marca,
+          precio: producto.precio,
+          imagen: imagenes[0]?.url || '',
+          tipo: 'cosmetico',
+        })
+      }
     }
     setAgregado(true)
     setTimeout(() => setAgregado(false), 2000)
@@ -124,21 +178,19 @@ export default function ProductoCosmeticoPage() {
 
           {/* Galería */}
           <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: '16px', width: '100%', maxWidth: isMobile ? 'none' : '600px' }}>
-            {/* Imagen principal */}
             <div style={{ order: isMobile ? 1 : 2, flex: 1, minWidth: 0, aspectRatio: '1 / 1', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden', background: '#F5F0E8' }}>
               {producto.tag && !agotado && (
                 <div style={{ position: 'absolute', top: '20px', left: '20px', padding: '6px 14px', background: 'var(--gold)', color: 'white', fontSize: '11px', letterSpacing: '0.15em', textTransform: 'uppercase', fontWeight: 600, borderRadius: '2px', zIndex: 2 }}>{producto.tag}</div>
               )}
-              {agotado && (
+              {(agotado || varianteAgotada) && (
                 <div style={{ position: 'absolute', top: '20px', right: '20px', padding: '6px 14px', background: '#C0392B', color: 'white', fontSize: '11px', letterSpacing: '0.15em', textTransform: 'uppercase', fontWeight: 700, borderRadius: '2px', zIndex: 2 }}>Agotado</div>
               )}
               {imagenes[seleccionada] ? (
-                <img src={imagenes[seleccionada].url} alt={producto.nombre} style={{ width: '100%', height: '100%', objectFit: 'contain', opacity: agotado ? 0.5 : 1, filter: agotado ? 'grayscale(60%)' : 'none' }} />
+                <img src={imagenes[seleccionada].url} alt={producto.nombre} style={{ width: '100%', height: '100%', objectFit: 'contain', opacity: (agotado || varianteAgotada) ? 0.5 : 1, filter: (agotado || varianteAgotada) ? 'grayscale(60%)' : 'none' }} />
               ) : (
                 <div style={{ fontFamily: 'var(--font-italiana), serif', fontSize: '80px', color: 'rgba(0,0,0,0.1)' }}>V</div>
               )}
             </div>
-            {/* Miniaturas */}
             {imagenes.length > 1 && (
               <div style={{ order: isMobile ? 2 : 1, display: 'flex', flexDirection: isMobile ? 'row' : 'column', gap: '12px', flexShrink: 0, overflowX: isMobile ? 'auto' : 'visible' }}>
                 {imagenes.map((img, i) => (
@@ -167,10 +219,10 @@ export default function ProductoCosmeticoPage() {
             </div>
 
             <div style={{ display: 'flex', alignItems: 'baseline', gap: '12px' }}>
-              {producto.precio_original && producto.precio_original > producto.precio && (
+              {producto.precio_original && producto.precio_original > precioEfectivo && (
                 <span style={{ fontFamily: 'var(--font-cormorant), serif', fontSize: '24px', color: '#999', textDecoration: 'line-through' }}>${producto.precio_original.toLocaleString()}</span>
               )}
-              <span style={{ fontFamily: 'var(--font-cormorant), serif', fontSize: isMobile ? '32px' : '40px', fontWeight: 600, color: 'var(--black)' }}>${producto.precio.toLocaleString()} MXN</span>
+              <span style={{ fontFamily: 'var(--font-cormorant), serif', fontSize: isMobile ? '32px' : '40px', fontWeight: 600, color: 'var(--black)' }}>${precioEfectivo.toLocaleString()} MXN</span>
             </div>
 
             <div style={{ height: '1px', background: 'var(--line)' }} />
@@ -179,23 +231,51 @@ export default function ProductoCosmeticoPage() {
               <p style={{ fontSize: '15px', lineHeight: 1.8, color: 'var(--text-muted)' }}>{producto.descripcion.split('.')[0]}.</p>
             )}
 
+            {/* Selector de variantes */}
+            {tieneVariantes && (
+              <div>
+                <div style={{ fontSize: '12px', letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '10px' }}>
+                  {variante?.tipo ? variante.tipo : 'Variante'}: <strong style={{ color: 'var(--black)' }}>{variante?.nombre}</strong>
+                </div>
+                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                  {variantes.map(v => {
+                    const sel = v.id === varianteSel
+                    const vAgotada = v.stock <= 0
+                    return (
+                      <button key={v.id} onClick={() => seleccionarVariante(v.id)}
+                        style={{
+                          padding: '10px 18px', borderRadius: '4px', cursor: vAgotada ? 'not-allowed' : 'pointer',
+                          border: '1px solid', borderColor: sel ? 'var(--black)' : '#DDD',
+                          background: sel ? 'var(--black)' : 'white',
+                          color: sel ? 'white' : (vAgotada ? '#BBB' : 'var(--text)'),
+                          fontSize: '13px', fontFamily: 'inherit', position: 'relative',
+                          textDecoration: vAgotada ? 'line-through' : 'none',
+                        }}>
+                        {v.nombre}{vAgotada ? ' (agotado)' : ''}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+
             {/* Cantidad */}
-            {!agotado && (
+            {!agotado && !varianteAgotada && (
               <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                 <span style={{ fontSize: '12px', letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>Cantidad</span>
                 <div style={{ display: 'flex', alignItems: 'center', border: '1px solid var(--line)', borderRadius: '2px' }}>
                   <button onClick={() => setCantidad(Math.max(1, cantidad - 1))} style={{ width: '40px', height: '40px', border: 'none', background: 'none', cursor: 'pointer', fontSize: '18px', color: 'var(--text)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>−</button>
                   <span style={{ width: '40px', textAlign: 'center', fontSize: '15px', fontWeight: 500 }}>{cantidad}</span>
-                  <button onClick={() => setCantidad(Math.min(producto.stock, cantidad + 1))} style={{ width: '40px', height: '40px', border: 'none', background: 'none', cursor: 'pointer', fontSize: '18px', color: 'var(--text)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>+</button>
+                  <button onClick={() => setCantidad(Math.min(stockEfectivo, cantidad + 1))} style={{ width: '40px', height: '40px', border: 'none', background: 'none', cursor: 'pointer', fontSize: '18px', color: 'var(--text)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>+</button>
                 </div>
               </div>
             )}
 
             {/* Botón agregar o agotado */}
-            {agotado ? (
+            {(agotado || varianteAgotada) ? (
               <div style={{ padding: '20px', background: '#F5F5F5', border: '1px solid #DDD', borderRadius: '2px', textAlign: 'center' }}>
-                <div style={{ fontSize: '13px', letterSpacing: '0.2em', textTransform: 'uppercase', fontWeight: 600, color: '#999', marginBottom: '8px' }}>Producto agotado</div>
-                <p style={{ fontSize: '12px', color: '#AAA', margin: 0 }}>Este producto no está disponible por el momento</p>
+                <div style={{ fontSize: '13px', letterSpacing: '0.2em', textTransform: 'uppercase', fontWeight: 600, color: '#999', marginBottom: '8px' }}>{varianteAgotada && !agotado ? 'Esta variante está agotada' : 'Producto agotado'}</div>
+                <p style={{ fontSize: '12px', color: '#AAA', margin: 0 }}>{varianteAgotada && !agotado ? 'Elige otra variante disponible' : 'Este producto no está disponible por el momento'}</p>
               </div>
             ) : (
               <button onClick={handleAgregar}

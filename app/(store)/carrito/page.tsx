@@ -33,18 +33,25 @@ export default function CarritoPage() {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: '40px' }}>
           <div>
             {items.map((item) => (
-              <div key={item.id} style={{ display: 'flex', gap: '20px', padding: '24px 0', borderBottom: '1px solid var(--line)' }}>
-                <div style={{ width: '100px', height: '100px', background: 'var(--bg-cream-deep)', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-italiana), serif', fontSize: '28px', color: 'var(--text-muted)', flexShrink: 0 }}>V</div>
+              <div key={`${item.id}-${item.varianteId ?? 'base'}`} style={{ display: 'flex', gap: '20px', padding: '24px 0', borderBottom: '1px solid var(--line)' }}>
+                <div style={{ width: '100px', height: '100px', background: 'var(--bg-cream-deep)', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 }}>
+                  {item.imagen ? (
+                    <img src={item.imagen} alt={item.nombre} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                  ) : (
+                    <span style={{ fontFamily: 'var(--font-italiana), serif', fontSize: '28px', color: 'var(--text-muted)' }}>V</span>
+                  )}
+                </div>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: '10px', letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--gold)', marginBottom: '4px' }}>{item.marca}</div>
-                  <div style={{ fontFamily: 'var(--font-cormorant), serif', fontSize: '20px', fontWeight: 500, color: 'var(--black)', marginBottom: '16px' }}>{item.nombre}</div>
+                  <div style={{ fontFamily: 'var(--font-cormorant), serif', fontSize: '20px', fontWeight: 500, color: 'var(--black)', marginBottom: item.varianteNombre ? '2px' : '16px' }}>{item.nombre}</div>
+                  {item.varianteNombre && <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '16px' }}>{item.varianteNombre}</div>}
                   <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', border: '1px solid var(--line)', borderRadius: '2px' }}>
-                      <button onClick={() => actualizarCantidad(item.id, item.cantidad - 1)} style={{ width: '36px', height: '36px', border: 'none', background: 'none', cursor: 'pointer', fontSize: '16px' }}>−</button>
+                      <button onClick={() => actualizarCantidad(item.id, item.cantidad - 1, item.varianteId)} style={{ width: '36px', height: '36px', border: 'none', background: 'none', cursor: 'pointer', fontSize: '16px' }}>−</button>
                       <span style={{ width: '36px', textAlign: 'center', fontSize: '14px' }}>{item.cantidad}</span>
-                      <button onClick={() => actualizarCantidad(item.id, item.cantidad + 1)} style={{ width: '36px', height: '36px', border: 'none', background: 'none', cursor: 'pointer', fontSize: '16px' }}>+</button>
+                      <button onClick={() => actualizarCantidad(item.id, item.cantidad + 1, item.varianteId)} style={{ width: '36px', height: '36px', border: 'none', background: 'none', cursor: 'pointer', fontSize: '16px' }}>+</button>
                     </div>
-                    <button onClick={() => quitarItem(item.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '12px', color: 'var(--text-muted)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Eliminar</button>
+                    <button onClick={() => quitarItem(item.id, item.varianteId)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '12px', color: 'var(--text-muted)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Eliminar</button>
                   </div>
                 </div>
                 <div style={{ fontFamily: 'var(--font-cormorant), serif', fontSize: '22px', fontWeight: 600, color: 'var(--black)' }}>

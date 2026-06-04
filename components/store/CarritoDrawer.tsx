@@ -25,7 +25,7 @@ export default function CarritoDrawer() {
 
       {/* Drawer */}
       <div style={{
-        position: 'fixed', top: 0, right: 0, width: '420px', height: '100vh',
+        position: 'fixed', top: 0, right: 0, width: '420px', maxWidth: '100vw', height: '100vh',
         background: 'var(--bg-cream)', zIndex: 1001, display: 'flex',
         flexDirection: 'column', boxShadow: '-20px 0 60px rgba(0,0,0,0.2)',
       }}>
@@ -53,21 +53,28 @@ export default function CarritoDrawer() {
             </div>
           ) : (
             items.map((item) => (
-              <div key={item.id} style={{ display: 'flex', gap: '16px', padding: '16px', background: 'white', borderRadius: '4px', border: '1px solid var(--line)' }}>
-                <div style={{ width: '80px', height: '80px', background: 'var(--bg-cream-deep)', borderRadius: '4px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-italiana), serif', fontSize: '24px', color: 'var(--text-muted)' }}>V</div>
+              <div key={`${item.id}-${item.varianteId ?? 'base'}`} style={{ display: 'flex', gap: '16px', padding: '16px', background: 'white', borderRadius: '4px', border: '1px solid var(--line)' }}>
+                <div style={{ width: '80px', height: '80px', background: 'var(--bg-cream-deep)', borderRadius: '4px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                  {item.imagen ? (
+                    <img src={item.imagen} alt={item.nombre} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                  ) : (
+                    <span style={{ fontFamily: 'var(--font-italiana), serif', fontSize: '24px', color: 'var(--text-muted)' }}>V</span>
+                  )}
+                </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: '10px', letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--gold)', marginBottom: '4px' }}>{item.marca}</div>
-                  <div style={{ fontFamily: 'var(--font-cormorant), serif', fontSize: '16px', fontWeight: 500, color: 'var(--black)', marginBottom: '8px', lineHeight: 1.3 }}>{item.nombre}</div>
+                  <div style={{ fontFamily: 'var(--font-cormorant), serif', fontSize: '16px', fontWeight: 500, color: 'var(--black)', marginBottom: item.varianteNombre ? '2px' : '8px', lineHeight: 1.3 }}>{item.nombre}</div>
+                  {item.varianteNombre && <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '8px' }}>{item.varianteNombre}</div>}
                   <div style={{ fontFamily: 'var(--font-cormorant), serif', fontSize: '18px', fontWeight: 600, color: 'var(--black)' }}>
                     ${(item.precio * item.cantidad).toLocaleString()} MXN
                   </div>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'space-between' }}>
-                  <button onClick={() => quitarItem(item.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: '16px', lineHeight: 1 }}>✕</button>
+                  <button onClick={() => quitarItem(item.id, item.varianteId)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: '16px', lineHeight: 1 }}>✕</button>
                   <div style={{ display: 'flex', alignItems: 'center', border: '1px solid var(--line)', borderRadius: '2px' }}>
-                    <button onClick={() => actualizarCantidad(item.id, item.cantidad - 1)} style={{ width: '32px', height: '32px', border: 'none', background: 'none', cursor: 'pointer', fontSize: '16px', color: 'var(--text)' }}>−</button>
+                    <button onClick={() => actualizarCantidad(item.id, item.cantidad - 1, item.varianteId)} style={{ width: '32px', height: '32px', border: 'none', background: 'none', cursor: 'pointer', fontSize: '16px', color: 'var(--text)' }}>−</button>
                     <span style={{ width: '32px', textAlign: 'center', fontSize: '14px', fontWeight: 500 }}>{item.cantidad}</span>
-                    <button onClick={() => actualizarCantidad(item.id, item.cantidad + 1)} style={{ width: '32px', height: '32px', border: 'none', background: 'none', cursor: 'pointer', fontSize: '16px', color: 'var(--text)' }}>+</button>
+                    <button onClick={() => actualizarCantidad(item.id, item.cantidad + 1, item.varianteId)} style={{ width: '32px', height: '32px', border: 'none', background: 'none', cursor: 'pointer', fontSize: '16px', color: 'var(--text)' }}>+</button>
                   </div>
                 </div>
               </div>
