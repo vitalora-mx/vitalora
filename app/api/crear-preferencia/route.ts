@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Error guardando pedido' }, { status: 500 })
     }
 
-    // 2. Guardar items
+    // 2. Guardar items (incluyendo variante si la tiene)
     const pedidoItems = items.map((item: any) => ({
       pedido_id: pedido.id,
       producto_id: item.id,
@@ -55,13 +55,15 @@ export async function POST(req: NextRequest) {
       marca: item.marca,
       precio: item.precio,
       cantidad: item.cantidad,
+      variante_id: item.varianteId ?? null,
+      variante_nombre: item.varianteNombre ?? null,
     }))
     await supabaseAdmin.from('pedido_items').insert(pedidoItems)
 
     // 3. Crear items para MP (con descuento aplicado como item negativo)
     const mpItems = items.map((item: any) => ({
       id: String(item.id),
-      title: item.nombre,
+      title: item.varianteNombre ? `${item.nombre} (${item.varianteNombre})` : item.nombre,
       quantity: item.cantidad,
       unit_price: item.precio,
       currency_id: 'MXN',
