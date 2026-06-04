@@ -25,13 +25,13 @@ export default function CarritoDrawer() {
 
       {/* Drawer */}
       <div style={{
-        position: 'fixed', top: 0, right: 0, width: '420px', maxWidth: '100vw', height: '100vh',
+        position: 'fixed', top: 0, right: 0, width: '420px', maxWidth: '100vw', height: '100dvh',
         background: 'var(--bg-cream)', zIndex: 1001, display: 'flex',
         flexDirection: 'column', boxShadow: '-20px 0 60px rgba(0,0,0,0.2)',
       }}>
 
         {/* Header */}
-        <div style={{ padding: '24px', borderBottom: '1px solid var(--line)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--black)', color: 'var(--bg-cream)' }}>
+        <div style={{ padding: '24px', flexShrink: 0, position: 'relative', zIndex: 2, borderBottom: '1px solid var(--line)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--black)', color: 'var(--bg-cream)' }}>
           <div>
             <div style={{ fontFamily: 'var(--font-italiana), serif', fontSize: '22px', letterSpacing: '0.1em' }}>Tu Carrito</div>
             <div style={{ fontSize: '12px', color: 'var(--gold)', letterSpacing: '0.1em' }}>
@@ -42,7 +42,7 @@ export default function CarritoDrawer() {
         </div>
 
         {/* Items */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
           {items.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text-muted)' }}>
               <div style={{ fontFamily: 'var(--font-italiana), serif', fontSize: '40px', color: 'var(--gold)', marginBottom: '16px' }}>✦</div>
@@ -84,7 +84,7 @@ export default function CarritoDrawer() {
 
         {/* Footer */}
         {items.length > 0 && (
-          <div style={{ padding: '24px', borderTop: '1px solid var(--line)', background: 'white' }}>
+          <div style={{ padding: '24px', flexShrink: 0, borderTop: '1px solid var(--line)', background: 'white' }}>
 
             {/* Barra envío gratis */}
             {subtotal >= ENVIO_GRATIS ? (

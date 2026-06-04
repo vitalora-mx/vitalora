@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useCartStore } from '@/store/cartStore'
 import { useAuthStore } from '@/store/authStore'
+import { useIsMobile } from '@/hooks/useIsMobile'
 
 const ENVIO_GRATIS = 1000
 const COSTO_ENVIO = 99
@@ -16,6 +17,7 @@ interface Direccion {
 export default function CheckoutPage() {
   const { items, total } = useCartStore()
   const { user, isLoggedIn } = useAuthStore()
+  const isMobile = useIsMobile()
   const [mounted, setMounted] = useState(false)
   const [paso, setPaso] = useState(1)
   const [enviando, setEnviando] = useState(false)
@@ -189,7 +191,7 @@ export default function CheckoutPage() {
   }
 
   return (
-    <main style={{ background: 'var(--bg-cream)', minHeight: '100vh', padding: '60px 40px' }}>
+    <main style={{ background: 'var(--bg-cream)', minHeight: '100vh', padding: isMobile ? '32px 16px' : '60px 40px' }}>
       <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
 
         <div style={{ textAlign: 'center', marginBottom: '48px' }}>
@@ -210,16 +212,16 @@ export default function CheckoutPage() {
                 <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: paso > i + 1 ? 'var(--sage-deep)' : paso === i + 1 ? 'var(--black)' : 'var(--line)', color: paso >= i + 1 ? 'white' : 'var(--text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: 600 }}>
                   {paso > i + 1 ? '✓' : i + 1}
                 </div>
-                <span style={{ fontSize: '12px', letterSpacing: '0.1em', textTransform: 'uppercase', color: paso === i + 1 ? 'var(--black)' : 'var(--text-muted)', fontWeight: paso === i + 1 ? 600 : 400 }}>{label}</span>
+                <span style={{ display: isMobile ? 'none' : 'inline', fontSize: '12px', letterSpacing: '0.1em', textTransform: 'uppercase', color: paso === i + 1 ? 'var(--black)' : 'var(--text-muted)', fontWeight: paso === i + 1 ? 600 : 400 }}>{label}</span>
               </div>
-              {i < 2 && <div style={{ width: '60px', height: '1px', background: 'var(--line)', margin: '0 16px' }} />}
+              {i < 2 && <div style={{ width: isMobile ? '20px' : '60px', height: '1px', background: 'var(--line)', margin: isMobile ? '0 6px' : '0 16px' }} />}
             </div>
           ))}
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 400px', gap: '40px', alignItems: 'start' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 400px', gap: isMobile ? '24px' : '40px', alignItems: 'start' }}>
 
-          <div style={{ background: 'white', padding: '40px', borderRadius: '4px', border: '1px solid var(--line)' }}>
+          <div style={{ background: 'white', padding: isMobile ? '24px 20px' : '40px', borderRadius: '4px', border: '1px solid var(--line)' }}>
 
             {/* Paso 1 */}
             {paso === 1 && (
@@ -251,7 +253,7 @@ export default function CheckoutPage() {
                   </p>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '20px' }}>
                   {[
                     { name: 'nombre', label: 'Nombre (como en tu ID)', placeholder: 'Tu nombre' },
                     { name: 'apellido', label: 'Apellido (como en tu ID)', placeholder: 'Tu apellido' },
@@ -320,7 +322,7 @@ export default function CheckoutPage() {
                 )}
 
                 {(!logueado || direcciones.length === 0 || usarNuevaDireccion) && (
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '20px' }}>
                     {[
                       { name: 'calle', label: 'Calle', placeholder: 'Nombre de la calle', span: 2 },
                       { name: 'numero', label: 'Número exterior', placeholder: 'Ej: 123', span: 1 },
