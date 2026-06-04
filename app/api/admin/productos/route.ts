@@ -9,7 +9,7 @@ const supabaseAdmin = createClient(
 export async function GET() {
   const { data, error } = await supabaseAdmin
     .from('productos')
-    .select('*, producto_imagenes(*), producto_videos(*)')
+    .select('*, producto_imagenes(*), producto_videos(*), producto_variantes(*, variante_imagenes(*))')
     .order('created_at', { ascending: false })
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
@@ -105,6 +105,20 @@ export async function DELETE(req: NextRequest) {
     for (const img of imagenes) {
       const path = img.url.split('/productos/')[1]
       if (path) await supabaseAdmin.storage.from('productos').remove([decodeURIComponent(path)])
+    }
+  }
+
+  // Borrar imagenes de variantes del storage antes de borrar el producto
+  const { data: variantes } = await supabaseAdmin.from('producto_variantes').select('id').eq('producto_id', id)
+  if (variantes) {
+    for (const v of variantes) {
+      const { data: vImgs } = await supabaseAdmin.from('variante_imagenes').select('url').eq('variante_id', v.id)
+      if (vImgs) {
+        for (const img of vImgs) {
+          const path = img.url.split('/productos/')[1]
+          if (path) await supabaseAdmin.storage.from('productos').remove([decodeURIComponent(path)])
+        }
+      }
     }
   }
 

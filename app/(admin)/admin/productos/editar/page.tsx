@@ -3,6 +3,13 @@
 import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 
+interface VarianteImagen { id: number; url: string; posicion: number }
+interface Variante {
+  id?: number; producto_id?: number; nombre: string; tipo: string
+  sku: string; codigo_barras: string; stock: string; precio: string; posicion: number
+  variante_imagenes?: VarianteImagen[]
+}
+
 interface Producto {
   id: number; slug: string; nombre: string; marca: string; categoria: string; tipo: string
   precio: number; precio_original: number | null; descripcion: string; ingredientes: string
@@ -48,6 +55,8 @@ function EditarProductoInner() {
   const [form, setForm] = useState(emptyForm)
   const [showNuevaMarca, setShowNuevaMarca] = useState(false)
   const [nuevaMarca, setNuevaMarca] = useState('')
+  const [variantes, setVariantes] = useState<Variante[]>([])
+  const [varianteMsg, setVarianteMsg] = useState('')
 
   useEffect(() => {
     async function init() {
@@ -85,6 +94,8 @@ function EditarProductoInner() {
           }
           setVideos(p.producto_videos?.sort((a, b) => a.posicion - b.posicion).map(v => ({ youtube_url: v.youtube_url, titulo: v.titulo })) || [])
           setImagenesExistentes(p.producto_imagenes?.sort((a, b) => a.posicion - b.posicion).map(img => ({ id: img.id, url: img.url })) || [])
+          // Cargar variantes
+          await cargarVariantes(p.id)
         }
       }
       setLoadingInicial(false)
@@ -92,6 +103,22 @@ function EditarProductoInner() {
     init()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editingId])
+
+  async function cargarVariantes(productoId: number) {
+    try {
+      const res = await fetch(`/api/admin/variantes?producto_id=${productoId}`)
+      const data = await res.json()
+      if (Array.isArray(data)) {
+        setVariantes(data.map((v: any) => ({
+          id: v.id, producto_id: v.producto_id, nombre: v.nombre || '', tipo: v.tipo || '',
+          sku: v.sku || '', codigo_barras: v.codigo_barras || '',
+          stock: String(v.stock ?? 0), precio: v.precio != null ? String(v.precio) : '',
+          posicion: v.posicion || 0,
+          variante_imagenes: (v.variante_imagenes || []).sort((a: VarianteImagen, b: VarianteImagen) => a.posicion - b.posicion),
+        })))
+      }
+    } catch { setVariantes([]) }
+  }
 
   function marcasPorTipo() {
     return marcas.filter(m => m.tipo === form.tipo || m.tipo === 'ambos').sort((a, b) => a.nombre.localeCompare(b.nombre))
@@ -143,6 +170,67 @@ function EditarProductoInner() {
   function actualizarComponente(i: number, field: string, value: number) { setComponentes(prev => prev.map((c, idx) => idx === i ? { ...c, [field]: value } : c)) }
   function quitarComponente(i: number) { setComponentes(prev => prev.filter((_, idx) => idx !== i)) }
 
+  // ---- VARIANTES ----
+  function agregarVariante() {
+    setVariantes(prev => [...prev, { nombre: '', tipo: '', sku: '', codigo_barras: '', stock: '0', precio: '', posicion: prev.length }])
+  }
+  function actualizarVariante(i: number, field: string, value: string) {
+    setVariantes(prev => prev.map((v, idx) => idx === i ? { ...v, [field]: value } : v))
+  }
+  async function guardarVariante(i: number) {
+    if (!editingId) { setVarianteMsg('Primero guarda el producto'); return }
+    const v = variantes[i]
+    if (!v.nombre.trim()) { setVarianteMsg('La variante necesita un nombre'); return }
+    setVarianteMsg('')
+    const payload = {
+      producto_id: editingId, nombre: v.nombre.trim(), tipo: v.tipo.trim(),
+      sku: v.sku.trim(), codigo_barras: v.codigo_barras.trim(),
+      stock: parseInt(v.stock) || 0,
+      precio: v.precio.trim() === '' ? null : parseFloat(v.precio),
+      posicion: v.posicion,
+    }
+    try {
+      if (v.id) {
+        const res = await fetch('/api/admin/variantes', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: v.id, ...payload }) })
+        const data = await res.json()
+        if (data.error) { setVarianteMsg('Error: ' + data.error); return }
+        setVarianteMsg('✓ Variante actualizada')
+      } else {
+        const res = await fetch('/api/admin/variantes', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+        const data = await res.json()
+        if (data.error) { setVarianteMsg('Error: ' + data.error); return }
+        // Guardar el id devuelto en la variante local
+        setVariantes(prev => prev.map((x, idx) => idx === i ? { ...x, id: data.id, producto_id: editingId, variante_imagenes: [] } : x))
+        setVarianteMsg('✓ Variante guardada. Ahora puedes subir sus fotos.')
+      }
+    } catch { setVarianteMsg('Error al guardar variante') }
+  }
+  async function eliminarVariante(i: number) {
+    const v = variantes[i]
+    if (v.id) {
+      if (!confirm('¿Eliminar esta variante y todas sus fotos?')) return
+      await fetch(`/api/admin/variantes?id=${v.id}`, { method: 'DELETE' })
+    }
+    setVariantes(prev => prev.filter((_, idx) => idx !== i))
+  }
+  async function subirFotoVariante(i: number, e: React.ChangeEvent<HTMLInputElement>) {
+    const v = variantes[i]
+    if (!v.id) { setVarianteMsg('Guarda la variante antes de subir fotos'); return }
+    const files = Array.from(e.target.files || [])
+    const startPos = v.variante_imagenes?.length || 0
+    for (let k = 0; k < files.length; k++) {
+      const fd = new FormData()
+      fd.append('file', files[k]); fd.append('variante_id', String(v.id)); fd.append('posicion', String(startPos + k))
+      await fetch('/api/admin/upload-variante', { method: 'POST', body: fd })
+    }
+    await cargarVariantes(editingId!)
+    setVarianteMsg('✓ Fotos subidas')
+  }
+  async function quitarFotoVariante(imgId: number) {
+    await fetch(`/api/admin/upload-variante?id=${imgId}`, { method: 'DELETE' })
+    await cargarVariantes(editingId!)
+  }
+
   const productosIndividuales = productos.filter(p => p.categoria !== 'Kits' && p.id !== editingId)
 
   function calcularStockKit(comps: KitComponente[]) {
@@ -184,9 +272,7 @@ function EditarProductoInner() {
       }
 
       setMensaje(editingId ? '✓ Producto actualizado. Puedes cerrar esta pestaña.' : '✓ Producto creado. Puedes cerrar esta pestaña.')
-      // Limpiar imagenes nuevas ya subidas
       setImagenesNuevas([]); setPreviewsNuevas([])
-      // Si era nuevo, regresar a la lista en esta misma pestana tras un momento
       if (!editingId && producto.id) {
         setTimeout(() => router.push('/admin/productos'), 1200)
       }
@@ -344,6 +430,69 @@ function EditarProductoInner() {
                 </div>
               ))}
             </div>
+          )}
+        </div>
+
+        {/* ===== VARIANTES ===== */}
+        <div style={{ marginBottom: '24px', padding: '20px', background: '#FFF7F0', borderRadius: '8px', border: '1px solid #F0E0D0' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+            <label style={{ ...L, margin: 0 }}>🎨 Variantes (color, tamaño, etc.)</label>
+            {editingId && <button onClick={agregarVariante} style={{ padding: '6px 16px', background: '#111', color: 'white', border: 'none', borderRadius: '6px', fontSize: '12px', cursor: 'pointer', fontFamily: 'inherit' }}>+ Agregar variante</button>}
+          </div>
+
+          {!editingId ? (
+            <p style={{ fontSize: '13px', color: '#A87', textAlign: 'center', padding: '12px' }}>Guarda primero el producto para poder agregar variantes.</p>
+          ) : (
+            <>
+              <p style={{ fontSize: '12px', color: '#A87', marginBottom: '12px' }}>Si el producto tiene variantes, el cliente deberá elegir una. Deja el precio vacío para que herede el precio del producto. Guarda cada variante para subirle fotos.</p>
+              {varianteMsg && <div style={{ padding: '8px 12px', background: varianteMsg.includes('Error') ? '#FEE' : '#EFE', border: `1px solid ${varianteMsg.includes('Error') ? '#FAA' : '#ADA'}`, borderRadius: '6px', marginBottom: '12px', fontSize: '13px', color: varianteMsg.includes('Error') ? '#A33' : '#3A3' }}>{varianteMsg}</div>}
+
+              {variantes.length === 0 ? (
+                <p style={{ fontSize: '13px', color: '#888', textAlign: 'center', padding: '8px' }}>Este producto no tiene variantes.</p>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  {variantes.map((v, i) => (
+                    <div key={i} style={{ background: 'white', border: '1px solid #EEDDCC', borderRadius: '8px', padding: '16px' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
+                        <div><label style={L}>Nombre variante *</label><input value={v.nombre} onChange={e => actualizarVariante(i, 'nombre', e.target.value)} placeholder="Rojo, Talla M, 50ml..." style={S} /></div>
+                        <div><label style={L}>Tipo</label><input value={v.tipo} onChange={e => actualizarVariante(i, 'tipo', e.target.value)} placeholder="Color, Tamaño, Sabor..." style={S} /></div>
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '12px', marginBottom: '12px' }}>
+                        <div><label style={L}>SKU</label><input value={v.sku} onChange={e => actualizarVariante(i, 'sku', e.target.value)} style={S} /></div>
+                        <div><label style={L}>Código barras</label><input value={v.codigo_barras} onChange={e => actualizarVariante(i, 'codigo_barras', e.target.value)} style={S} /></div>
+                        <div><label style={L}>Stock</label><input type="number" value={v.stock} onChange={e => actualizarVariante(i, 'stock', e.target.value)} style={S} /></div>
+                        <div><label style={L}>Precio</label><input type="number" value={v.precio} onChange={e => actualizarVariante(i, 'precio', e.target.value)} placeholder="hereda" style={S} /></div>
+                      </div>
+
+                      {/* Fotos de la variante (solo si ya esta guardada) */}
+                      {v.id ? (
+                        <div style={{ marginBottom: '12px' }}>
+                          <label style={L}>Fotos de esta variante</label>
+                          {v.variante_imagenes && v.variante_imagenes.length > 0 && (
+                            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '8px' }}>
+                              {v.variante_imagenes.map(img => (
+                                <div key={img.id} style={{ position: 'relative' }}>
+                                  <img src={img.url} alt="" style={{ width: '80px', height: '80px', objectFit: 'contain', borderRadius: '6px', border: '1px solid #DDD', background: 'white' }} />
+                                  <button onClick={() => quitarFotoVariante(img.id)} style={{ position: 'absolute', top: '-6px', right: '-6px', width: '20px', height: '20px', borderRadius: '50%', background: '#F33', color: 'white', border: 'none', cursor: 'pointer', fontSize: '11px', fontWeight: 700 }}>✕</button>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          <input type="file" accept="image/*" multiple onChange={e => subirFotoVariante(i, e)} style={{ fontSize: '13px' }} />
+                        </div>
+                      ) : (
+                        <p style={{ fontSize: '12px', color: '#A87', marginBottom: '12px' }}>Guarda la variante para poder subirle fotos.</p>
+                      )}
+
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <button onClick={() => guardarVariante(i)} style={{ padding: '8px 20px', background: '#111', color: 'white', border: 'none', borderRadius: '6px', fontSize: '13px', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600 }}>{v.id ? 'Guardar cambios' : 'Guardar variante'}</button>
+                        <button onClick={() => eliminarVariante(i)} style={{ padding: '8px 16px', background: '#FEE', border: '1px solid #FAA', color: '#A33', borderRadius: '6px', fontSize: '13px', cursor: 'pointer', fontFamily: 'inherit' }}>Eliminar</button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
           )}
         </div>
 
