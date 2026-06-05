@@ -18,6 +18,8 @@ export default function CheckoutPage() {
   const { items, total } = useCartStore()
   const { user, isLoggedIn } = useAuthStore()
   const isMobile = useIsMobile()
+  const [intentoPaso1, setIntentoPaso1] = useState(false)
+  const [intentoPaso2, setIntentoPaso2] = useState(false)
   const [mounted, setMounted] = useState(false)
   const [paso, setPaso] = useState(1)
   const [enviando, setEnviando] = useState(false)
@@ -140,6 +142,11 @@ export default function CheckoutPage() {
     setForm({ ...form, [e.target.name]: e.target.value })
   }
 
+  function estiloCampo(nombre: string, intento: boolean) {
+    const vacio = !(form as any)[nombre] || String((form as any)[nombre]).trim() === ''
+    if (intento && vacio) return { ...inputStyle, border: '1px solid #D33', background: '#FFF5F5' }
+    return inputStyle
+  }
   function validarPaso1() { return form.nombre && form.apellido && form.email && form.telefono }
   function validarPaso2() { return form.calle && form.numero && form.colonia && form.ciudad && form.estado && form.cp.length === 5 }
   function validarPaso3() { return datosConfirmados }
@@ -262,11 +269,11 @@ export default function CheckoutPage() {
                   ].map((field) => (
                     <div key={field.name}>
                       <label style={labelStyle}>{field.label}</label>
-                      <input name={field.name} value={(form as any)[field.name]} onChange={handleChange} placeholder={field.placeholder} style={inputStyle} />
+                      <input name={field.name} value={(form as any)[field.name]} onChange={handleChange} placeholder={field.placeholder} style={estiloCampo(field.name, intentoPaso1)} />
                     </div>
                   ))}
                 </div>
-                <button onClick={() => validarPaso1() && setPaso(2)} style={{ marginTop: '32px', width: '100%', padding: '18px', background: validarPaso1() ? 'var(--black)' : 'var(--line)', color: validarPaso1() ? 'var(--bg-cream)' : 'var(--text-muted)', border: 'none', fontSize: '13px', letterSpacing: '0.2em', textTransform: 'uppercase', fontWeight: 500, cursor: validarPaso1() ? 'pointer' : 'not-allowed', fontFamily: 'inherit', borderRadius: '2px' }}>
+                <button onClick={() => { if (validarPaso1()) { setPaso(2); setIntentoPaso1(false) } else { setIntentoPaso1(true) } }} style={{ marginTop: '32px', width: '100%', padding: '18px', background: validarPaso1() ? 'var(--black)' : 'var(--line)', color: validarPaso1() ? 'var(--bg-cream)' : 'var(--text-muted)', border: 'none', fontSize: '13px', letterSpacing: '0.2em', textTransform: 'uppercase', fontWeight: 500, cursor: validarPaso1() ? 'pointer' : 'not-allowed', fontFamily: 'inherit', borderRadius: '2px' }}>
                   Continuar →
                 </button>
               </div>
@@ -325,7 +332,7 @@ export default function CheckoutPage() {
                   <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '20px' }}>
                     {[
                       { name: 'calle', label: 'Calle', placeholder: 'Nombre de la calle', span: 2 },
-                      { name: 'numero', label: 'Número exterior', placeholder: 'Ej: 123', span: 1 },
+                      { name: 'numero', label: 'Número exterior', placeholder: 'Ej: 123 (o SN si no tiene)', span: 1 },
                       { name: 'interior', label: 'Interior / Depto (opcional)', placeholder: 'Ej: A', span: 1 },
                       { name: 'colonia', label: 'Colonia', placeholder: 'Tu colonia', span: 2 },
                       { name: 'ciudad', label: 'Ciudad / Municipio', placeholder: 'Tu ciudad', span: 1 },
@@ -335,7 +342,7 @@ export default function CheckoutPage() {
                     ].map((field) => (
                       <div key={field.name} style={{ gridColumn: `span ${field.span}` }}>
                         <label style={labelStyle}>{field.label}</label>
-                        <input name={field.name} value={(form as any)[field.name]} onChange={handleChange} placeholder={field.placeholder} maxLength={field.name === 'cp' ? 5 : undefined} style={inputStyle} />
+                        <input name={field.name} value={(form as any)[field.name]} onChange={handleChange} placeholder={field.placeholder} maxLength={field.name === 'cp' ? 5 : undefined} style={(field.name === 'interior' || field.name === 'referencia') ? inputStyle : estiloCampo(field.name, intentoPaso2)} />
                       </div>
                     ))}
                   </div>
@@ -343,7 +350,7 @@ export default function CheckoutPage() {
 
                 <div style={{ display: 'flex', gap: '16px', marginTop: '32px' }}>
                   <button onClick={() => setPaso(1)} style={{ flex: 1, padding: '18px', background: 'none', border: '1px solid var(--line)', fontSize: '13px', letterSpacing: '0.2em', textTransform: 'uppercase', cursor: 'pointer', fontFamily: 'inherit', borderRadius: '2px', color: 'var(--text-muted)' }}>← Regresar</button>
-                  <button onClick={() => validarPaso2() && setPaso(3)} style={{ flex: 2, padding: '18px', background: validarPaso2() ? 'var(--black)' : 'var(--line)', color: validarPaso2() ? 'var(--bg-cream)' : 'var(--text-muted)', border: 'none', fontSize: '13px', letterSpacing: '0.2em', textTransform: 'uppercase', fontWeight: 500, cursor: validarPaso2() ? 'pointer' : 'not-allowed', fontFamily: 'inherit', borderRadius: '2px' }}>Continuar →</button>
+                  <button onClick={() => { if (validarPaso2()) { setPaso(3); setIntentoPaso2(false) } else { setIntentoPaso2(true) } }} style={{ flex: 2, padding: '18px', background: validarPaso2() ? 'var(--black)' : 'var(--line)', color: validarPaso2() ? 'var(--bg-cream)' : 'var(--text-muted)', border: 'none', fontSize: '13px', letterSpacing: '0.2em', textTransform: 'uppercase', fontWeight: 500, cursor: validarPaso2() ? 'pointer' : 'not-allowed', fontFamily: 'inherit', borderRadius: '2px' }}>Continuar →</button>
                 </div>
               </div>
             )}
