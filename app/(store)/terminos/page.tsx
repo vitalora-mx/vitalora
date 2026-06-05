@@ -3,6 +3,7 @@
 import Header from '@/components/store/Header'
 import Footer from '@/components/store/Footer'
 import Link from 'next/link'
+import { useIsMobile } from '@/hooks/useIsMobile'
 
 const secciones = [
   { titulo: '1. Información general', contenido: 'El presente documento establece los Términos y Condiciones de uso del sitio web vitalora.com.mx (en adelante "la Plataforma"), operado por VANGUARDIA IMPORTACIONES Y LOGISTICA DE MEXICO SA DE CV (en adelante "Vitalora"), con domicilio en Circuito Luna 103, Zirandaro, San Miguel de Allende, Guanajuato 37749, México.' },
@@ -23,10 +24,11 @@ const secciones = [
 ]
 
 export default function TerminosPage() {
+  const isMobile = useIsMobile()
   return (
     <main style={{ background: 'var(--bg-cream)' }}>
       <Header />
-      <div style={{ maxWidth: '800px', margin: '0 auto', padding: '60px 40px' }}>
+      <div style={{ maxWidth: '800px', margin: '0 auto', padding: isMobile ? '32px 16px' : '60px 40px' }}>
         <div style={{ textAlign: 'center', marginBottom: '48px' }}>
           <div style={{ fontSize: '11px', letterSpacing: '0.3em', textTransform: 'uppercase', color: 'var(--gold)', marginBottom: '16px' }}>Legal</div>
           <h1 style={{ fontFamily: 'var(--font-italiana), serif', fontSize: 'clamp(32px, 4vw, 48px)', color: 'var(--black)', marginBottom: '16px' }}>Términos y Condiciones</h1>

@@ -5,6 +5,7 @@ import Link from 'next/link'
 import Header from '@/components/store/Header'
 import Footer from '@/components/store/Footer'
 import LoraChat from '@/components/store/LoraChat'
+import { useIsMobile } from '@/hooks/useIsMobile'
 
 interface FAQ {
   pregunta: string
@@ -102,6 +103,7 @@ const secciones: Seccion[] = [
 
 export default function FAQPage() {
   const [seccionActiva, setSeccionActiva] = useState(0)
+  const isMobile = useIsMobile()
   const [preguntaAbierta, setPreguntaAbierta] = useState<number | null>(null)
 
   function togglePregunta(index: number) {
@@ -113,13 +115,13 @@ export default function FAQPage() {
       <Header />
 
       {/* Banner */}
-      <div style={{ background: 'var(--black)', padding: '60px 40px', textAlign: 'center' }}>
+      <div style={{ background: 'var(--black)', padding: isMobile ? '32px 16px' : '60px 40px', textAlign: 'center' }}>
         <div style={{ fontSize: '11px', letterSpacing: '0.4em', textTransform: 'uppercase', color: 'var(--gold)', marginBottom: '16px' }}>Centro de Ayuda</div>
         <h1 style={{ fontFamily: 'var(--font-italiana), serif', fontSize: 'clamp(36px, 5vw, 56px)', color: 'var(--bg-cream)', letterSpacing: '0.02em', marginBottom: '16px' }}>Preguntas Frecuentes</h1>
         <p style={{ fontSize: '15px', color: 'rgba(245,240,232,0.6)', maxWidth: '500px', margin: '0 auto', lineHeight: 1.7 }}>Encuentra respuestas a las dudas más comunes sobre nuestros productos, envíos, pagos y más.</p>
       </div>
 
-      <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '60px 40px' }}>
+      <div style={{ maxWidth: '1000px', margin: '0 auto', padding: isMobile ? '32px 16px' : '60px 40px' }}>
         {/* Navegación por secciones */}
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'center', marginBottom: '48px' }}>
           {secciones.map((sec, i) => (
@@ -167,7 +169,7 @@ export default function FAQPage() {
         </div>
 
         {/* CTA contacto */}
-        <div style={{ textAlign: 'center', marginTop: '60px', padding: '48px', background: 'white', borderRadius: '12px', border: '1px solid var(--line)' }}>
+        <div style={{ textAlign: 'center', marginTop: '60px', padding: isMobile ? '24px 20px' : '48px', background: 'white', borderRadius: '12px', border: '1px solid var(--line)' }}>
           <div style={{ fontSize: '28px', marginBottom: '16px' }}>💬</div>
           <h3 style={{ fontFamily: 'var(--font-cormorant), serif', fontSize: '24px', color: 'var(--black)', marginBottom: '12px' }}>¿No encontraste lo que buscas?</h3>
           <p style={{ fontSize: '14px', color: 'var(--text-muted)', marginBottom: '24px', lineHeight: 1.7 }}>
