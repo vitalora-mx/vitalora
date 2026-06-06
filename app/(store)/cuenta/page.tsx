@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useAuthStore } from '@/store/authStore'
+import { useIsMobile } from '@/hooks/useIsMobile'
 
 interface Pedido {
   id: number; estado: string; total: number; subtotal: number; costo_envio: number
@@ -21,6 +22,7 @@ interface Direccion {
 const emptyDir = { nombre_etiqueta: 'Casa', calle: '', numero: '', interior: '', colonia: '', ciudad: '', estado: '', cp: '', referencia: '', es_principal: false }
 
 export default function CuentaPage() {
+  const isMobile = useIsMobile()
   const { user, session, perfil, setPerfil, logout, isLoggedIn } = useAuthStore()
   const [mounted, setMounted] = useState(false)
   const [tab, setTab] = useState('perfil')
@@ -163,7 +165,7 @@ export default function CuentaPage() {
   if (!isLoggedIn()) {
     return (
       <main style={{ minHeight: '100vh', background: 'var(--bg-cream)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px' }}>
-        <div style={{ maxWidth: '440px', width: '100%', background: 'white', borderRadius: '12px', padding: '48px', border: '1px solid #E5E5E5', boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}>
+        <div style={{ maxWidth: '440px', width: '100%', background: 'white', borderRadius: '12px', padding: isMobile ? '28px 20px' : '48px', border: '1px solid #E5E5E5', boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}>
           <div style={{ textAlign: 'center', marginBottom: '32px' }}>
             <Link href="/" style={{ textDecoration: 'none' }}><div style={{ fontFamily: 'var(--font-italiana), serif', fontSize: '32px', letterSpacing: '0.15em', color: 'var(--black)' }}>VITALORA</div></Link>
             <div style={{ fontSize: '10px', letterSpacing: '0.3em', color: 'var(--gold)', marginTop: '4px' }}>WELLNESS</div>
@@ -174,7 +176,7 @@ export default function CuentaPage() {
             ))}
           </div>
           {authMode === 'registro' && (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
               <div><label style={L}>Nombre</label><input value={authForm.nombre} onChange={e => setAuthForm({ ...authForm, nombre: e.target.value })} style={S} /></div>
               <div><label style={L}>Apellido</label><input value={authForm.apellido} onChange={e => setAuthForm({ ...authForm, apellido: e.target.value })} style={S} /></div>
             </div>
@@ -193,7 +195,7 @@ export default function CuentaPage() {
   const estadoColor: Record<string, string> = { pendiente: '#F0A030', pagado: '#3080D0', enviado: '#6B8F6B', entregado: '#3A3', cancelado: '#D33' }
 
   return (
-    <main style={{ minHeight: '100vh', background: 'var(--bg-cream)', padding: '40px' }}>
+    <main style={{ minHeight: '100vh', background: 'var(--bg-cream)', padding: isMobile ? '24px 16px' : '40px' }}>
       <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
           <div>
@@ -214,9 +216,9 @@ export default function CuentaPage() {
 
         {/* PERFIL */}
         {tab === 'perfil' && (
-          <div style={{ background: 'white', padding: '32px', borderRadius: '12px', border: '1px solid #E5E5E5' }}>
+          <div style={{ background: 'white', padding: isMobile ? '20px' : '32px', borderRadius: '12px', border: '1px solid #E5E5E5' }}>
             <h2 style={{ fontSize: '20px', fontWeight: 600, marginBottom: '24px' }}>Datos Personales</h2>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
               <div><label style={L}>Nombre</label><input name="nombre" value={perfilForm.nombre} onChange={handlePerfilChange} style={S} /></div>
               <div><label style={L}>Apellido</label><input name="apellido" value={perfilForm.apellido} onChange={handlePerfilChange} style={S} /></div>
               <div><label style={L}>Teléfono</label><input name="telefono" value={perfilForm.telefono} onChange={handlePerfilChange} placeholder="10 dígitos" style={S} /></div>
@@ -236,9 +238,9 @@ export default function CuentaPage() {
 
             {/* Formulario dirección */}
             {showDirForm && (
-              <div style={{ background: 'white', padding: '32px', borderRadius: '12px', border: '1px solid #E5E5E5', marginBottom: '20px' }}>
+              <div style={{ background: 'white', padding: isMobile ? '20px' : '32px', borderRadius: '12px', border: '1px solid #E5E5E5', marginBottom: '20px' }}>
                 <h3 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '20px' }}>{editingDirId ? 'Editar Dirección' : 'Nueva Dirección'}</h3>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
                   <div style={{ gridColumn: 'span 2' }}>
                     <label style={L}>Etiqueta</label>
                     <div style={{ display: 'flex', gap: '8px' }}>
@@ -271,7 +273,7 @@ export default function CuentaPage() {
 
             {/* Lista de direcciones */}
             {direcciones.length === 0 && !showDirForm ? (
-              <div style={{ background: 'white', padding: '60px', borderRadius: '12px', border: '1px solid #E5E5E5', textAlign: 'center' }}>
+              <div style={{ background: 'white', padding: isMobile ? '32px 20px' : '60px', borderRadius: '12px', border: '1px solid #E5E5E5', textAlign: 'center' }}>
                 <div style={{ fontSize: '40px', marginBottom: '16px' }}>📍</div>
                 <p style={{ fontSize: '16px', color: '#888' }}>No tienes direcciones guardadas</p>
               </div>
@@ -304,9 +306,9 @@ export default function CuentaPage() {
 
         {/* FACTURACIÓN */}
         {tab === 'facturacion' && (
-          <div style={{ background: 'white', padding: '32px', borderRadius: '12px', border: '1px solid #E5E5E5' }}>
+          <div style={{ background: 'white', padding: isMobile ? '20px' : '32px', borderRadius: '12px', border: '1px solid #E5E5E5' }}>
             <h2 style={{ fontSize: '20px', fontWeight: 600, marginBottom: '24px' }}>Datos de Facturación</h2>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
               <div><label style={L}>RFC</label><input name="rfc" value={perfilForm.rfc} onChange={handlePerfilChange} placeholder="XAXX010101000" style={S} /></div>
               <div><label style={L}>Razón Social</label><input name="razon_social" value={perfilForm.razon_social} onChange={handlePerfilChange} style={S} /></div>
               <div style={{ gridColumn: 'span 2' }}>
@@ -328,7 +330,7 @@ export default function CuentaPage() {
                 <span style={{ fontSize: '14px', color: '#333' }}>Misma dirección que mi dirección principal{dirPrincipal ? ` (${dirPrincipal.nombre_etiqueta})` : ''}</span>
               </label>
               {!perfilForm.factura_misma_direccion && (
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '16px' }}>
                   <div style={{ gridColumn: 'span 2' }}><label style={L}>Calle fiscal</label><input name="factura_calle" value={perfilForm.factura_calle} onChange={handlePerfilChange} style={S} /></div>
                   <div><label style={L}>Número</label><input name="factura_numero" value={perfilForm.factura_numero} onChange={handlePerfilChange} style={S} /></div>
                   <div><label style={L}>Interior</label><input name="factura_interior" value={perfilForm.factura_interior} onChange={handlePerfilChange} style={S} /></div>
@@ -347,7 +349,7 @@ export default function CuentaPage() {
         {tab === 'pedidos' && (
           <div>
             {pedidos.length === 0 ? (
-              <div style={{ background: 'white', padding: '60px', borderRadius: '12px', border: '1px solid #E5E5E5', textAlign: 'center' }}>
+              <div style={{ background: 'white', padding: isMobile ? '32px 20px' : '60px', borderRadius: '12px', border: '1px solid #E5E5E5', textAlign: 'center' }}>
                 <div style={{ fontSize: '40px', marginBottom: '16px' }}>📦</div>
                 <p style={{ fontSize: '16px', color: '#888', marginBottom: '16px' }}>No tienes pedidos aún</p>
                 <Link href="/cosmeticos" style={{ padding: '12px 24px', background: '#111', color: 'white', textDecoration: 'none', borderRadius: '6px', fontSize: '13px' }}>Ir a comprar</Link>
@@ -385,8 +387,8 @@ export default function CuentaPage() {
 
         {/* AYUDA */}
         {tab === 'ayuda' && (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
-            <div style={{ background: 'white', padding: '32px', borderRadius: '12px', border: '1px solid #E5E5E5' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '24px' }}>
+            <div style={{ background: 'white', padding: isMobile ? '20px' : '32px', borderRadius: '12px', border: '1px solid #E5E5E5' }}>
               <h2 style={{ fontSize: '20px', fontWeight: 600, marginBottom: '8px' }}>Envíanos un mensaje</h2>
               <p style={{ fontSize: '13px', color: '#888', marginBottom: '24px' }}>Responderemos lo más pronto posible por WhatsApp o correo.</p>
               {ayudaEnviado ? (
@@ -409,7 +411,7 @@ export default function CuentaPage() {
               )}
             </div>
             <div>
-              <div style={{ background: 'white', padding: '32px', borderRadius: '12px', border: '1px solid #E5E5E5', marginBottom: '16px' }}>
+              <div style={{ background: 'white', padding: isMobile ? '20px' : '32px', borderRadius: '12px', border: '1px solid #E5E5E5', marginBottom: '16px' }}>
                 <h3 style={{ fontSize: '16px', fontWeight: 600, color: '#111', marginBottom: '20px' }}>Contacto directo</h3>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                   <span style={{ fontSize: '20px' }}>📧</span>
@@ -419,7 +421,7 @@ export default function CuentaPage() {
                   </div>
                 </div>
               </div>
-              <div style={{ background: 'white', padding: '32px', borderRadius: '12px', border: '1px solid #E5E5E5' }}>
+              <div style={{ background: 'white', padding: isMobile ? '20px' : '32px', borderRadius: '12px', border: '1px solid #E5E5E5' }}>
                 <h3 style={{ fontSize: '16px', fontWeight: 600, color: '#111', marginBottom: '20px' }}>Horario de atención</h3>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '14px', color: '#555' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Lunes a Viernes</span><span style={{ fontWeight: 500 }}>9:00 AM — 6:00 PM</span></div>
