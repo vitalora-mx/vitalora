@@ -8,6 +8,7 @@ import Footer from '@/components/store/Footer'
 import LoraChat from '@/components/store/LoraChat'
 import { useCartStore } from '@/store/cartStore'
 import { useIsMobile } from '@/hooks/useIsMobile'
+import { inyectarProductSchema } from '@/lib/structured-data'
 
 interface ProductoVideo { id: number; youtube_url: string; titulo: string; posicion: number }
 interface VarianteImagen { id: number; url: string; posicion: number }
@@ -71,6 +72,7 @@ export default function ProductoCosmeticoPage() {
         setOG('og:type', 'product')
         setOG('og:url', `https://vitalora.com.mx/cosmeticos/producto/${data.slug}`)
         if (data.producto_imagenes?.[0]?.url) setOG('og:image', data.producto_imagenes[0].url)
+        inyectarProductSchema({ slug: data.slug, nombre: data.nombre, marca: data.marca, descripcion: data.descripcion, precio: data.precio, stock: data.stock, categoria: data.categoria, sku: data.sku, imagenes: data.producto_imagenes || [], tipo: 'cosmetico' })
       }
       setLoading(false)
     }
