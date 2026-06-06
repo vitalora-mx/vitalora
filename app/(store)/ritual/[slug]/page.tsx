@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useParams } from 'next/navigation'
+import { useIsMobile } from '@/hooks/useIsMobile'
 import Link from 'next/link'
 import RitualHeader from '@/components/store/ritual/RitualHeader'
 import Footer from '@/components/store/Footer'
@@ -27,6 +28,7 @@ export default function RitualVideoPage() {
   const params = useParams()
   const slug = params?.slug as string
   const [video, setVideo] = useState<Video | null>(null)
+  const isMobile = useIsMobile()
   const [loading, setLoading] = useState(true)
   const [acordeonAbierto, setAcordeonAbierto] = useState(true)
   const { agregarItem } = useCartStore()
@@ -80,7 +82,7 @@ export default function RitualVideoPage() {
         </div>
       ) : (
         <div style={{ background: '#0E0E0E' }}>
-          <div style={{ maxWidth: '900px', margin: '0 auto', padding: '48px 40px 80px' }}>
+          <div style={{ maxWidth: '900px', margin: '0 auto', padding: isMobile ? '28px 16px 48px' : '48px 40px 80px' }}>
 
             {/* Breadcrumb */}
             <Link href="/ritual" style={{ fontSize: '12px', letterSpacing: '0.1em', textTransform: 'uppercase', color: SAGE, textDecoration: 'none' }}>← Ritual</Link>
@@ -141,7 +143,7 @@ export default function RitualVideoPage() {
               <>
                 <div style={{ fontSize: '11px', letterSpacing: '0.3em', textTransform: 'uppercase', color: SAGE, textAlign: 'center', marginBottom: '8px' }}>Mencionados en el video</div>
                 <h2 style={{ fontFamily: 'var(--font-italiana), serif', fontSize: '28px', color: '#E8E4DA', textAlign: 'center', margin: '0 0 32px' }}>Productos</h2>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '24px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(3, 1fr)', gap: isMobile ? '12px' : '24px' }}>
                   {video.productos.map(p => (
                     <Link key={p.id} href={urlProducto(p)} style={{ textDecoration: 'none' }}>
                       <div style={{ cursor: 'pointer', background: '#161616', borderRadius: '4px', overflow: 'hidden', border: '1px solid rgba(168,181,160,0.15)', transition: 'transform 0.3s, box-shadow 0.3s' }}

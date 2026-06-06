@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useIsMobile } from '@/hooks/useIsMobile'
 import Link from 'next/link'
 import RitualHeader from '@/components/store/ritual/RitualHeader'
 import Footer from '@/components/store/Footer'
@@ -15,6 +16,7 @@ interface Video {
 
 export default function RitualTodosVideosPage() {
   const [videos, setVideos] = useState<Video[]>([])
+  const isMobile = useIsMobile()
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -43,7 +45,7 @@ export default function RitualTodosVideosPage() {
     <main>
       <RitualHeader />
       <div style={{ background: '#0E0E0E', minHeight: '600px' }}>
-        <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '48px 40px 80px' }}>
+        <div style={{ maxWidth: '1400px', margin: '0 auto', padding: isMobile ? '28px 16px 48px' : '48px 40px 80px' }}>
 
           <Link href="/ritual" style={{ fontSize: '12px', letterSpacing: '0.1em', textTransform: 'uppercase', color: SAGE, textDecoration: 'none' }}>← Ritual</Link>
           <h1 style={{ fontFamily: 'var(--font-italiana), serif', fontSize: '42px', color: '#E8E4DA', margin: '20px 0 8px' }}>Todos los videos</h1>
