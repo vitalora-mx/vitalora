@@ -2,7 +2,7 @@ export default function RitualBanner() {
   return (
     <div style={{
       width: '100%',
-      height: '420px',
+      height: 'clamp(260px, 40vw, 420px)',
       // ── FONDO ──────────────────────────────────────────────
       // Por ahora es un degradado. Cuando tengas tu imagen:
       //  1. Pon la imagen en: public/images/ritual/banner.jpg

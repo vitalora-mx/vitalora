@@ -4,6 +4,7 @@ import Link from 'next/link'
 import dynamic from 'next/dynamic'
 import { useState, useEffect } from 'react'
 import { useCartStore } from '@/store/cartStore'
+import { useIsMobile } from '@/hooks/useIsMobile'
 
 const CarritoDrawer = dynamic(() => import('@/components/store/CarritoDrawer'), { ssr: false })
 
@@ -11,6 +12,7 @@ const SAGE = '#A8B5A0'
 
 export default function RitualHeader() {
   const [mounted, setMounted] = useState(false)
+  const isMobile = useIsMobile()
   const { totalItems, abrirCarrito } = useCartStore()
 
   useEffect(() => { setMounted(true) }, [])
@@ -29,10 +31,10 @@ export default function RitualHeader() {
 
       {/* Header principal */}
       <header style={{ background: '#0E0E0E', borderBottom: '1px solid rgba(168,181,160,0.15)', position: 'sticky', top: 0, zIndex: 100, boxShadow: '0 2px 20px rgba(0,0,0,0.3)' }}>
-        <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '16px 40px', display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center', gap: '40px' }}>
+        <div style={{ maxWidth: '1400px', margin: '0 auto', padding: isMobile ? '16px 20px' : '16px 40px', display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center', gap: isMobile ? '12px' : '40px' }}>
 
           {/* Nav izquierda */}
-          <nav style={{ display: 'flex', gap: '32px', alignItems: 'center' }}>
+          <nav style={{ display: isMobile ? 'none' : 'flex', gap: '32px', alignItems: 'center' }}>
             <Link href="/cosmeticos" style={{ fontSize: '13px', letterSpacing: '0.1em', textTransform: 'uppercase', color: '#E8E4DA', textDecoration: 'none' }}>Cosméticos</Link>
             <Link href="/suplementos" style={{ fontSize: '13px', letterSpacing: '0.1em', textTransform: 'uppercase', color: '#E8E4DA', textDecoration: 'none' }}>Suplementos</Link>
             <Link href="/ritual" style={{ fontSize: '13px', letterSpacing: '0.1em', textTransform: 'uppercase', color: SAGE, textDecoration: 'none', fontWeight: 500 }}>Ritual</Link>

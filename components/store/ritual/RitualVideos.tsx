@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { useState, useRef, useEffect } from 'react'
+import { useIsMobile } from '@/hooks/useIsMobile'
 
 const SAGE = '#A8B5A0'
 
@@ -16,6 +17,7 @@ export default function RitualVideos() {
   const [videos, setVideos] = useState<Video[]>([])
   const [temas, setTemas] = useState<Tema[]>([])
   const [temasSeleccionados, setTemasSeleccionados] = useState<number[]>([])
+  const isMobile = useIsMobile()
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const [orden, setOrden] = useState('relevancia') // relevancia | cosmetico | suplemento
   const [busqueda, setBusqueda] = useState('')
@@ -82,7 +84,7 @@ export default function RitualVideos() {
                 {temas.length === 0 ? (
                   <p style={{ fontSize: '13px', color: '#888780', margin: 0 }}>Aún no hay temas.</p>
                 ) : (
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px', maxHeight: '320px', overflowY: 'auto' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '4px', maxHeight: '320px', overflowY: 'auto' }}>
                     {temas.map(tema => {
                       const sel = temasSeleccionados.includes(tema.id)
                       return (
@@ -140,7 +142,7 @@ export default function RitualVideos() {
             <p>No hay videos que coincidan todavía.</p>
           </div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '24px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)', gap: isMobile ? '12px' : '24px' }}>
             {videosFiltrados.map(video => (
               <Link key={video.id} href={`/ritual/${video.slug}`} style={{ textDecoration: 'none' }}>
                 <div style={{ cursor: 'pointer', background: '#161616', borderRadius: '4px', overflow: 'hidden', border: '1px solid rgba(168,181,160,0.15)', transition: 'transform 0.3s, box-shadow 0.3s' }}
