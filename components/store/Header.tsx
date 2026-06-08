@@ -2,18 +2,28 @@
 import Link from 'next/link'
 import dynamic from 'next/dynamic'
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { useCartStore } from '@/store/cartStore'
 import { useIsMobile } from '@/hooks/useIsMobile'
 
 const CarritoDrawer = dynamic(() => import('@/components/store/CarritoDrawer'), { ssr: false })
 
 export default function Header() {
+  const router = useRouter()
+  const [busqueda, setBusqueda] = useState('')
   const [mounted, setMounted] = useState(false)
   const [menuAbierto, setMenuAbierto] = useState(false)
   const { totalItems, abrirCarrito } = useCartStore()
   const isMobile = useIsMobile()
 
   useEffect(() => { setMounted(true) }, [])
+
+  function irABuscar() {
+    if (busqueda.trim().length >= 2) {
+      router.push('/buscar?q=' + encodeURIComponent(busqueda.trim()))
+      setMenuAbierto(false)
+    }
+  }
 
   return (
     <>
@@ -58,17 +68,24 @@ export default function Header() {
           {/* Iconos derecha */}
           <div style={{ display: 'flex', gap: isMobile ? '14px' : '20px', alignItems: 'center', justifyContent: 'flex-end' }}>
             {!isMobile && (
-              <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text)', padding: '4px' }}>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', border: '1px solid var(--line)', borderRadius: '100px', padding: '8px 16px', background: 'rgba(255,255,255,0.5)' }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2">
                   <circle cx="11" cy="11" r="7"/><path d="m21 21-4.35-4.35"/>
                 </svg>
-              </button>
+                <input
+                  placeholder="Buscar..."
+                  value={busqueda}
+                  onChange={e => setBusqueda(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') irABuscar() }}
+                  style={{ border: 'none', background: 'none', outline: 'none', fontSize: '13px', color: 'var(--text)', width: '130px', fontFamily: 'inherit' }}
+                />
+              </div>
             )}
-            <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text)', padding: '4px' }}>
+            <Link href="/cuenta" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text)', padding: '4px', display: 'flex', alignItems: 'center' }} aria-label="Mi cuenta">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                 <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
               </svg>
-            </button>
+            </Link>
             <button onClick={abrirCarrito} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text)', padding: '4px', position: 'relative' }}>
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                 <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/>
@@ -84,7 +101,20 @@ export default function Header() {
 
         {/* Menu desplegable movil */}
         {isMobile && menuAbierto && (
-          <nav style={{ borderTop: '1px solid var(--line)', padding: '8px 20px 16px', display: 'flex', flexDirection: 'column' }}>
+          <nav style={{ borderTop: '1px solid var(--line)', padding: '12px 20px 16px', display: 'flex', flexDirection: 'column' }}>
+            {/* Buscador movil */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', border: '1px solid var(--line)', borderRadius: '100px', padding: '10px 16px', background: 'rgba(255,255,255,0.6)', marginBottom: '12px' }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2">
+                <circle cx="11" cy="11" r="7"/><path d="m21 21-4.35-4.35"/>
+              </svg>
+              <input
+                placeholder="Buscar productos..."
+                value={busqueda}
+                onChange={e => setBusqueda(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') irABuscar() }}
+                style={{ border: 'none', background: 'none', outline: 'none', fontSize: '14px', color: 'var(--text)', flex: 1, fontFamily: 'inherit' }}
+              />
+            </div>
             <Link href="/cosmeticos" onClick={() => setMenuAbierto(false)} style={{ color: 'var(--text)', textDecoration: 'none', fontSize: '14px', letterSpacing: '0.1em', textTransform: 'uppercase', padding: '14px 0', borderBottom: '1px solid var(--line-soft)' }}>Cosméticos</Link>
             <Link href="/suplementos" onClick={() => setMenuAbierto(false)} style={{ color: 'var(--text)', textDecoration: 'none', fontSize: '14px', letterSpacing: '0.1em', textTransform: 'uppercase', padding: '14px 0', borderBottom: '1px solid var(--line-soft)' }}>Suplementos</Link>
             <Link href="/ritual" onClick={() => setMenuAbierto(false)} style={{ color: 'var(--text)', textDecoration: 'none', fontSize: '14px', letterSpacing: '0.1em', textTransform: 'uppercase', padding: '14px 0', borderBottom: '1px solid var(--line-soft)' }}>Ritual</Link>

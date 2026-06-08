@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import dynamic from 'next/dynamic'
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { useCartStore } from '@/store/cartStore'
 import { useIsMobile } from '@/hooks/useIsMobile'
 
@@ -16,6 +17,8 @@ const marcas = [
 ]
 
 export default function CosmeticosHeader() {
+  const router = useRouter()
+  const [busqueda, setBusqueda] = useState('')
   const [marcasOpen, setMarcasOpen] = useState(false)
   const [menuAbierto, setMenuAbierto] = useState(false)
   const [mounted, setMounted] = useState(false)
@@ -88,7 +91,7 @@ export default function CosmeticosHeader() {
             {!isMobile && (
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', border: '1px solid #E8E0D5', borderRadius: '100px', padding: '8px 16px', background: '#F9F5F0' }}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6B6B6B" strokeWidth="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.35-4.35"/></svg>
-                <input placeholder="Buscar..." style={{ border: 'none', background: 'none', outline: 'none', fontSize: '13px', color: '#2C2C2C', width: '120px', fontFamily: 'inherit' }} />
+                <input placeholder="Buscar..." value={busqueda} onChange={e => setBusqueda(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && busqueda.trim().length >= 2) router.push('/buscar?q=' + encodeURIComponent(busqueda.trim())) }} style={{ border: 'none', background: 'none', outline: 'none', fontSize: '13px', color: '#2C2C2C', width: '120px', fontFamily: 'inherit' }} />
               </div>
             )}
             {!isMobile && (
