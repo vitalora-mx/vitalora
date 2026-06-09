@@ -42,7 +42,7 @@ export default function RitualHeader() {
 
           {/* Logo */}
           <Link href="/" style={{ textDecoration: 'none' }}>
-            <div style={{ fontFamily: 'var(--font-italiana), serif', fontSize: '28px', letterSpacing: '0.15em', color: '#E8E4DA', textAlign: 'center' }}>VITALORA</div>
+            <img src="/images/logo/logo-footer.png" alt="Vitalora" style={{ height: isMobile ? '30px' : '38px', width: 'auto', display: 'block', margin: '0 auto' }} />
             <div style={{ fontSize: '9px', letterSpacing: '0.3em', textTransform: 'uppercase', color: SAGE, textAlign: 'center', marginTop: '2px' }}>Ritual</div>
           </Link>
 

@@ -27,7 +27,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F5F0E8', fontFamily: 'system-ui, sans-serif' }}>
         <div style={{ background: 'white', padding: '48px', borderRadius: '12px', border: '1px solid #E5E5E5', boxShadow: '0 4px 20px rgba(0,0,0,0.08)', maxWidth: '400px', width: '100%', textAlign: 'center' }}>
-          <div style={{ fontSize: '32px', letterSpacing: '0.15em', color: '#111', marginBottom: '8px', fontWeight: 300 }}>VITALORA</div>
+          <img src="/images/logo/logo-header.png" alt="Vitalora" style={{ height: '40px', width: 'auto', display: 'block', marginBottom: '8px' }} />
           <div style={{ fontSize: '10px', letterSpacing: '0.3em', color: '#C9A961', marginBottom: '32px' }}>PANEL DE ADMINISTRACIÓN</div>
           <input
             type="password"

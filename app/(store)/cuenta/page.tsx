@@ -167,7 +167,7 @@ export default function CuentaPage() {
       <main style={{ minHeight: '100vh', background: 'var(--bg-cream)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px' }}>
         <div style={{ maxWidth: '440px', width: '100%', background: 'white', borderRadius: '12px', padding: isMobile ? '28px 20px' : '48px', border: '1px solid #E5E5E5', boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}>
           <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-            <Link href="/" style={{ textDecoration: 'none' }}><div style={{ fontFamily: 'var(--font-italiana), serif', fontSize: '32px', letterSpacing: '0.15em', color: 'var(--black)' }}>VITALORA</div></Link>
+            <Link href="/" style={{ textDecoration: 'none' }}><img src="/images/logo/logo-header.png" alt="Vitalora" style={{ height: '40px', width: 'auto', display: 'block' }} /></Link>
             <div style={{ fontSize: '10px', letterSpacing: '0.3em', color: 'var(--gold)', marginTop: '4px' }}>WELLNESS</div>
           </div>
           <div style={{ display: 'flex', marginBottom: '24px', borderBottom: '1px solid #EEE' }}>
@@ -199,7 +199,7 @@ export default function CuentaPage() {
       <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
           <div>
-            <Link href="/" style={{ textDecoration: 'none' }}><span style={{ fontFamily: 'var(--font-italiana), serif', fontSize: '24px', letterSpacing: '0.15em', color: 'var(--black)' }}>VITALORA</span></Link>
+            <Link href="/" style={{ textDecoration: 'none' }}><img src="/images/logo/logo-header.png" alt="Vitalora" style={{ height: '32px', width: 'auto', display: 'inline-block', verticalAlign: 'middle' }} /></Link>
             <h1 style={{ fontSize: '28px', fontWeight: 700, color: '#111', margin: '8px 0 0' }}>Mi Cuenta</h1>
             <p style={{ fontSize: '14px', color: '#888', margin: 0 }}>{user?.email}</p>
           </div>

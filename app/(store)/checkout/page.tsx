@@ -203,7 +203,7 @@ export default function CheckoutPage() {
 
         <div style={{ textAlign: 'center', marginBottom: '48px' }}>
           <Link href="/" style={{ textDecoration: 'none' }}>
-            <div style={{ fontFamily: 'var(--font-italiana), serif', fontSize: '32px', letterSpacing: '0.15em', color: 'var(--black)' }}>VITALORA</div>
+            <img src="/images/logo/logo-header.png" alt="Vitalora" style={{ height: '40px', width: 'auto', display: 'block' }} />
           </Link>
           {logueado && (
             <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '8px' }}>
