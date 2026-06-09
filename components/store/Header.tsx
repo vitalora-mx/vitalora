@@ -62,7 +62,7 @@ export default function Header() {
 
           {/* Logo */}
           <div style={{ fontFamily: 'var(--font-italiana), serif', fontSize: isMobile ? '24px' : '32px', letterSpacing: '0.15em', color: 'var(--black)', textAlign: 'center' }}>
-            <Link href="/" style={{ color: 'inherit', textDecoration: 'none' }}>VITALORA</Link>
+            <Link href="/" style={{ display: 'inline-block', lineHeight: 0 }}><img src="/images/logo/logo-header.png" alt="Vitalora" style={{ height: isMobile ? '34px' : '44px', width: 'auto', display: 'block', margin: '0 auto' }} /></Link>
           </div>
 
           {/* Iconos derecha */}

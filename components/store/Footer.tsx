@@ -29,7 +29,7 @@ export default function Footer() {
               fontSize: isMobile ? '30px' : '36px',
               letterSpacing: '0.15em',
               marginBottom: '20px',
-            }}>VITALORA</div>
+            }}><img src="/images/logo/logo-footer.png" alt="Vitalora" style={{ height: isMobile ? '40px' : '48px', width: 'auto', display: 'block' }} /></div>
             <p style={{
               fontSize: '14px',
               color: 'rgba(245,240,232,0.6)',
