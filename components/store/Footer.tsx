@@ -41,8 +41,8 @@ export default function Footer() {
             </p>
             {/* Redes */}
             <div style={{ display: 'flex', gap: '12px' }}>
-              {['IG', 'TK', 'WA'].map((red) => (
-                <a key={red} href="#" style={{
+              {[{ label: 'IG', url: 'https://www.instagram.com/vitalora_mx/' }, { label: 'TK', url: 'https://www.tiktok.com/@vitaloramx' }, { label: 'FB', url: 'https://www.facebook.com/profile.php?id=61586734633198' }].map((red) => (
+                <a key={red.label} href={red.url} target="_blank" rel="noopener noreferrer" style={{
                   width: '40px',
                   height: '40px',
                   border: '1px solid rgba(245,240,232,0.2)',
@@ -55,7 +55,7 @@ export default function Footer() {
                   fontSize: '11px',
                   letterSpacing: '0.05em',
                   transition: 'all 0.3s',
-                }}>{red}</a>
+                }}>{red.label}</a>
               ))}
             </div>
           </div>
@@ -75,8 +75,6 @@ export default function Footer() {
               {[
                 { label: 'Cosméticos', href: '/cosmeticos' },
                 { label: 'Suplementos', href: '/suplementos' },
-                { label: 'Bundles', href: '/bundles' },
-                { label: 'Novedades', href: '/novedades' },
               ].map((item) => (
                 <li key={item.label}>
                   <Link href={item.href} style={{ color: 'rgba(245,240,232,0.6)', textDecoration: 'none', fontSize: '13px' }}>
@@ -100,8 +98,8 @@ export default function Footer() {
             }}>Ayuda</h4>
             <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '12px', padding: 0, margin: 0 }}>
               {[
-                { label: 'Envíos', href: '/envios' },
-                { label: 'Devoluciones', href: '/devoluciones' },
+                { label: 'Envíos', href: '/envios-devoluciones' },
+                { label: 'Devoluciones', href: '/envios-devoluciones' },
                 { label: 'Preguntas frecuentes', href: '/faq' },
                 { label: 'Contacto', href: '/contacto' },
               ].map((item) => (
@@ -129,8 +127,7 @@ export default function Footer() {
               {[
                 { label: 'Aviso de Privacidad', href: '/privacidad' },
                 { label: 'Términos y Condiciones', href: '/terminos' },
-                { label: 'Facturación', href: '/facturacion' },
-                { label: 'Cookies', href: '/cookies' },
+                { label: 'Facturación', href: '/faq' },
               ].map((item) => (
                 <li key={item.label}>
                   <Link href={item.href} style={{ color: 'rgba(245,240,232,0.6)', textDecoration: 'none', fontSize: '13px' }}>
