@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import Link from 'next/link'
 import { useIsMobile } from '@/hooks/useIsMobile'
@@ -37,7 +37,7 @@ export default function Footer() {
               maxWidth: '320px',
               marginBottom: '24px',
             }}>
-              K-Beauty auténtica y suplementos de alta pureza, curados con cuidado para tu ritual de bienestar.
+              K-Beauty autÃ©ntica y suplementos de alta pureza, curados con cuidado para tu ritual de bienestar.
             </p>
             {/* Redes */}
             <div style={{ display: 'flex', gap: '12px' }}>
@@ -73,7 +73,7 @@ export default function Footer() {
             }}>Tienda</h4>
             <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '12px', padding: 0, margin: 0 }}>
               {[
-                { label: 'Cosméticos', href: '/cosmeticos' },
+                { label: 'CosmÃ©ticos', href: '/cosmeticos' },
                 { label: 'Suplementos', href: '/suplementos' },
               ].map((item) => (
                 <li key={item.label}>
@@ -98,7 +98,7 @@ export default function Footer() {
             }}>Ayuda</h4>
             <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '12px', padding: 0, margin: 0 }}>
               {[
-                { label: 'Envíos', href: '/envios-devoluciones' },
+                { label: 'EnvÃ­os', href: '/envios-devoluciones' },
                 { label: 'Devoluciones', href: '/envios-devoluciones' },
                 { label: 'Preguntas frecuentes', href: '/faq' },
                 { label: 'Contacto', href: '/contacto' },
@@ -126,8 +126,8 @@ export default function Footer() {
             <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '12px', padding: 0, margin: 0 }}>
               {[
                 { label: 'Aviso de Privacidad', href: '/privacidad' },
-                { label: 'Términos y Condiciones', href: '/terminos' },
-                { label: 'Facturación', href: '/faq' },
+                { label: 'TÃ©rminos y Condiciones', href: '/terminos' },
+                { label: 'Facturación', href: '/facturacion' },
               ].map((item) => (
                 <li key={item.label}>
                   <Link href={item.href} style={{ color: 'rgba(245,240,232,0.6)', textDecoration: 'none', fontSize: '13px' }}>
@@ -152,7 +152,7 @@ export default function Footer() {
           flexDirection: isMobile ? 'column' : 'row',
           textAlign: isMobile ? 'center' : 'left',
         }}>
-          <span>© 2026 Vitalora. Todos los derechos reservados.</span>
+          <span>Â© 2026 Vitalora. Todos los derechos reservados.</span>
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'center' }}>
             {['Mercado Pago', 'Visa', 'Mastercard', 'OXXO'].map((badge) => (
               <span key={badge} style={{

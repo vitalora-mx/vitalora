@@ -49,7 +49,7 @@ export default function CuentaPage() {
 
   const [perfilForm, setPerfilForm] = useState({
     nombre: '', apellido: '', telefono: '',
-    rfc: '', razon_social: '', regimen_fiscal: '', email_facturacion: '',
+    rfc: '', razon_social: '', regimen_fiscal: '', uso_cfdi: '', email_facturacion: '',
     factura_misma_direccion: false,
     factura_calle: '', factura_numero: '', factura_interior: '', factura_colonia: '',
     factura_ciudad: '', factura_estado: '', factura_cp: '',
@@ -67,7 +67,7 @@ export default function CuentaPage() {
       setPerfilForm({
         nombre: data.nombre || '', apellido: data.apellido || '', telefono: data.telefono || '',
         rfc: data.rfc || '', razon_social: data.razon_social || '',
-        regimen_fiscal: data.regimen_fiscal || '', email_facturacion: data.email_facturacion || '',
+        regimen_fiscal: data.regimen_fiscal || '', uso_cfdi: data.uso_cfdi || '', email_facturacion: data.email_facturacion || '',
         factura_misma_direccion: data.factura_misma_direccion || false,
         factura_calle: data.factura_calle || '', factura_numero: data.factura_numero || '',
         factura_interior: data.factura_interior || '', factura_colonia: data.factura_colonia || '',
@@ -316,6 +316,19 @@ export default function CuentaPage() {
                 <select name="regimen_fiscal" value={perfilForm.regimen_fiscal} onChange={handlePerfilChange} style={S}>
                   <option value="">Selecciona...</option>
                   {regimenes.map(r => <option key={r.codigo} value={r.codigo}>{r.codigo} — {r.descripcion}</option>)}
+                </select>
+              </div>
+              <div style={{ gridColumn: 'span 2' }}>
+                <label style={L}>Uso de CFDI</label>
+                <select name="uso_cfdi" value={perfilForm.uso_cfdi} onChange={handlePerfilChange} style={S}>
+                  <option value="">Selecciona...</option>
+                  <option value="G01 — Adquisición de mercancías">G01 — Adquisición de mercancías</option>
+                  <option value="G03 — Gastos en general">G03 — Gastos en general</option>
+                  <option value="I04 — Equipo de cómputo y accesorios">I04 — Equipo de cómputo y accesorios</option>
+                  <option value="D01 — Honorarios médicos">D01 — Honorarios médicos</option>
+                  <option value="D10 — Pagos por servicios educativos">D10 — Pagos por servicios educativos</option>
+                  <option value="S01 — Sin efectos fiscales">S01 — Sin efectos fiscales</option>
+                  <option value="CP01 — Pagos">CP01 — Pagos</option>
                 </select>
               </div>
               <div style={{ gridColumn: 'span 2' }}>
