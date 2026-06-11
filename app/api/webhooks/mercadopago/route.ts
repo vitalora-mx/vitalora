@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+﻿import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { MercadoPagoConfig, Payment } from 'mercadopago'
 import { Resend } from 'resend'
@@ -23,6 +23,9 @@ export async function POST(req: NextRequest) {
       const status = paymentData.status // approved, rejected, pending, in_process, cancelled, refunded
       const preferenceId = (paymentData as any).preference_id
       const externalRef = (paymentData as any).external_reference
+      const tipoPagoMP = (paymentData as any).payment_type_id || ''
+      const mapaFormaPago: Record<string, string> = { credit_card: 'Tarjeta de credito', debit_card: 'Tarjeta de debito', prepaid_card: 'Tarjeta prepagada', bank_transfer: 'Transferencia SPEI', account_money: 'Dinero en cuenta Mercado Pago', ticket: 'Efectivo (OXXO/tiendas)', atm: 'Cajero / deposito' }
+      const formaPagoTexto = mapaFormaPago[tipoPagoMP] || (tipoPagoMP ? tipoPagoMP : 'No especificada')
 
       // Buscar pedido en DB
       const { data: pedido } = await supabaseAdmin
@@ -46,7 +49,7 @@ export async function POST(req: NextRequest) {
       // Actualizar pedido
       await supabaseAdmin
         .from('pedidos')
-        .update({ estado: nuevoEstado, mp_payment_id: String(paymentId) })
+        .update({ estado: nuevoEstado, mp_payment_id: String(paymentId), forma_pago: formaPagoTexto })
         .eq('id', pedido.id)
 
       // Si fue aprobado y antes no estaba pagado: descontar stock, enviar emails, marcar primera compra
