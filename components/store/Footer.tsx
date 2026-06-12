@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { useIsMobile } from '@/hooks/useIsMobile'
+import MetodosPago from '@/components/store/MetodosPago'
 
 export default function Footer() {
   const isMobile = useIsMobile()
@@ -154,15 +155,7 @@ export default function Footer() {
         }}>
           <span>Â© 2026 Vitalora. Todos los derechos reservados.</span>
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'center' }}>
-            {['Mercado Pago', 'Visa', 'Mastercard', 'OXXO'].map((badge) => (
-              <span key={badge} style={{
-                padding: '4px 10px',
-                border: '1px solid rgba(245,240,232,0.15)',
-                borderRadius: '3px',
-                fontSize: '10px',
-                letterSpacing: '0.1em',
-              }}>{badge}</span>
-            ))}
+            <MetodosPago variante="oscuro" titulo="" />
           </div>
         </div>
 

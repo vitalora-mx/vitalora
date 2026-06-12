@@ -8,6 +8,7 @@ import Footer from '@/components/store/Footer'
 import LoraChat from '@/components/store/LoraChat'
 import { useCartStore } from '@/store/cartStore'
 import { useIsMobile } from '@/hooks/useIsMobile'
+import MetodosPago from '@/components/store/MetodosPago'
 import { inyectarProductSchema } from '@/lib/structured-data'
 
 interface ProductoVideo { id: number; youtube_url: string; titulo: string; posicion: number }
@@ -293,6 +294,9 @@ export default function ProductoCosmeticoPage() {
                 </div>
               ))}
             </div>
+              <div style={{ marginTop: '20px', paddingTop: '20px', borderTop: '1px solid var(--line)' }}>
+                <MetodosPago variante="claro" titulo="Pago seguro con" />
+              </div>
           </div>
         </div>
 
