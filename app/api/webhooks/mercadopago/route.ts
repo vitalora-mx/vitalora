@@ -194,7 +194,7 @@ async function enviarEmails(pedido: any) {
 <body style="margin:0;padding:0;background:#F5F0E8;font-family:Georgia,'Times New Roman',serif;">
 <div style="max-width:600px;margin:0 auto;background:white;">
   <div style="background:#0E0E0E;padding:32px;text-align:center;">
-    <h1 style="font-size:28px;letter-spacing:0.15em;color:#F5F0E8;margin:0;font-weight:400;">VITALORA</h1>
+    <img src="https://vitalora.com.mx/images/logo/logo-footer.png" alt="Vitalora" width="160" style="display:block;margin:0 auto;max-width:160px;height:auto;" />
     <div style="font-size:10px;letter-spacing:0.3em;color:#C9A961;margin-top:4px;">WELLNESS</div>
   </div>
   <div style="padding:40px 32px;text-align:center;border-bottom:1px solid #E8E0D5;">
@@ -227,7 +227,7 @@ async function enviarEmails(pedido: any) {
     <p style="font-size:13px;color:#888;">Te enviaremos tu numero de guia cuando el pedido sea enviado.</p>
   </div>
   <div style="background:#0E0E0E;padding:32px;text-align:center;">
-    <div style="font-size:18px;letter-spacing:0.15em;color:rgba(245,240,232,0.5);margin-bottom:16px;">VITALORA</div>
+    <div style="margin-bottom:16px;"><img src="https://vitalora.com.mx/images/logo/logo-footer.png" alt="Vitalora" width="110" style="display:block;margin:0 auto;max-width:110px;height:auto;opacity:0.8;" /></div>
     <p style="font-size:12px;color:rgba(245,240,232,0.6);margin:0 0 8px;">&iquest;Tienes dudas? Escribenos a</p>
     <a href="mailto:hola@vitalora.com.mx" style="font-size:13px;color:#C9A961;text-decoration:none;">hola@vitalora.com.mx</a>
   </div>
@@ -247,7 +247,7 @@ async function enviarEmails(pedido: any) {
       from: 'Vitalora Ventas <hola@vitalora.com.mx>',
       to: 'gabomaciel7@gmail.com',
       subject: `Pago confirmado - Pedido #${pedido.id} - $${total.toLocaleString()} MXN`,
-      html: `<html><body style="margin:0;padding:0;background:#F5F0E8;font-family:Arial,sans-serif;"><div style="max-width:600px;margin:0 auto;background:white;"><div style="background:#0E0E0E;padding:24px;text-align:center;"><h1 style="font-size:22px;letter-spacing:0.15em;color:#F5F0E8;margin:0;">VITALORA</h1><div style="font-size:10px;letter-spacing:0.3em;color:#C9A961;margin-top:4px;">PAGO CONFIRMADO</div></div><div style="padding:32px;"><h2 style="font-size:20px;color:#0E0E0E;margin:0 0 24px;">Pedido #${pedido.id}</h2><div style="background:#F0F7F0;border:1px solid #A8C5A0;border-radius:4px;padding:16px;margin-bottom:24px;text-align:center;"><div style="font-size:28px;font-weight:700;color:#333;">$${total.toLocaleString()} MXN</div></div><h3 style="font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#C9A961;margin:0 0 12px;">Cliente</h3><p style="font-size:14px;color:#333;line-height:1.7;margin:0 0 20px;">${pedido.nombre} ${pedido.apellido}<br>${pedido.email}<br>${pedido.telefono}</p><h3 style="font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#C9A961;margin:0 0 12px;">Direccion</h3><p style="font-size:14px;color:#333;line-height:1.7;margin:0 0 20px;">${pedido.calle} ${pedido.numero}<br>${pedido.colonia || ''}<br>${pedido.ciudad || ''}, ${pedido.estado_dir || ''} CP ${pedido.cp}</p><h3 style="font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#C9A961;margin:0 0 12px;">Productos</h3><pre style="font-size:13px;color:#333;line-height:1.8;white-space:pre-wrap;margin:0;background:#FAFAF5;padding:16px;border-radius:4px;">${productosTexto}</pre></div></div></body></html>`,
+      html: `<html><body style="margin:0;padding:0;background:#F5F0E8;font-family:Arial,sans-serif;"><div style="max-width:600px;margin:0 auto;background:white;"><div style="background:#0E0E0E;padding:24px;text-align:center;"><img src="https://vitalora.com.mx/images/logo/logo-footer.png" alt="Vitalora" width="140" style="display:block;margin:0 auto;max-width:140px;height:auto;" /><div style="font-size:10px;letter-spacing:0.3em;color:#C9A961;margin-top:4px;">PAGO CONFIRMADO</div></div><div style="padding:32px;"><h2 style="font-size:20px;color:#0E0E0E;margin:0 0 24px;">Pedido #${pedido.id}</h2><div style="background:#F0F7F0;border:1px solid #A8C5A0;border-radius:4px;padding:16px;margin-bottom:24px;text-align:center;"><div style="font-size:28px;font-weight:700;color:#333;">$${total.toLocaleString()} MXN</div></div><h3 style="font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#C9A961;margin:0 0 12px;">Cliente</h3><p style="font-size:14px;color:#333;line-height:1.7;margin:0 0 20px;">${pedido.nombre} ${pedido.apellido}<br>${pedido.email}<br>${pedido.telefono}</p><h3 style="font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#C9A961;margin:0 0 12px;">Direccion</h3><p style="font-size:14px;color:#333;line-height:1.7;margin:0 0 20px;">${pedido.calle} ${pedido.numero}<br>${pedido.colonia || ''}<br>${pedido.ciudad || ''}, ${pedido.estado_dir || ''} CP ${pedido.cp}</p><h3 style="font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#C9A961;margin:0 0 12px;">Productos</h3><pre style="font-size:13px;color:#333;line-height:1.8;white-space:pre-wrap;margin:0;background:#FAFAF5;padding:16px;border-radius:4px;">${productosTexto}</pre></div></div></body></html>`,
     })
   } catch (emailError) {
     console.error('Error enviando emails desde webhook:', emailError)

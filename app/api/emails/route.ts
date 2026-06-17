@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+﻿import { NextRequest, NextResponse } from 'next/server'
 import { Resend } from 'resend'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
@@ -56,15 +56,15 @@ function generarEmailCliente(data: EmailData) {
 
     <!-- Header -->
     <div style="background: #0E0E0E; padding: 32px; text-align: center;">
-      <h1 style="font-size: 28px; letter-spacing: 0.15em; color: #F5F0E8; margin: 0; font-weight: 400;">VITALORA</h1>
+      <img src="https://vitalora.com.mx/images/logo/logo-footer.png" alt="Vitalora" width="160" style="display:block;margin:0 auto;max-width:160px;height:auto;" />
       <div style="font-size: 10px; letter-spacing: 0.3em; color: #C9A961; margin-top: 4px;">WELLNESS</div>
     </div>
 
-    <!-- Confirmación -->
+    <!-- ConfirmaciÃ³n -->
     <div style="padding: 40px 32px; text-align: center; border-bottom: 1px solid #E8E0D5;">
-      <div style="width: 60px; height: 60px; border-radius: 50%; background: #F0F7F0; border: 2px solid #6B8F6B; display: inline-flex; align-items: center; justify-content: center; font-size: 24px; margin-bottom: 20px;">✓</div>
-      <h2 style="font-size: 24px; color: #0E0E0E; margin: 0 0 8px; font-weight: 400;">¡Gracias por tu compra, ${comprador.nombre}!</h2>
-      <p style="font-size: 14px; color: #888; margin: 0;">Tu pedido ha sido recibido y está siendo procesado.</p>
+      <div style="width: 60px; height: 60px; border-radius: 50%; background: #F0F7F0; border: 2px solid #6B8F6B; display: inline-flex; align-items: center; justify-content: center; font-size: 24px; margin-bottom: 20px;">âœ“</div>
+      <h2 style="font-size: 24px; color: #0E0E0E; margin: 0 0 8px; font-weight: 400;">Â¡Gracias por tu compra, ${comprador.nombre}!</h2>
+      <p style="font-size: 14px; color: #888; margin: 0;">Tu pedido ha sido recibido y estÃ¡ siendo procesado.</p>
     </div>
 
     <!-- Productos -->
@@ -90,7 +90,7 @@ function generarEmailCliente(data: EmailData) {
           <span style="font-size: 13px; color: #333;">$${subtotal.toLocaleString()} MXN</span>
         </div>
         <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
-          <span style="font-size: 13px; color: ${costoEnvio === 0 ? '#6B8F6B' : '#888'};">Envío</span>
+          <span style="font-size: 13px; color: ${costoEnvio === 0 ? '#6B8F6B' : '#888'};">EnvÃ­o</span>
           <span style="font-size: 13px; color: ${costoEnvio === 0 ? '#6B8F6B' : '#333'};">${costoEnvio === 0 ? 'Gratis' : '$99 MXN'}</span>
         </div>
         <div style="display: flex; justify-content: space-between; padding-top: 12px; border-top: 2px solid #0E0E0E;">
@@ -100,9 +100,9 @@ function generarEmailCliente(data: EmailData) {
       </div>
     </div>
 
-    <!-- Dirección -->
+    <!-- DirecciÃ³n -->
     <div style="padding: 24px 32px; background: #FAFAF5; border-top: 1px solid #E8E0D5; border-bottom: 1px solid #E8E0D5;">
-      <h3 style="font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: #C9A961; margin: 0 0 12px;">Dirección de envío</h3>
+      <h3 style="font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: #C9A961; margin: 0 0 12px;">DirecciÃ³n de envÃ­o</h3>
       <p style="font-size: 14px; color: #333; line-height: 1.7; margin: 0;">
         ${comprador.nombre} ${comprador.apellido}<br>
         ${direccion.calle} ${direccion.numero}${direccion.interior ? ', Int. ' + direccion.interior : ''}<br>
@@ -117,19 +117,19 @@ function generarEmailCliente(data: EmailData) {
       <table style="width: 100%; border-collapse: collapse;">
         <tr>
           <td style="padding: 12px; text-align: center; width: 33%;">
-            <div style="font-size: 24px; margin-bottom: 8px;">📦</div>
+            <div style="font-size: 24px; margin-bottom: 8px;">ðŸ“¦</div>
             <div style="font-size: 12px; font-weight: 600; color: #333; margin-bottom: 4px;">Preparando</div>
-            <div style="font-size: 11px; color: #999;">Tu pedido se está preparando</div>
+            <div style="font-size: 11px; color: #999;">Tu pedido se estÃ¡ preparando</div>
           </td>
           <td style="padding: 12px; text-align: center; width: 33%;">
-            <div style="font-size: 24px; margin-bottom: 8px;">🚚</div>
+            <div style="font-size: 24px; margin-bottom: 8px;">ðŸšš</div>
             <div style="font-size: 12px; font-weight: 600; color: #333; margin-bottom: 4px;">En camino</div>
-            <div style="font-size: 11px; color: #999;">Te enviaremos tu guía</div>
+            <div style="font-size: 11px; color: #999;">Te enviaremos tu guÃ­a</div>
           </td>
           <td style="padding: 12px; text-align: center; width: 33%;">
-            <div style="font-size: 24px; margin-bottom: 8px;">✦</div>
+            <div style="font-size: 24px; margin-bottom: 8px;">âœ¦</div>
             <div style="font-size: 12px; font-weight: 600; color: #333; margin-bottom: 4px;">Entrega</div>
-            <div style="font-size: 11px; color: #999;">2-5 días hábiles</div>
+            <div style="font-size: 11px; color: #999;">2-5 dÃ­as hÃ¡biles</div>
           </td>
         </tr>
       </table>
@@ -137,10 +137,10 @@ function generarEmailCliente(data: EmailData) {
 
     <!-- Footer -->
     <div style="background: #0E0E0E; padding: 32px; text-align: center;">
-      <p style="font-size: 12px; color: rgba(245,240,232,0.6); margin: 0 0 8px;">¿Tienes dudas? Escríbenos a</p>
+      <p style="font-size: 12px; color: rgba(245,240,232,0.6); margin: 0 0 8px;">Â¿Tienes dudas? EscrÃ­benos a</p>
       <a href="mailto:hola@vitalora.com.mx" style="font-size: 13px; color: #C9A961; text-decoration: none;">hola@vitalora.com.mx</a>
       <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid rgba(245,240,232,0.1);">
-        <p style="font-size: 11px; color: rgba(245,240,232,0.4); margin: 0;">© 2026 Vitalora. Todos los derechos reservados.</p>
+        <p style="font-size: 11px; color: rgba(245,240,232,0.4); margin: 0;">Â© 2026 Vitalora. Todos los derechos reservados.</p>
       </div>
     </div>
 
@@ -153,7 +153,7 @@ function generarEmailGabo(data: EmailData) {
   const { items, comprador, direccion, subtotal, costoEnvio, total } = data
 
   const productosTexto = items.map(item =>
-    `• ${item.marca} — ${item.nombre} x${item.cantidad} → $${(item.precio * item.cantidad).toLocaleString()} MXN`
+    `â€¢ ${item.marca} â€” ${item.nombre} x${item.cantidad} â†’ $${(item.precio * item.cantidad).toLocaleString()} MXN`
   ).join('\n')
 
   return `
@@ -164,16 +164,16 @@ function generarEmailGabo(data: EmailData) {
   <div style="max-width: 600px; margin: 0 auto; background: white;">
 
     <div style="background: #0E0E0E; padding: 24px; text-align: center;">
-      <h1 style="font-size: 22px; letter-spacing: 0.15em; color: #F5F0E8; margin: 0;">VITALORA</h1>
-      <div style="font-size: 10px; letter-spacing: 0.3em; color: #C9A961; margin-top: 4px;">NUEVA VENTA 🎉</div>
+      <img src="https://vitalora.com.mx/images/logo/logo-footer.png" alt="Vitalora" width="140" style="display:block;margin:0 auto;max-width:140px;height:auto;" />
+      <div style="font-size: 10px; letter-spacing: 0.3em; color: #C9A961; margin-top: 4px;">NUEVA VENTA ðŸŽ‰</div>
     </div>
 
     <div style="padding: 32px;">
-      <h2 style="font-size: 20px; color: #0E0E0E; margin: 0 0 24px;">¡Nueva venta recibida!</h2>
+      <h2 style="font-size: 20px; color: #0E0E0E; margin: 0 0 24px;">Â¡Nueva venta recibida!</h2>
 
       <div style="background: #F0F7F0; border: 1px solid #A8C5A0; border-radius: 4px; padding: 16px; margin-bottom: 24px;">
         <div style="font-size: 28px; font-weight: 700; color: #333; text-align: center;">$${total.toLocaleString()} MXN</div>
-        <div style="font-size: 12px; color: #6B8F6B; text-align: center; margin-top: 4px;">Subtotal: $${subtotal.toLocaleString()} | Envío: ${costoEnvio === 0 ? 'Gratis' : '$99'}</div>
+        <div style="font-size: 12px; color: #6B8F6B; text-align: center; margin-top: 4px;">Subtotal: $${subtotal.toLocaleString()} | EnvÃ­o: ${costoEnvio === 0 ? 'Gratis' : '$99'}</div>
       </div>
 
       <h3 style="font-size: 12px; letter-spacing: 0.15em; text-transform: uppercase; color: #C9A961; margin: 0 0 12px;">Cliente</h3>
@@ -183,7 +183,7 @@ function generarEmailGabo(data: EmailData) {
         ${comprador.telefono}
       </p>
 
-      <h3 style="font-size: 12px; letter-spacing: 0.15em; text-transform: uppercase; color: #C9A961; margin: 0 0 12px;">Dirección</h3>
+      <h3 style="font-size: 12px; letter-spacing: 0.15em; text-transform: uppercase; color: #C9A961; margin: 0 0 12px;">DirecciÃ³n</h3>
       <p style="font-size: 14px; color: #333; line-height: 1.7; margin: 0 0 20px;">
         ${direccion.calle} ${direccion.numero}${direccion.interior ? ', Int. ' + direccion.interior : ''}<br>
         ${direccion.colonia || ''}<br>
@@ -196,7 +196,7 @@ function generarEmailGabo(data: EmailData) {
     </div>
 
     <div style="background: #0E0E0E; padding: 20px; text-align: center;">
-      <p style="font-size: 11px; color: rgba(245,240,232,0.4); margin: 0;">Vitalora — Notificación automática de venta</p>
+      <p style="font-size: 11px; color: rgba(245,240,232,0.4); margin: 0;">Vitalora â€” NotificaciÃ³n automÃ¡tica de venta</p>
     </div>
 
   </div>
@@ -212,7 +212,7 @@ export async function POST(req: NextRequest) {
     await resend.emails.send({
       from: 'Vitalora <hola@vitalora.com.mx>',
       to: body.comprador.email,
-      subject: `✦ ¡Gracias por tu compra, ${body.comprador.nombre}! — Vitalora`,
+      subject: `âœ¦ Â¡Gracias por tu compra, ${body.comprador.nombre}! â€” Vitalora`,
       html: generarEmailCliente(body),
     })
 
@@ -220,7 +220,7 @@ export async function POST(req: NextRequest) {
     await resend.emails.send({
       from: 'Vitalora Ventas <hola@vitalora.com.mx>',
       to: 'gabomaciel7@gmail.com',
-      subject: `🎉 Nueva venta — $${body.total.toLocaleString()} MXN — ${body.comprador.nombre} ${body.comprador.apellido}`,
+      subject: `ðŸŽ‰ Nueva venta â€” $${body.total.toLocaleString()} MXN â€” ${body.comprador.nombre} ${body.comprador.apellido}`,
       html: generarEmailGabo(body),
     })
 
