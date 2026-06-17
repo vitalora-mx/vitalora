@@ -5,7 +5,7 @@ import Header from '@/components/store/Header'
 import Hero from '@/components/store/Hero'
 import Marquee from '@/components/store/Marquee'
 import Categories from '@/components/store/Categories'
-import FeaturedProducts from '@/components/store/FeaturedProducts'
+import CategoriasCarrusel from '@/components/store/CategoriasCarrusel'
 import Editorial from '@/components/store/Editorial'
 import Trust from '@/components/store/Trust'
 import Newsletter from '@/components/store/Newsletter'
@@ -20,7 +20,7 @@ export default function HomePage() {
       <Hero />
       <Marquee />
       <Categories />
-      <FeaturedProducts />
+      <CategoriasCarrusel />
       <Editorial />
       <Trust />
       <Newsletter />
