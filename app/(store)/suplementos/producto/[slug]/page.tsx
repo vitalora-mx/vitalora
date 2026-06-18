@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useEffect } from 'react'
 import { useParams } from 'next/navigation'
@@ -10,6 +10,7 @@ import { useCartStore } from '@/store/cartStore'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import MetodosPago from '@/components/store/MetodosPago'
 import { inyectarProductSchema } from '@/lib/structured-data'
+import ResenasProducto from '@/components/store/producto/ResenasProducto'
 
 interface ProductoVideo { id: number; youtube_url: string; titulo: string; posicion: number }
 interface VarianteImagen { id: number; url: string; posicion: number }
@@ -36,7 +37,7 @@ export default function ProductoSuplementoPage() {
   const [producto, setProducto] = useState<Producto | null>(null)
   const [loading, setLoading] = useState(true)
   const [seleccionada, setSeleccionada] = useState(0)
-  const [tabActiva, setTabActiva] = useState('Descripción')
+  const [tabActiva, setTabActiva] = useState('DescripciÃ³n')
   const [cantidad, setCantidad] = useState(1)
   const [agregado, setAgregado] = useState(false)
   const [mounted, setMounted] = useState(false)
@@ -57,8 +58,8 @@ export default function ProductoSuplementoPage() {
           const primeraConStock = vars.find(v => v.stock > 0)
           setVarianteSel(primeraConStock ? primeraConStock.id : vars[0].id)
         }
-        const title = data.seo_title || `${data.nombre} — ${data.marca} | Vitalora Suplementos México`
-        const desc = data.seo_description || `${data.descripcion?.slice(0, 155) || data.nombre}. Envío a todo México. Compra en Vitalora.`
+        const title = data.seo_title || `${data.nombre} â€” ${data.marca} | Vitalora Suplementos MÃ©xico`
+        const desc = data.seo_description || `${data.descripcion?.slice(0, 155) || data.nombre}. EnvÃ­o a todo MÃ©xico. Compra en Vitalora.`
         document.title = title
         const metaDesc = document.querySelector('meta[name="description"]')
         if (metaDesc) metaDesc.setAttribute('content', desc)
@@ -96,7 +97,7 @@ export default function ProductoSuplementoPage() {
     <main style={{ background: 'white' }}>
       <SuplementosHeader />
       <div style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '16px' }}>
-        <div style={{ fontSize: '48px' }}>🌿</div>
+        <div style={{ fontSize: '48px' }}>ðŸŒ¿</div>
         <p style={{ color: '#888', fontSize: '16px' }}>Producto no encontrado</p>
       </div>
       <Footer />
@@ -158,7 +159,7 @@ export default function ProductoSuplementoPage() {
     setTimeout(() => setAgregado(false), 2000)
   }
 
-  const tabs = ['Descripción', 'Beneficios', 'Ingredientes', 'Cómo tomar', 'Advertencias', 'Reseñas']
+  const tabs = ['DescripciÃ³n', 'Beneficios', 'Ingredientes', 'CÃ³mo tomar', 'Advertencias', 'ReseÃ±as']
 
   return (
     <main style={{ background: 'white' }}>
@@ -166,7 +167,7 @@ export default function ProductoSuplementoPage() {
       <div style={{ maxWidth: '1400px', margin: '0 auto', padding: isMobile ? '24px 16px' : '60px 40px' }}>
         <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: isMobile ? '32px' : '80px', marginBottom: isMobile ? '48px' : '80px' }}>
 
-          {/* Galería */}
+          {/* GalerÃ­a */}
           <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: '16px', width: '100%', maxWidth: isMobile ? 'none' : '600px' }}>
             <div style={{ order: isMobile ? 1 : 2, flex: 1, minWidth: 0, aspectRatio: '1 / 1', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden', background: '#F0F7F0' }}>
               {producto.tag && !agotado && (
@@ -197,16 +198,13 @@ export default function ProductoSuplementoPage() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? '18px' : '24px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <span style={{ fontSize: '11px', letterSpacing: '0.3em', textTransform: 'uppercase', color: '#6B8F6B', fontWeight: 600 }}>{producto.marca}</span>
-              <span style={{ color: '#DDD' }}>·</span>
+              <span style={{ color: '#DDD' }}>Â·</span>
               <span style={{ fontSize: '11px', letterSpacing: '0.2em', textTransform: 'uppercase', color: '#999' }}>{producto.categoria}</span>
             </div>
 
             <h1 style={{ fontFamily: 'var(--font-italiana), serif', fontSize: 'clamp(28px, 4vw, 44px)', lineHeight: 1.1, letterSpacing: '0.02em', color: '#111' }}>{producto.nombre}</h1>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ color: '#6B8F6B', fontSize: '16px', letterSpacing: '2px' }}>★★★★★</span>
-              <span style={{ fontSize: '13px', color: '#999' }}>4.8 · 98 reseñas</span>
-            </div>
+            
 
             <div style={{ display: 'flex', alignItems: 'baseline', gap: '12px' }}>
               {producto.precio_original && producto.precio_original > precioEfectivo && (
@@ -222,7 +220,7 @@ export default function ProductoSuplementoPage() {
                 {producto.beneficios.slice(0, 3).map((b, i) => (
                   <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '14px', color: '#444' }}>
                     <div style={{ width: '20px', height: '20px', borderRadius: '50%', background: '#6B8F6B', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                      <span style={{ color: 'white', fontSize: '11px', fontWeight: 700 }}>✓</span>
+                      <span style={{ color: 'white', fontSize: '11px', fontWeight: 700 }}>âœ“</span>
                     </div>
                     {b}
                   </div>
@@ -270,7 +268,7 @@ export default function ProductoSuplementoPage() {
               <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                 <span style={{ fontSize: '12px', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#999' }}>Cantidad</span>
                 <div style={{ display: 'flex', alignItems: 'center', border: '1px solid #EEE', borderRadius: '8px' }}>
-                  <button onClick={() => setCantidad(Math.max(1, cantidad - 1))} style={{ width: '40px', height: '40px', border: 'none', background: 'none', cursor: 'pointer', fontSize: '18px', color: '#333', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>−</button>
+                  <button onClick={() => setCantidad(Math.max(1, cantidad - 1))} style={{ width: '40px', height: '40px', border: 'none', background: 'none', cursor: 'pointer', fontSize: '18px', color: '#333', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>âˆ’</button>
                   <span style={{ width: '40px', textAlign: 'center', fontSize: '15px', fontWeight: 500 }}>{cantidad}</span>
                   <button onClick={() => setCantidad(Math.min(stockEfectivo, cantidad + 1))} style={{ width: '40px', height: '40px', border: 'none', background: 'none', cursor: 'pointer', fontSize: '18px', color: '#333', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>+</button>
                 </div>
@@ -279,18 +277,18 @@ export default function ProductoSuplementoPage() {
 
             {(agotado || varianteAgotada) ? (
               <div style={{ padding: '20px', background: '#F5F5F5', border: '1px solid #DDD', borderRadius: '8px', textAlign: 'center' }}>
-                <div style={{ fontSize: '13px', letterSpacing: '0.2em', textTransform: 'uppercase', fontWeight: 600, color: '#999', marginBottom: '8px' }}>{varianteAgotada && !agotado ? 'Esta variante está agotada' : 'Producto agotado'}</div>
-                <p style={{ fontSize: '12px', color: '#AAA', margin: 0 }}>{varianteAgotada && !agotado ? 'Elige otra variante disponible' : 'Este producto no está disponible por el momento'}</p>
+                <div style={{ fontSize: '13px', letterSpacing: '0.2em', textTransform: 'uppercase', fontWeight: 600, color: '#999', marginBottom: '8px' }}>{varianteAgotada && !agotado ? 'Esta variante estÃ¡ agotada' : 'Producto agotado'}</div>
+                <p style={{ fontSize: '12px', color: '#AAA', margin: 0 }}>{varianteAgotada && !agotado ? 'Elige otra variante disponible' : 'Este producto no estÃ¡ disponible por el momento'}</p>
               </div>
             ) : (
               <button onClick={handleAgregar}
                 style={{ padding: '20px', background: agregado ? '#4A7A4A' : '#0E0E0E', color: 'white', border: 'none', fontSize: '13px', letterSpacing: '0.2em', textTransform: 'uppercase', fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit', transition: 'background 0.3s', borderRadius: '8px' }}>
-                {agregado ? '✓ Agregado al carrito' : '+ Agregar al carrito'}
+                {agregado ? 'âœ“ Agregado al carrito' : '+ Agregar al carrito'}
               </button>
             )}
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-              {[{ icon: '🚚', text: 'Envío gratis +$1,000 MXN' }, { icon: '✓', text: '100% Auténtico' }, { icon: '🔒', text: 'Pago seguro' }, { icon: '↩', text: 'Devolución 30 días' }].map(b => (
+              {[{ icon: 'ðŸšš', text: 'EnvÃ­o gratis +$1,000 MXN' }, { icon: 'âœ“', text: '100% AutÃ©ntico' }, { icon: 'ðŸ”’', text: 'Pago seguro' }, { icon: 'â†©', text: 'DevoluciÃ³n 30 dÃ­as' }].map(b => (
                 <div key={b.text} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: '#999' }}>
                   <span style={{ fontSize: '14px' }}>{b.icon}</span>{b.text}
                 </div>
@@ -313,14 +311,14 @@ export default function ProductoSuplementoPage() {
             ))}
           </div>
           <div style={{ maxWidth: '800px' }}>
-            {tabActiva === 'Descripción' && <p style={{ fontSize: '16px', lineHeight: 1.9, color: '#666' }}>{producto.descripcion || 'Sin descripción disponible.'}</p>}
+            {tabActiva === 'DescripciÃ³n' && <p style={{ fontSize: '16px', lineHeight: 1.9, color: '#666' }}>{producto.descripcion || 'Sin descripciÃ³n disponible.'}</p>}
             {tabActiva === 'Beneficios' && producto.beneficios && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 {producto.para_quien && <p style={{ fontSize: '14px', color: '#999', marginBottom: '8px' }}>{producto.para_quien}</p>}
                 {producto.beneficios.map((b, i) => (
                   <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '16px', background: '#F8FBF8', borderRadius: '8px', border: '1px solid #E8F0E8' }}>
                     <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#6B8F6B', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                      <span style={{ color: 'white', fontSize: '14px', fontWeight: 700 }}>✓</span>
+                      <span style={{ color: 'white', fontSize: '14px', fontWeight: 700 }}>âœ“</span>
                     </div>
                     <span style={{ fontSize: '15px', color: '#333' }}>{b}</span>
                   </div>
@@ -333,7 +331,7 @@ export default function ProductoSuplementoPage() {
                 <p style={{ fontSize: '14px', lineHeight: 2, color: '#666', fontStyle: 'italic' }}>{producto.ingredientes || 'No especificados.'}</p>
               </div>
             )}
-            {tabActiva === 'Cómo tomar' && producto.como_tomar && (
+            {tabActiva === 'CÃ³mo tomar' && producto.como_tomar && (
               <div>
                 <h3 style={{ fontFamily: 'var(--font-cormorant), serif', fontSize: '24px', marginBottom: '24px', color: '#111' }}>Modo de uso</h3>
                 {producto.como_tomar.split('\n').map((paso, i) => (
@@ -347,7 +345,7 @@ export default function ProductoSuplementoPage() {
             {tabActiva === 'Advertencias' && producto.advertencias && (
               <div style={{ padding: '24px', background: '#FFFBF0', border: '1px solid #F0E8C8', borderRadius: '8px' }}>
                 <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
-                  <span style={{ fontSize: '20px' }}>⚠️</span>
+                  <span style={{ fontSize: '20px' }}>âš ï¸</span>
                   <div>
                     <h4 style={{ fontSize: '14px', fontWeight: 600, color: '#333', marginBottom: '12px' }}>ADVERTENCIAS Y PRECAUCIONES</h4>
                     <p style={{ fontSize: '14px', lineHeight: 1.8, color: '#666' }}>{producto.advertencias}</p>
@@ -355,30 +353,8 @@ export default function ProductoSuplementoPage() {
                 </div>
               </div>
             )}
-            {tabActiva === 'Reseñas' && (
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '24px', marginBottom: '40px' }}>
-                  <div style={{ textAlign: 'center' }}>
-                    <div style={{ fontFamily: 'var(--font-italiana), serif', fontSize: '64px', lineHeight: 1, color: '#111' }}>4.8</div>
-                    <div style={{ color: '#6B8F6B', fontSize: '20px', letterSpacing: '3px', margin: '8px 0' }}>★★★★★</div>
-                    <div style={{ fontSize: '13px', color: '#999' }}>98 reseñas</div>
-                  </div>
-                </div>
-                {[{ nombre: 'Carlos M.', fecha: 'Mayo 2026', texto: 'Excelente producto, mis uñas y cabello han mejorado notablemente.' },
-                  { nombre: 'Laura P.', fecha: 'Abril 2026', texto: 'Muy buena calidad y llegó rápido. Volveré a comprar.' },
-                  { nombre: 'Roberto S.', fecha: 'Marzo 2026', texto: 'Se nota la diferencia en las articulaciones después de 3 semanas.' }].map((r, i) => (
-                  <div key={i} style={{ padding: '24px 0', borderBottom: '1px solid #EEE' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: '#F0F7F0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', color: '#6B8F6B', fontWeight: 600 }}>{r.nombre[0]}</div>
-                        <div><div style={{ fontSize: '14px', fontWeight: 500, color: '#111' }}>{r.nombre}</div><div style={{ fontSize: '12px', color: '#999' }}>{r.fecha}</div></div>
-                      </div>
-                      <span style={{ color: '#6B8F6B', fontSize: '14px', letterSpacing: '2px' }}>★★★★★</span>
-                    </div>
-                    <p style={{ fontSize: '14px', lineHeight: 1.7, color: '#666' }}>{r.texto}</p>
-                  </div>
-                ))}
-              </div>
+            {tabActiva === 'ReseÃ±as' && (
+              <ResenasProducto productoId={producto?.id} />
             )}
           </div>
         </div>

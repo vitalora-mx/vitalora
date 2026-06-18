@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useEffect } from 'react'
 import { useCartStore } from '@/store/cartStore'
@@ -34,7 +34,7 @@ const MetodosPago = () => (
       color: '#999999',
       marginBottom: '12px',
     }}>
-      Métodos de pago aceptados
+      MÃ©todos de pago aceptados
     </div>
     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center' }}>
 
@@ -77,30 +77,30 @@ const MetodosPago = () => (
         <span style={badgeTextStyle}>SPEI</span>
       </div>
 
-      {/* Débito */}
-      <div style={badgeStyle} title="Tarjeta de débito">
+      {/* DÃ©bito */}
+      <div style={badgeStyle} title="Tarjeta de dÃ©bito">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
           <rect x="1" y="4" width="22" height="16" rx="3" fill="#5B4FCF"/>
           <rect x="1" y="9" width="22" height="4" fill="#4338A8"/>
           <rect x="4" y="15" width="6" height="2" rx="1" fill="white" opacity="0.6"/>
         </svg>
-        <span style={badgeTextStyle}>Débito</span>
+        <span style={badgeTextStyle}>DÃ©bito</span>
       </div>
 
-      {/* Crédito */}
-      <div style={badgeStyle} title="Tarjeta de crédito">
+      {/* CrÃ©dito */}
+      <div style={badgeStyle} title="Tarjeta de crÃ©dito">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
           <rect x="1" y="4" width="22" height="16" rx="3" fill="#C9A160"/>
           <rect x="1" y="9" width="22" height="4" fill="#A07840"/>
           <circle cx="7" cy="16" r="1.5" fill="white" opacity="0.7"/>
           <circle cx="11" cy="16" r="1.5" fill="white" opacity="0.4"/>
         </svg>
-        <span style={badgeTextStyle}>Crédito</span>
+        <span style={badgeTextStyle}>CrÃ©dito</span>
       </div>
 
     </div>
     <p style={{ fontSize: '11px', color: '#AAAAAA', marginTop: '8px', lineHeight: 1.5 }}>
-      Pago procesado de forma segura por Mercado Pago. Sin comisión adicional.
+      Pago procesado de forma segura por Mercado Pago. Sin comisiÃ³n adicional.
     </p>
   </div>
 )
@@ -138,7 +138,7 @@ export default function SuplementoInfo({ producto }: Props) {
         <span style={{ fontSize: '11px', letterSpacing: '0.3em', textTransform: 'uppercase', color: '#6B8F6B', fontWeight: 600 }}>
           {producto.marca}
         </span>
-        <span style={{ color: '#DDDDDD' }}>·</span>
+        <span style={{ color: '#DDDDDD' }}>Â·</span>
         <span style={{ fontSize: '11px', letterSpacing: '0.2em', textTransform: 'uppercase', color: '#999999' }}>
           {producto.categoria}
         </span>
@@ -155,8 +155,8 @@ export default function SuplementoInfo({ producto }: Props) {
       </h1>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-        <span style={{ color: '#6B8F6B', fontSize: '16px', letterSpacing: '2px' }}>★★★★★</span>
-        <span style={{ fontSize: '13px', color: '#999999' }}>4.8 · 98 reseñas</span>
+        <span style={{ color: '#6B8F6B', fontSize: '16px', letterSpacing: '2px' }}>â˜…â˜…â˜…â˜…â˜…</span>
+        <span style={{ fontSize: '13px', color: '#999999' }}>4.8 Â· 98 reseÃ±as</span>
       </div>
 
       <div style={{ fontFamily: 'var(--font-cormorant), serif', fontSize: '40px', fontWeight: 600, color: '#111111' }}>
@@ -169,7 +169,7 @@ export default function SuplementoInfo({ producto }: Props) {
         {producto.beneficios.slice(0, 3).map((b: string, i: number) => (
           <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '14px', color: '#444444' }}>
             <div style={{ width: '20px', height: '20px', borderRadius: '50%', background: '#6B8F6B', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <span style={{ color: 'white', fontSize: '11px', fontWeight: 700 }}>✓</span>
+              <span style={{ color: 'white', fontSize: '11px', fontWeight: 700 }}>âœ“</span>
             </div>
             {b}
           </div>
@@ -189,7 +189,7 @@ export default function SuplementoInfo({ producto }: Props) {
       <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
         <span style={{ fontSize: '12px', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#999999' }}>Cantidad</span>
         <div style={{ display: 'flex', alignItems: 'center', border: '1px solid #EEEEEE', borderRadius: '8px' }}>
-          <button onClick={() => setCantidad(Math.max(1, cantidad - 1))} style={{ width: '40px', height: '40px', border: 'none', background: 'none', cursor: 'pointer', fontSize: '18px', color: '#333333', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>−</button>
+          <button onClick={() => setCantidad(Math.max(1, cantidad - 1))} style={{ width: '40px', height: '40px', border: 'none', background: 'none', cursor: 'pointer', fontSize: '18px', color: '#333333', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>âˆ’</button>
           <span style={{ width: '40px', textAlign: 'center', fontSize: '15px', fontWeight: 500 }}>{cantidad}</span>
           <button onClick={() => setCantidad(cantidad + 1)} style={{ width: '40px', height: '40px', border: 'none', background: 'none', cursor: 'pointer', fontSize: '18px', color: '#333333', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>+</button>
         </div>
@@ -212,15 +212,15 @@ export default function SuplementoInfo({ producto }: Props) {
           borderRadius: '8px',
         }}
       >
-        {agregado ? '✓ Agregado al carrito' : '+ Agregar al carrito'}
+        {agregado ? 'âœ“ Agregado al carrito' : '+ Agregar al carrito'}
       </button>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
         {[
-          { icon: '🚚', text: 'Envío gratis +$1,000 MXN' },
-          { icon: '✓', text: '100% Auténtico' },
-          { icon: '🔒', text: 'Pago seguro' },
-          { icon: '↩', text: 'Devolución 30 días' },
+          { icon: 'ðŸšš', text: 'EnvÃ­o gratis +$1,000 MXN' },
+          { icon: 'âœ“', text: '100% AutÃ©ntico' },
+          { icon: 'ðŸ”’', text: 'Pago seguro' },
+          { icon: 'â†©', text: 'DevoluciÃ³n 30 dÃ­as' },
         ].map((b) => (
           <div key={b.text} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: '#999999' }}>
             <span style={{ fontSize: '14px' }}>{b.icon}</span>

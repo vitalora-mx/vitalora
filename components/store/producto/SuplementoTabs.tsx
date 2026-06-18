@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import ResenasProducto from '@/components/store/producto/ResenasProducto'
 
 interface Props {
   producto: any
@@ -170,51 +171,7 @@ export default function SuplementoTabs({ producto }: Props) {
         )}
 
         {tabActiva === 'Reseñas' && (
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '24px', marginBottom: '40px' }}>
-              <div style={{ textAlign: 'center' }}>
-                <div style={{ fontFamily: 'var(--font-italiana), serif', fontSize: '64px', lineHeight: 1, color: '#111111' }}>4.8</div>
-                <div style={{ color: '#6B8F6B', fontSize: '20px', letterSpacing: '3px', margin: '8px 0' }}>★★★★★</div>
-                <div style={{ fontSize: '13px', color: '#999999' }}>98 reseñas</div>
-              </div>
-              <div style={{ flex: 1 }}>
-                {[5, 4, 3, 2, 1].map((star) => (
-                  <div key={star} style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
-                    <span style={{ fontSize: '12px', color: '#999999', width: '12px' }}>{star}</span>
-                    <span style={{ color: '#6B8F6B', fontSize: '12px' }}>★</span>
-                    <div style={{ flex: 1, height: '6px', background: '#EEEEEE', borderRadius: '3px', overflow: 'hidden' }}>
-                      <div style={{ height: '100%', background: '#6B8F6B', borderRadius: '3px', width: star === 5 ? '80%' : star === 4 ? '12%' : '8%' }} />
-                    </div>
-                    <span style={{ fontSize: '12px', color: '#999999', width: '32px' }}>
-                      {star === 5 ? '78' : star === 4 ? '12' : '8'}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {[
-              { nombre: 'Carlos M.', fecha: 'Mayo 2026', texto: 'Excelente producto, llevo 2 meses tomándolo y mis uñas y cabello han mejorado notablemente. Lo recomiendo.', estrellas: 5 },
-              { nombre: 'Laura P.', fecha: 'Abril 2026', texto: 'Muy buena calidad y llegó rápido. El empaque es seguro y el producto es auténtico. Volveré a comprar.', estrellas: 5 },
-              { nombre: 'Roberto S.', fecha: 'Marzo 2026', texto: 'Buen suplemento, se nota la diferencia en las articulaciones después de 3 semanas de uso.', estrellas: 5 },
-            ].map((resena, i) => (
-              <div key={i} style={{ padding: '24px 0', borderBottom: '1px solid #EEEEEE' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: '#F0F7F0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', color: '#6B8F6B', fontWeight: 600 }}>
-                      {resena.nombre[0]}
-                    </div>
-                    <div>
-                      <div style={{ fontSize: '14px', fontWeight: 500, color: '#111111' }}>{resena.nombre}</div>
-                      <div style={{ fontSize: '12px', color: '#999999' }}>{resena.fecha}</div>
-                    </div>
-                  </div>
-                  <span style={{ color: '#6B8F6B', fontSize: '14px', letterSpacing: '2px' }}>★★★★★</span>
-                </div>
-                <p style={{ fontSize: '14px', lineHeight: 1.7, color: '#666666' }}>{resena.texto}</p>
-              </div>
-            ))}
-          </div>
+          <ResenasProducto productoId={producto?.id} />
         )}
 
       </div>

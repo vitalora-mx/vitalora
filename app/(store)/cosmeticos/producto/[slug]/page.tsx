@@ -10,6 +10,7 @@ import { useCartStore } from '@/store/cartStore'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import MetodosPago from '@/components/store/MetodosPago'
 import { inyectarProductSchema } from '@/lib/structured-data'
+import ResenasProducto from '@/components/store/producto/ResenasProducto'
 
 interface ProductoVideo { id: number; youtube_url: string; titulo: string; posicion: number }
 interface VarianteImagen { id: number; url: string; posicion: number }
@@ -216,10 +217,7 @@ export default function ProductoCosmeticoPage() {
 
             <h1 style={{ fontFamily: 'var(--font-italiana), serif', fontSize: 'clamp(28px, 4vw, 48px)', lineHeight: 1.1, letterSpacing: '0.02em', color: 'var(--black)' }}>{producto.nombre}</h1>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ color: 'var(--gold)', fontSize: '16px', letterSpacing: '2px' }}>★★★★★</span>
-              <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>4.9 · 142 reseñas</span>
-            </div>
+            
 
             <div style={{ display: 'flex', alignItems: 'baseline', gap: '12px' }}>
               {producto.precio_original && producto.precio_original > precioEfectivo && (
@@ -330,29 +328,7 @@ export default function ProductoCosmeticoPage() {
               </div>
             )}
             {tabActiva === 'Reseñas' && (
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '24px', marginBottom: '40px' }}>
-                  <div style={{ textAlign: 'center' }}>
-                    <div style={{ fontFamily: 'var(--font-italiana), serif', fontSize: '64px', lineHeight: 1, color: 'var(--black)' }}>4.9</div>
-                    <div style={{ color: 'var(--gold)', fontSize: '20px', letterSpacing: '3px', margin: '8px 0' }}>★★★★★</div>
-                    <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>142 reseñas</div>
-                  </div>
-                </div>
-                {[{ nombre: 'María G.', fecha: 'Mayo 2026', texto: 'Increíble producto. Mi piel se ve mucho más hidratada y luminosa.' },
-                  { nombre: 'Sofía R.', fecha: 'Abril 2026', texto: 'Mi favorito de toda mi rutina. La textura es ligera y se absorbe rápidamente.' },
-                  { nombre: 'Ana L.', fecha: 'Marzo 2026', texto: 'Excelente calidad, auténtico y llegó bien empaquetado.' }].map((r, i) => (
-                  <div key={i} style={{ padding: '24px 0', borderBottom: '1px solid var(--line)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'var(--bg-cream-deep)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', color: 'var(--text-muted)' }}>{r.nombre[0]}</div>
-                        <div><div style={{ fontSize: '14px', fontWeight: 500, color: 'var(--black)' }}>{r.nombre}</div><div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{r.fecha}</div></div>
-                      </div>
-                      <span style={{ color: 'var(--gold)', fontSize: '14px', letterSpacing: '2px' }}>★★★★★</span>
-                    </div>
-                    <p style={{ fontSize: '14px', lineHeight: 1.7, color: 'var(--text-muted)' }}>{r.texto}</p>
-                  </div>
-                ))}
-              </div>
+              <ResenasProducto productoId={producto?.id} />
             )}
           </div>
         </div>
