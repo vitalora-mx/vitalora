@@ -1,15 +1,16 @@
-'use client'
+﻿'use client'
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useAuthStore } from '@/store/authStore'
 import { useIsMobile } from '@/hooks/useIsMobile'
+import FormularioResena from '@/components/store/producto/FormularioResena'
 
 interface Pedido {
   id: number; estado: string; total: number; subtotal: number; costo_envio: number
   nombre: string; apellido: string; calle: string; numero: string; ciudad: string
   estado_dir: string; cp: string; numero_guia: string | null; factura_url: string | null
-  created_at: string; pedido_items: { nombre: string; marca: string; precio: number; cantidad: number }[]
+  created_at: string; pedido_items: { producto_id: number; nombre: string; marca: string; precio: number; cantidad: number }[]
 }
 
 interface Regimen { codigo: string; descripcion: string; tipo: string }
@@ -27,6 +28,8 @@ export default function CuentaPage() {
   const [mounted, setMounted] = useState(false)
   const [tab, setTab] = useState('perfil')
   const [pedidos, setPedidos] = useState<Pedido[]>([])
+  const [resenando, setResenando] = useState<{ id: number; nombre: string } | null>(null)
+  const [resenaOk, setResenaOk] = useState(false)
   const [regimenes, setRegimenes] = useState<Regimen[]>([])
   const [direcciones, setDirecciones] = useState<Direccion[]>([])
   const [saving, setSaving] = useState(false)
@@ -186,7 +189,7 @@ export default function CuentaPage() {
           {authError && <p style={{ fontSize: '13px', color: '#D33', marginBottom: '12px' }}>{authError}</p>}
           <button onClick={handleAuth} disabled={authLoading} style={{ width: '100%', padding: '16px', background: authLoading ? '#888' : 'var(--black)', color: 'var(--bg-cream)', border: 'none', borderRadius: '6px', fontSize: '13px', letterSpacing: '0.15em', textTransform: 'uppercase', fontWeight: 600, cursor: authLoading ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}>{authLoading ? 'Procesando...' : authMode === 'login' ? 'Iniciar Sesión' : 'Crear Cuenta'}</button>
           {authMode === 'registro' && <p style={{ fontSize: '12px', color: '#999', textAlign: 'center', marginTop: '16px', lineHeight: 1.6 }}>Al crear tu cuenta obtienes <strong style={{ color: 'var(--gold)' }}>5% de descuento</strong> en tu primera compra</p>}
-          <div style={{ textAlign: 'center', marginTop: '24px' }}><Link href="/" style={{ fontSize: '12px', color: '#999', textDecoration: 'none' }}>← Volver a la tienda</Link></div>
+          <div style={{ textAlign: 'center', marginTop: '24px' }}><Link href="/" style={{ fontSize: '12px', color: '#999', textDecoration: 'none' }}>â† Volver a la tienda</Link></div>
         </div>
       </main>
     )
@@ -274,7 +277,7 @@ export default function CuentaPage() {
             {/* Lista de direcciones */}
             {direcciones.length === 0 && !showDirForm ? (
               <div style={{ background: 'white', padding: isMobile ? '32px 20px' : '60px', borderRadius: '12px', border: '1px solid #E5E5E5', textAlign: 'center' }}>
-                <div style={{ fontSize: '40px', marginBottom: '16px' }}>📍</div>
+                <div style={{ fontSize: '40px', marginBottom: '16px' }}>📋</div>
                 <p style={{ fontSize: '16px', color: '#888' }}>No tienes direcciones guardadas</p>
               </div>
             ) : (
@@ -293,8 +296,8 @@ export default function CuentaPage() {
                       </p>
                     </div>
                     <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
-                      {!d.es_principal && <button onClick={() => marcarPrincipal(d.id)} style={{ padding: '6px 12px', background: 'none', border: '1px solid #DDD', borderRadius: '6px', color: '#111', fontSize: '11px', cursor: 'pointer', fontFamily: 'inherit' }}>★ Principal</button>}
-                      <button onClick={() => editarDireccion(d)} style={{ padding: '6px 12px', background: 'none', border: '1px solid #DDD', borderRadius: '6px', color: '#111', fontSize: '11px', cursor: 'pointer', fontFamily: 'inherit' }}>✏️ Editar</button>
+                      {!d.es_principal && <button onClick={() => marcarPrincipal(d.id)} style={{ padding: '6px 12px', background: 'none', border: '1px solid #DDD', borderRadius: '6px', color: '#111', fontSize: '11px', cursor: 'pointer', fontFamily: 'inherit' }}>â˜… Principal</button>}
+                      <button onClick={() => editarDireccion(d)} style={{ padding: '6px 12px', background: 'none', border: '1px solid #DDD', borderRadius: '6px', color: '#111', fontSize: '11px', cursor: 'pointer', fontFamily: 'inherit' }}>âœï¸ Editar</button>
                       <button onClick={() => eliminarDireccion(d.id)} style={{ padding: '6px 12px', background: 'none', border: '1px solid #DDD', borderRadius: '6px', color: '#A33', fontSize: '11px', cursor: 'pointer', fontFamily: 'inherit' }}>Eliminar</button>
                     </div>
                   </div>
@@ -315,20 +318,20 @@ export default function CuentaPage() {
                 <label style={L}>Régimen Fiscal</label>
                 <select name="regimen_fiscal" value={perfilForm.regimen_fiscal} onChange={handlePerfilChange} style={S}>
                   <option value="">Selecciona...</option>
-                  {regimenes.map(r => <option key={r.codigo} value={r.codigo}>{r.codigo} — {r.descripcion}</option>)}
+                  {regimenes.map(r => <option key={r.codigo} value={r.codigo}>{r.codigo} â€” {r.descripcion}</option>)}
                 </select>
               </div>
               <div style={{ gridColumn: 'span 2' }}>
                 <label style={L}>Uso de CFDI</label>
                 <select name="uso_cfdi" value={perfilForm.uso_cfdi} onChange={handlePerfilChange} style={S}>
                   <option value="">Selecciona...</option>
-                  <option value="G01 — Adquisición de mercancías">G01 — Adquisición de mercancías</option>
-                  <option value="G03 — Gastos en general">G03 — Gastos en general</option>
-                  <option value="I04 — Equipo de cómputo y accesorios">I04 — Equipo de cómputo y accesorios</option>
-                  <option value="D01 — Honorarios médicos">D01 — Honorarios médicos</option>
-                  <option value="D10 — Pagos por servicios educativos">D10 — Pagos por servicios educativos</option>
-                  <option value="S01 — Sin efectos fiscales">S01 — Sin efectos fiscales</option>
-                  <option value="CP01 — Pagos">CP01 — Pagos</option>
+                  <option value="G01 â€” Adquisición de mercancías">G01 â€” Adquisición de mercancías</option>
+                  <option value="G03 â€” Gastos en general">G03 â€” Gastos en general</option>
+                  <option value="I04 â€” Equipo de cómputo y accesorios">I04 â€” Equipo de cómputo y accesorios</option>
+                  <option value="D01 â€” Honorarios médicos">D01 â€” Honorarios médicos</option>
+                  <option value="D10 â€” Pagos por servicios educativos">D10 â€” Pagos por servicios educativos</option>
+                  <option value="S01 â€” Sin efectos fiscales">S01 â€” Sin efectos fiscales</option>
+                  <option value="CP01 â€” Pagos">CP01 â€” Pagos</option>
                 </select>
               </div>
               <div style={{ gridColumn: 'span 2' }}>
@@ -383,8 +386,12 @@ export default function CuentaPage() {
                     </div>
                     {p.pedido_items?.map((item, i) => (
                       <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderTop: i === 0 ? '1px solid #EEE' : 'none', fontSize: '14px' }}>
-                        <span style={{ color: '#333' }}>{item.marca} — {item.nombre} <span style={{ color: '#999' }}>x{item.cantidad}</span></span>
+                        <span style={{ color: '#333' }}>{item.marca} â€” {item.nombre} <span style={{ color: '#999' }}>x{item.cantidad}</span></span>
                         <span style={{ color: '#333', fontWeight: 500 }}>${(item.precio * item.cantidad).toLocaleString()}</span>
+                      
+                        {p.estado === 'pagado' && item.producto_id && (
+                          <button onClick={() => { setResenando({ id: item.producto_id, nombre: item.marca + ' - ' + item.nombre }); setResenaOk(false) }} style={{ display: 'block', marginTop: '6px', padding: '4px 12px', background: 'none', border: '1px solid var(--gold)', borderRadius: '100px', fontSize: '11px', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--gold)', cursor: 'pointer', fontFamily: 'inherit' }}>Escribir resena</button>
+                        )}
                       </div>
                     ))}
                     <div style={{ display: 'flex', gap: '16px', marginTop: '16px', paddingTop: '16px', borderTop: '1px solid #EEE' }}>
@@ -437,7 +444,7 @@ export default function CuentaPage() {
               <div style={{ background: 'white', padding: isMobile ? '20px' : '32px', borderRadius: '12px', border: '1px solid #E5E5E5' }}>
                 <h3 style={{ fontSize: '16px', fontWeight: 600, color: '#111', marginBottom: '20px' }}>Horario de atención</h3>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '14px', color: '#555' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Lunes a Viernes</span><span style={{ fontWeight: 500 }}>9:00 AM — 6:00 PM</span></div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Lunes a Viernes</span><span style={{ fontWeight: 500 }}>9:00 AM â€” 6:00 PM</span></div>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Sábado</span><span style={{ color: '#999' }}>Cerrado</span></div>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Domingo</span><span style={{ color: '#999' }}>Cerrado</span></div>
                 </div>
@@ -448,6 +455,27 @@ export default function CuentaPage() {
         )}
 
       </div>
+
+      {resenando && user && !resenaOk && (
+        <FormularioResena
+          productoId={resenando.id}
+          productoNombre={resenando.nombre}
+          userId={user.id}
+          onCerrar={() => setResenando(null)}
+          onEnviada={() => setResenaOk(true)}
+        />
+      )}
+
+      {resenaOk && (
+        <div onClick={() => { setResenando(null); setResenaOk(false) }} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
+          <div onClick={(e) => e.stopPropagation()} style={{ background: 'white', borderRadius: '12px', maxWidth: '400px', width: '100%', padding: '40px', textAlign: 'center' }}>
+            <div style={{ fontSize: '40px', color: 'var(--gold)', marginBottom: '16px' }}>★</div>
+            <h3 style={{ fontFamily: 'var(--font-cormorant), serif', fontSize: '22px', color: 'var(--black)', marginBottom: '12px' }}>¡Gracias por tu reseña!</h3>
+            <p style={{ fontSize: '14px', color: '#888', lineHeight: 1.6, marginBottom: '24px' }}>La revisaremos y se publicará pronto en la página del producto.</p>
+            <button onClick={() => { setResenando(null); setResenaOk(false) }} style={{ padding: '12px 32px', background: 'var(--black)', color: 'var(--bg-cream)', border: 'none', borderRadius: '100px', fontSize: '12px', letterSpacing: '0.15em', textTransform: 'uppercase', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>Cerrar</button>
+          </div>
+        </div>
+      )}
     </main>
   )
 }
