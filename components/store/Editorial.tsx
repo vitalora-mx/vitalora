@@ -29,22 +29,37 @@ export default function Editorial() {
         position: 'relative',
         zIndex: 2,
       }}>
-        {/* Visual */}
+        {/* Video ambient */}
         <div style={{
           height: isMobile ? '320px' : '600px',
-          background: 'linear-gradient(135deg, #1A1A1A 0%, #0E0E0E 100%)',
-          border: '1px solid rgba(201,169,97,0.2)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
           position: 'relative',
+          overflow: 'hidden',
+          border: '1px solid rgba(201,169,97,0.2)',
         }}>
           <div style={{
             position: 'absolute',
             inset: '20px',
             border: '1px solid rgba(201,169,97,0.15)',
+            zIndex: 2,
+            pointerEvents: 'none',
           }} />
-          <span style={{ fontSize: isMobile ? '100px' : '160px', opacity: 0.3 }}>🌿</span>
+          <video
+            autoPlay
+            loop
+            muted
+            playsInline
+            poster="/images/filosofia-poster.jpg"
+            style={{
+              position: 'absolute',
+              inset: 0,
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              zIndex: 1,
+            }}
+          >
+            <source src="/videos/filosofia-ambient.mp4" type="video/mp4" />
+          </video>
         </div>
 
         {/* Texto */}
