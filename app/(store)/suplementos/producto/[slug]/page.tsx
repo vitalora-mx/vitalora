@@ -74,7 +74,17 @@ export default function ProductoSuplementoPage() {
         setOG('og:type', 'product')
         setOG('og:url', `https://vitalora.com.mx/suplementos/producto/${data.slug}`)
         if (data.producto_imagenes?.[0]?.url) setOG('og:image', data.producto_imagenes[0].url)
-        inyectarProductSchema({ slug: data.slug, nombre: data.nombre, marca: data.marca, descripcion: data.descripcion, precio: data.precio, stock: data.stock, categoria: data.categoria, sku: data.sku, imagenes: data.producto_imagenes || [], tipo: 'suplemento' })
+        let resenasSchema = undefined
+        try {
+          const rRes = await fetch(`/api/resenas?producto_id=${data.id}`)
+          if (rRes.ok) {
+            const rData = await rRes.json()
+            if (rData.total > 0) {
+              resenasSchema = { promedio: rData.promedio, total: rData.total, items: (rData.resenas || []).map((x: any) => ({ autor: x.autor_nombre, estrellas: x.estrellas, titulo: x.titulo, comentario: x.comentario, fecha: x.created_at })) }
+            }
+          }
+        } catch {}
+        inyectarProductSchema({ slug: data.slug, nombre: data.nombre, marca: data.marca, descripcion: data.descripcion, precio: data.precio, stock: data.stock, categoria: data.categoria, sku: data.sku, imagenes: data.producto_imagenes || [], tipo: 'suplemento', resenas: resenasSchema })
       }
       setLoading(false)
     }
