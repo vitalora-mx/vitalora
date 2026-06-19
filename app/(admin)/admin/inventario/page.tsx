@@ -57,7 +57,8 @@ function ModalAjuste({ producto, onClose, onGuardado }: {
   onGuardado: () => void
 }) {
   const tieneVariantes = producto.producto_variantes?.length > 0
-  const [stocks, setStocks] = useState(
+  type StockItem = { id: string; nombre: string; stock: number; tipo: 'variante' | 'producto' }
+  const [stocks, setStocks] = useState<StockItem[]>(
     tieneVariantes
       ? producto.producto_variantes.map(v => ({ id: v.id, nombre: v.nombre, stock: v.stock, tipo: 'variante' as const }))
       : [{ id: producto.id, nombre: 'Stock general', stock: producto.stock ?? 0, tipo: 'producto' as const }]
