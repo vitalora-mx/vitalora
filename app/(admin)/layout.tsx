@@ -21,11 +21,13 @@ const SECCIONES: { label: string; items: NavItem[] }[] = [
     items: [
       { label: 'Dashboard', href: '/admin', icon: ICON('<rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>') },
       { label: 'Pedidos', href: '/admin/pedidos', badgeKey: 'pedidos', icon: ICON('<path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/>') },
+      { label: 'Facturas', href: '/admin/facturas', badgeKey: 'facturas', icon: ICON('<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>') },
     ],
   },
   {
     label: 'Catálogo',
     items: [
+      { label: 'Inventario', href: '/admin/inventario', icon: ICON('<path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/>') },
       { label: 'Productos', href: '/admin/productos', icon: ICON('<path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>') },
       { label: 'Ritual', href: '/admin/ritual', icon: ICON('<path d="M12 2v20M2 12h20"/>') },
     ],
@@ -35,6 +37,18 @@ const SECCIONES: { label: string; items: NavItem[] }[] = [
     items: [
       { label: 'Reseñas', href: '/admin/resenas', badgeKey: 'resenas', icon: ICON('<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>') },
       { label: 'Cupones', href: '/admin/codigos', icon: ICON('<path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/>') },
+    ],
+  },
+  {
+    label: 'Personas',
+    items: [
+      { label: 'Clientes', href: '/admin/clientes', icon: ICON('<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>') },
+    ],
+  },
+  {
+    label: 'Contabilidad',
+    items: [
+      { label: 'Reportes', href: '/admin/reportes', icon: ICON('<line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>') },
     ],
   },
 ]
