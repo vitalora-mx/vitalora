@@ -9,7 +9,7 @@ export async function POST(req: NextRequest) {
     const { nombre, telefono, email, numeroPedido, mensaje } = body
 
     if (!nombre || !telefono || !mensaje) {
-      return NextResponse.json({ error: 'Nombre, telÃ©fono y mensaje son obligatorios' }, { status: 400 })
+      return NextResponse.json({ error: 'Nombre, teléfono y mensaje son obligatorios' }, { status: 400 })
     }
 
     const html = `
@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
         <h3 style="font-size: 12px; letter-spacing: 0.15em; text-transform: uppercase; color: #C9A961; margin: 0 0 12px;">Datos del cliente</h3>
         <p style="font-size: 14px; color: #333; line-height: 1.8; margin: 0;">
           <strong>Nombre:</strong> ${nombre}<br>
-          <strong>WhatsApp / TelÃ©fono:</strong> ${telefono}<br>
+          <strong>WhatsApp / Teléfono:</strong> ${telefono}<br>
           ${email ? `<strong>Email:</strong> ${email}<br>` : ''}
           ${numeroPedido ? `<strong>No. de Pedido:</strong> #${numeroPedido}<br>` : ''}
         </p>
@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
       </div>
     </div>
     <div style="background: #0E0E0E; padding: 20px; text-align: center;">
-      <p style="font-size: 11px; color: rgba(245,240,232,0.4); margin: 0;">Vitalora â€” Mensaje de ayuda</p>
+      <p style="font-size: 11px; color: rgba(245,240,232,0.4); margin: 0;">Vitalora — Mensaje de ayuda</p>
     </div>
   </div>
 </body>
@@ -54,7 +54,7 @@ export async function POST(req: NextRequest) {
     await resend.emails.send({
       from: 'Vitalora Ayuda <hola@vitalora.com.mx>',
       to: 'gabomaciel7@gmail.com',
-      subject: `ðŸ“© Mensaje de ${nombre} â€” ${numeroPedido ? 'Pedido #' + numeroPedido : 'Consulta general'}`,
+      subject: `ðŸ“© Mensaje de ${nombre} — ${numeroPedido ? 'Pedido #' + numeroPedido : 'Consulta general'}`,
       html,
       replyTo: email || undefined,
     })

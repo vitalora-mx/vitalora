@@ -38,7 +38,7 @@ export default function Footer() {
               maxWidth: '320px',
               marginBottom: '24px',
             }}>
-              K-Beauty autÃ©ntica y suplementos de alta pureza, curados con cuidado para tu ritual de bienestar.
+              K-Beauty auténtica y suplementos de alta pureza, curados con cuidado para tu ritual de bienestar.
             </p>
             {/* Redes */}
             <div style={{ display: 'flex', gap: '12px' }}>
@@ -74,7 +74,7 @@ export default function Footer() {
             }}>Tienda</h4>
             <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '12px', padding: 0, margin: 0 }}>
               {[
-                { label: 'CosmÃ©ticos', href: '/cosmeticos' },
+                { label: 'Cosméticos', href: '/cosmeticos' },
                 { label: 'Suplementos', href: '/suplementos' },
               ].map((item) => (
                 <li key={item.label}>
@@ -99,7 +99,7 @@ export default function Footer() {
             }}>Ayuda</h4>
             <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '12px', padding: 0, margin: 0 }}>
               {[
-                { label: 'EnvÃ­os', href: '/envios-devoluciones' },
+                { label: 'Envíos', href: '/envios-devoluciones' },
                 { label: 'Devoluciones', href: '/envios-devoluciones' },
                 { label: 'Preguntas frecuentes', href: '/faq' },
                 { label: 'Contacto', href: '/contacto' },
@@ -127,7 +127,7 @@ export default function Footer() {
             <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '12px', padding: 0, margin: 0 }}>
               {[
                 { label: 'Aviso de Privacidad', href: '/privacidad' },
-                { label: 'TÃ©rminos y Condiciones', href: '/terminos' },
+                { label: 'Términos y Condiciones', href: '/terminos' },
                 { label: 'Facturación', href: '/facturacion' },
               ].map((item) => (
                 <li key={item.label}>
@@ -153,7 +153,7 @@ export default function Footer() {
           flexDirection: isMobile ? 'column' : 'row',
           textAlign: isMobile ? 'center' : 'left',
         }}>
-          <span>Â© 2026 Vitalora. Todos los derechos reservados.</span>
+          <span>© 2026 Vitalora. Todos los derechos reservados.</span>
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'center' }}>
             <MetodosPago variante="oscuro" titulo="" />
           </div>

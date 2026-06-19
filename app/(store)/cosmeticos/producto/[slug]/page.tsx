@@ -36,7 +36,7 @@ export default function ProductoCosmeticoPage() {
   const [producto, setProducto] = useState<Producto | null>(null)
   const [loading, setLoading] = useState(true)
   const [seleccionada, setSeleccionada] = useState(0)
-  const [tabActiva, setTabActiva] = useState('DescripciÃ³n')
+  const [tabActiva, setTabActiva] = useState('Descripción')
   const [cantidad, setCantidad] = useState(1)
   const [agregado, setAgregado] = useState(false)
   const [mounted, setMounted] = useState(false)
@@ -58,8 +58,8 @@ export default function ProductoCosmeticoPage() {
           const primeraConStock = vars.find(v => v.stock > 0)
           setVarianteSel(primeraConStock ? primeraConStock.id : vars[0].id)
         }
-        const title = data.seo_title || `${data.nombre} â€” ${data.marca} | Vitalora K-Beauty MÃ©xico`
-        const desc = data.seo_description || `${data.descripcion?.slice(0, 155) || data.nombre}. EnvÃ­o a todo MÃ©xico. Compra en Vitalora.`
+        const title = data.seo_title || `${data.nombre} — ${data.marca} | Vitalora K-Beauty México`
+        const desc = data.seo_description || `${data.descripcion?.slice(0, 155) || data.nombre}. Envío a todo México. Compra en Vitalora.`
         document.title = title
         const metaDesc = document.querySelector('meta[name="description"]')
         if (metaDesc) metaDesc.setAttribute('content', desc)
@@ -107,7 +107,7 @@ export default function ProductoCosmeticoPage() {
     <main style={{ background: 'white' }}>
       <CosmeticosHeader />
       <div style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '16px' }}>
-        <div style={{ fontSize: '48px' }}>âœ¦</div>
+        <div style={{ fontSize: '48px' }}>✦</div>
         <p style={{ color: '#888', fontSize: '16px' }}>Producto no encontrado</p>
       </div>
       <Footer />
@@ -182,7 +182,7 @@ export default function ProductoCosmeticoPage() {
     setTimeout(() => setAgregado(false), 2000)
   }
 
-  const tabs = ['DescripciÃ³n', 'Ingredientes', 'CÃ³mo usar', 'ReseÃ±as']
+  const tabs = ['Descripción', 'Ingredientes', 'Cómo usar', 'Reseñas']
 
   return (
     <main style={{ background: 'white' }}>
@@ -190,7 +190,7 @@ export default function ProductoCosmeticoPage() {
       <div style={{ maxWidth: '1400px', margin: '0 auto', padding: isMobile ? '24px 16px' : '60px 40px' }}>
         <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: isMobile ? '32px' : '80px', marginBottom: isMobile ? '48px' : '80px' }}>
 
-          {/* GalerÃ­a */}
+          {/* Galería */}
           <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: '16px', width: '100%', maxWidth: isMobile ? 'none' : '600px' }}>
             <div style={{ order: isMobile ? 1 : 2, flex: 1, minWidth: 0, aspectRatio: '1 / 1', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden', background: '#F5F0E8' }}>
               {producto.tag && !agotado && (
@@ -221,7 +221,7 @@ export default function ProductoCosmeticoPage() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? '18px' : '24px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <span style={{ fontSize: '11px', letterSpacing: '0.3em', textTransform: 'uppercase', color: 'var(--gold)', fontWeight: 600 }}>{producto.marca}</span>
-              <span style={{ color: '#D9D2C4' }}>Â·</span>
+              <span style={{ color: '#D9D2C4' }}>·</span>
               <span style={{ fontSize: '11px', letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>{producto.categoria}</span>
             </div>
 
@@ -275,28 +275,28 @@ export default function ProductoCosmeticoPage() {
               <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                 <span style={{ fontSize: '12px', letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>Cantidad</span>
                 <div style={{ display: 'flex', alignItems: 'center', border: '1px solid var(--line)', borderRadius: '2px' }}>
-                  <button onClick={() => setCantidad(Math.max(1, cantidad - 1))} style={{ width: '40px', height: '40px', border: 'none', background: 'none', cursor: 'pointer', fontSize: '18px', color: 'var(--text)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>âˆ’</button>
+                  <button onClick={() => setCantidad(Math.max(1, cantidad - 1))} style={{ width: '40px', height: '40px', border: 'none', background: 'none', cursor: 'pointer', fontSize: '18px', color: 'var(--text)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>−</button>
                   <span style={{ width: '40px', textAlign: 'center', fontSize: '15px', fontWeight: 500 }}>{cantidad}</span>
                   <button onClick={() => setCantidad(Math.min(stockEfectivo, cantidad + 1))} style={{ width: '40px', height: '40px', border: 'none', background: 'none', cursor: 'pointer', fontSize: '18px', color: 'var(--text)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>+</button>
                 </div>
               </div>
             )}
 
-            {/* BotÃ³n agregar o agotado */}
+            {/* Botón agregar o agotado */}
             {(agotado || varianteAgotada) ? (
               <div style={{ padding: '20px', background: '#F5F5F5', border: '1px solid #DDD', borderRadius: '2px', textAlign: 'center' }}>
-                <div style={{ fontSize: '13px', letterSpacing: '0.2em', textTransform: 'uppercase', fontWeight: 600, color: '#999', marginBottom: '8px' }}>{varianteAgotada && !agotado ? 'Esta variante estÃ¡ agotada' : 'Producto agotado'}</div>
-                <p style={{ fontSize: '12px', color: '#AAA', margin: 0 }}>{varianteAgotada && !agotado ? 'Elige otra variante disponible' : 'Este producto no estÃ¡ disponible por el momento'}</p>
+                <div style={{ fontSize: '13px', letterSpacing: '0.2em', textTransform: 'uppercase', fontWeight: 600, color: '#999', marginBottom: '8px' }}>{varianteAgotada && !agotado ? 'Esta variante está agotada' : 'Producto agotado'}</div>
+                <p style={{ fontSize: '12px', color: '#AAA', margin: 0 }}>{varianteAgotada && !agotado ? 'Elige otra variante disponible' : 'Este producto no está disponible por el momento'}</p>
               </div>
             ) : (
               <button onClick={handleAgregar}
                 style={{ padding: '20px', background: agregado ? 'var(--sage-deep)' : 'var(--black)', color: 'var(--bg-cream)', border: 'none', fontSize: '13px', letterSpacing: '0.2em', textTransform: 'uppercase', fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit', transition: 'background 0.3s', borderRadius: '2px' }}>
-                {agregado ? 'âœ“ Agregado al carrito' : '+ Agregar al carrito'}
+                {agregado ? '✓ Agregado al carrito' : '+ Agregar al carrito'}
               </button>
             )}
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-              {[{ icon: 'âœ¦', text: 'EnvÃ­o gratis +$1,000 MXN' }, { icon: 'âœ¦', text: '100% AutÃ©ntico' }, { icon: 'âœ¦', text: 'Pago seguro' }, { icon: 'âœ¦', text: 'DevoluciÃ³n 30 dÃ­as' }].map(b => (
+              {[{ icon: '✦', text: 'Envío gratis +$1,000 MXN' }, { icon: '✦', text: '100% Auténtico' }, { icon: '✦', text: 'Pago seguro' }, { icon: '✦', text: 'Devolución 30 días' }].map(b => (
                 <div key={b.text} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: 'var(--text-muted)' }}>
                   <span style={{ color: 'var(--gold)', fontSize: '10px' }}>{b.icon}</span>{b.text}
                 </div>
@@ -319,14 +319,14 @@ export default function ProductoCosmeticoPage() {
             ))}
           </div>
           <div style={{ maxWidth: '800px' }}>
-            {tabActiva === 'DescripciÃ³n' && <p style={{ fontSize: '16px', lineHeight: 1.9, color: 'var(--text-muted)' }}>{producto.descripcion || 'Sin descripciÃ³n disponible.'}</p>}
+            {tabActiva === 'Descripción' && <p style={{ fontSize: '16px', lineHeight: 1.9, color: 'var(--text-muted)' }}>{producto.descripcion || 'Sin descripción disponible.'}</p>}
             {tabActiva === 'Ingredientes' && (
               <div>
                 <h3 style={{ fontFamily: 'var(--font-cormorant), serif', fontSize: '24px', marginBottom: '20px', color: 'var(--black)' }}>Ingredientes</h3>
                 <p style={{ fontSize: '14px', lineHeight: 2, color: 'var(--text-muted)', fontStyle: 'italic' }}>{producto.ingredientes || 'No especificados.'}</p>
               </div>
             )}
-            {tabActiva === 'CÃ³mo usar' && producto.como_usar && (
+            {tabActiva === 'Cómo usar' && producto.como_usar && (
               <div>
                 <h3 style={{ fontFamily: 'var(--font-cormorant), serif', fontSize: '24px', marginBottom: '20px', color: 'var(--black)' }}>Modo de uso</h3>
                 {producto.como_usar.split('\n').map((paso, i) => (
@@ -337,7 +337,7 @@ export default function ProductoCosmeticoPage() {
                 ))}
               </div>
             )}
-            {tabActiva === 'ReseÃ±as' && (
+            {tabActiva === 'Reseñas' && (
               <ResenasProducto productoId={producto?.id} />
             )}
           </div>

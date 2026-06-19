@@ -37,7 +37,7 @@ export default function ProductoSuplementoPage() {
   const [producto, setProducto] = useState<Producto | null>(null)
   const [loading, setLoading] = useState(true)
   const [seleccionada, setSeleccionada] = useState(0)
-  const [tabActiva, setTabActiva] = useState('DescripciÃ³n')
+  const [tabActiva, setTabActiva] = useState('Descripción')
   const [cantidad, setCantidad] = useState(1)
   const [agregado, setAgregado] = useState(false)
   const [mounted, setMounted] = useState(false)
@@ -58,8 +58,8 @@ export default function ProductoSuplementoPage() {
           const primeraConStock = vars.find(v => v.stock > 0)
           setVarianteSel(primeraConStock ? primeraConStock.id : vars[0].id)
         }
-        const title = data.seo_title || `${data.nombre} â€” ${data.marca} | Vitalora Suplementos MÃ©xico`
-        const desc = data.seo_description || `${data.descripcion?.slice(0, 155) || data.nombre}. EnvÃ­o a todo MÃ©xico. Compra en Vitalora.`
+        const title = data.seo_title || `${data.nombre} — ${data.marca} | Vitalora Suplementos México`
+        const desc = data.seo_description || `${data.descripcion?.slice(0, 155) || data.nombre}. Envío a todo México. Compra en Vitalora.`
         document.title = title
         const metaDesc = document.querySelector('meta[name="description"]')
         if (metaDesc) metaDesc.setAttribute('content', desc)
@@ -169,7 +169,7 @@ export default function ProductoSuplementoPage() {
     setTimeout(() => setAgregado(false), 2000)
   }
 
-  const tabs = ['DescripciÃ³n', 'Beneficios', 'Ingredientes', 'CÃ³mo tomar', 'Advertencias', 'ReseÃ±as']
+  const tabs = ['Descripción', 'Beneficios', 'Ingredientes', 'Cómo tomar', 'Advertencias', 'Reseñas']
 
   return (
     <main style={{ background: 'white' }}>
@@ -177,7 +177,7 @@ export default function ProductoSuplementoPage() {
       <div style={{ maxWidth: '1400px', margin: '0 auto', padding: isMobile ? '24px 16px' : '60px 40px' }}>
         <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: isMobile ? '32px' : '80px', marginBottom: isMobile ? '48px' : '80px' }}>
 
-          {/* GalerÃ­a */}
+          {/* Galería */}
           <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: '16px', width: '100%', maxWidth: isMobile ? 'none' : '600px' }}>
             <div style={{ order: isMobile ? 1 : 2, flex: 1, minWidth: 0, aspectRatio: '1 / 1', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden', background: '#F0F7F0' }}>
               {producto.tag && !agotado && (
@@ -208,7 +208,7 @@ export default function ProductoSuplementoPage() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? '18px' : '24px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <span style={{ fontSize: '11px', letterSpacing: '0.3em', textTransform: 'uppercase', color: '#6B8F6B', fontWeight: 600 }}>{producto.marca}</span>
-              <span style={{ color: '#DDD' }}>Â·</span>
+              <span style={{ color: '#DDD' }}>·</span>
               <span style={{ fontSize: '11px', letterSpacing: '0.2em', textTransform: 'uppercase', color: '#999' }}>{producto.categoria}</span>
             </div>
 
@@ -230,7 +230,7 @@ export default function ProductoSuplementoPage() {
                 {producto.beneficios.slice(0, 3).map((b, i) => (
                   <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '14px', color: '#444' }}>
                     <div style={{ width: '20px', height: '20px', borderRadius: '50%', background: '#6B8F6B', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                      <span style={{ color: 'white', fontSize: '11px', fontWeight: 700 }}>âœ“</span>
+                      <span style={{ color: 'white', fontSize: '11px', fontWeight: 700 }}>✓</span>
                     </div>
                     {b}
                   </div>
@@ -278,7 +278,7 @@ export default function ProductoSuplementoPage() {
               <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                 <span style={{ fontSize: '12px', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#999' }}>Cantidad</span>
                 <div style={{ display: 'flex', alignItems: 'center', border: '1px solid #EEE', borderRadius: '8px' }}>
-                  <button onClick={() => setCantidad(Math.max(1, cantidad - 1))} style={{ width: '40px', height: '40px', border: 'none', background: 'none', cursor: 'pointer', fontSize: '18px', color: '#333', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>âˆ’</button>
+                  <button onClick={() => setCantidad(Math.max(1, cantidad - 1))} style={{ width: '40px', height: '40px', border: 'none', background: 'none', cursor: 'pointer', fontSize: '18px', color: '#333', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>−</button>
                   <span style={{ width: '40px', textAlign: 'center', fontSize: '15px', fontWeight: 500 }}>{cantidad}</span>
                   <button onClick={() => setCantidad(Math.min(stockEfectivo, cantidad + 1))} style={{ width: '40px', height: '40px', border: 'none', background: 'none', cursor: 'pointer', fontSize: '18px', color: '#333', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>+</button>
                 </div>
@@ -287,18 +287,18 @@ export default function ProductoSuplementoPage() {
 
             {(agotado || varianteAgotada) ? (
               <div style={{ padding: '20px', background: '#F5F5F5', border: '1px solid #DDD', borderRadius: '8px', textAlign: 'center' }}>
-                <div style={{ fontSize: '13px', letterSpacing: '0.2em', textTransform: 'uppercase', fontWeight: 600, color: '#999', marginBottom: '8px' }}>{varianteAgotada && !agotado ? 'Esta variante estÃ¡ agotada' : 'Producto agotado'}</div>
-                <p style={{ fontSize: '12px', color: '#AAA', margin: 0 }}>{varianteAgotada && !agotado ? 'Elige otra variante disponible' : 'Este producto no estÃ¡ disponible por el momento'}</p>
+                <div style={{ fontSize: '13px', letterSpacing: '0.2em', textTransform: 'uppercase', fontWeight: 600, color: '#999', marginBottom: '8px' }}>{varianteAgotada && !agotado ? 'Esta variante está agotada' : 'Producto agotado'}</div>
+                <p style={{ fontSize: '12px', color: '#AAA', margin: 0 }}>{varianteAgotada && !agotado ? 'Elige otra variante disponible' : 'Este producto no está disponible por el momento'}</p>
               </div>
             ) : (
               <button onClick={handleAgregar}
                 style={{ padding: '20px', background: agregado ? '#4A7A4A' : '#0E0E0E', color: 'white', border: 'none', fontSize: '13px', letterSpacing: '0.2em', textTransform: 'uppercase', fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit', transition: 'background 0.3s', borderRadius: '8px' }}>
-                {agregado ? 'âœ“ Agregado al carrito' : '+ Agregar al carrito'}
+                {agregado ? '✓ Agregado al carrito' : '+ Agregar al carrito'}
               </button>
             )}
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-              {[{ icon: 'ðŸšš', text: 'EnvÃ­o gratis +$1,000 MXN' }, { icon: 'âœ“', text: '100% AutÃ©ntico' }, { icon: 'ðŸ”’', text: 'Pago seguro' }, { icon: 'â†©', text: 'DevoluciÃ³n 30 dÃ­as' }].map(b => (
+              {[{ icon: 'ðŸšš', text: 'Envío gratis +$1,000 MXN' }, { icon: '✓', text: '100% Auténtico' }, { icon: 'ðŸ”’', text: 'Pago seguro' }, { icon: 'â†©', text: 'Devolución 30 días' }].map(b => (
                 <div key={b.text} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: '#999' }}>
                   <span style={{ fontSize: '14px' }}>{b.icon}</span>{b.text}
                 </div>
@@ -321,14 +321,14 @@ export default function ProductoSuplementoPage() {
             ))}
           </div>
           <div style={{ maxWidth: '800px' }}>
-            {tabActiva === 'DescripciÃ³n' && <p style={{ fontSize: '16px', lineHeight: 1.9, color: '#666' }}>{producto.descripcion || 'Sin descripciÃ³n disponible.'}</p>}
+            {tabActiva === 'Descripción' && <p style={{ fontSize: '16px', lineHeight: 1.9, color: '#666' }}>{producto.descripcion || 'Sin descripción disponible.'}</p>}
             {tabActiva === 'Beneficios' && producto.beneficios && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 {producto.para_quien && <p style={{ fontSize: '14px', color: '#999', marginBottom: '8px' }}>{producto.para_quien}</p>}
                 {producto.beneficios.map((b, i) => (
                   <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '16px', background: '#F8FBF8', borderRadius: '8px', border: '1px solid #E8F0E8' }}>
                     <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#6B8F6B', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                      <span style={{ color: 'white', fontSize: '14px', fontWeight: 700 }}>âœ“</span>
+                      <span style={{ color: 'white', fontSize: '14px', fontWeight: 700 }}>✓</span>
                     </div>
                     <span style={{ fontSize: '15px', color: '#333' }}>{b}</span>
                   </div>
@@ -341,7 +341,7 @@ export default function ProductoSuplementoPage() {
                 <p style={{ fontSize: '14px', lineHeight: 2, color: '#666', fontStyle: 'italic' }}>{producto.ingredientes || 'No especificados.'}</p>
               </div>
             )}
-            {tabActiva === 'CÃ³mo tomar' && producto.como_tomar && (
+            {tabActiva === 'Cómo tomar' && producto.como_tomar && (
               <div>
                 <h3 style={{ fontFamily: 'var(--font-cormorant), serif', fontSize: '24px', marginBottom: '24px', color: '#111' }}>Modo de uso</h3>
                 {producto.como_tomar.split('\n').map((paso, i) => (
@@ -363,7 +363,7 @@ export default function ProductoSuplementoPage() {
                 </div>
               </div>
             )}
-            {tabActiva === 'ReseÃ±as' && (
+            {tabActiva === 'Reseñas' && (
               <ResenasProducto productoId={producto?.id} />
             )}
           </div>
