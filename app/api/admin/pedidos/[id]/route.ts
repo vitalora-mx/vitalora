@@ -8,9 +8,11 @@ const supabase = createClient(
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
+
     const { data: pedido, error } = await supabase
       .from('pedidos')
       .select(`
@@ -25,7 +27,7 @@ export async function GET(
           nombre, marca, precio, cantidad, variante_nombre
         )
       `)
-      .eq('id', params.id)
+      .eq('id', id)
       .single()
 
     if (error) throw error
