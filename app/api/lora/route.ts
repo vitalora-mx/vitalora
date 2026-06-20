@@ -25,15 +25,20 @@ async function obtenerCatalogo(): Promise<string> {
     return catalogoCache
   }
 
-  const { data: productos } = await supabase
+  const { data: productos, error } = await supabase
     .from('productos')
     .select(`
-      id, nombre, slug, descripcion, precio, categoria, activo,
-      ingredientes_clave, tipo_piel, beneficios, modo_uso,
+      id, nombre, slug, descripcion, precio, categoria, tipo, activo, stock,
+      ingredientes, como_usar, beneficios, para_quien, como_tomar, advertencias,
       producto_variantes (nombre, stock)
     `)
     .eq('activo', true)
     .order('nombre')
+
+  if (error) {
+    console.error('Error al obtener catálogo:', error)
+    return 'Catálogo no disponible en este momento.'
+  }
 
   if (!productos || productos.length === 0) {
     return 'Catálogo no disponible en este momento.'
@@ -43,14 +48,23 @@ async function obtenerCatalogo(): Promise<string> {
     const variantes = p.producto_variantes?.length > 0
       ? ` | Variantes: ${p.producto_variantes.map((v: { nombre: string; stock: number }) => `${v.nombre} (stock: ${v.stock})`).join(', ')}`
       : ''
-    const tipoPiel = p.tipo_piel ? ` | Tipo de piel: ${p.tipo_piel}` : ''
-    const beneficios = p.beneficios ? ` | Beneficios: ${p.beneficios}` : ''
-    const ingredientes = p.ingredientes_clave ? ` | Ingredientes clave: ${p.ingredientes_clave}` : ''
-    const modoUso = p.modo_uso ? ` | Cómo usar: ${p.modo_uso}` : ''
+    const beneficios = Array.isArray(p.beneficios) && p.beneficios.length > 0
+      ? ` | Beneficios: ${p.beneficios.join(', ')}`
+      : ''
+    const ingredientes = p.ingredientes ? ` | Ingredientes: ${p.ingredientes}` : ''
+    const comoUsar = p.como_usar ? ` | Cómo usar: ${p.como_usar}` : ''
+    const comoTomar = p.como_tomar ? ` | Cómo tomar: ${p.como_tomar}` : ''
+    const paraQuien = p.para_quien ? ` | Para quién: ${p.para_quien}` : ''
+    const descripcion = p.descripcion ? ` | Descripción: ${p.descripcion}` : ''
+    const stockTotal = p.producto_variantes?.length > 0
+      ? p.producto_variantes.reduce((a: number, v: { stock: number }) => a + (v.stock ?? 0), 0)
+      : (p.stock ?? 0)
+    const disponibilidad = stockTotal > 0 ? 'EN STOCK' : 'AGOTADO'
     const precio = `$${p.precio?.toLocaleString('es-MX')} MXN`
-    const url = `https://vitalora.com.mx/${p.categoria === 'cosmeticos' ? 'cosmeticos' : 'suplementos'}/${p.slug}`
+    const ruta = p.tipo === 'cosmetico' ? 'cosmeticos' : 'suplementos'
+    const url = `https://vitalora.com.mx/${ruta}/${p.slug}`
 
-    return `- ${p.nombre} | Categoría: ${p.categoria} | Precio: ${precio}${tipoPiel}${beneficios}${ingredientes}${modoUso}${variantes} | URL: ${url}`
+    return `- ${p.nombre} [${disponibilidad}] | Tipo: ${p.tipo} | Precio: ${precio}${descripcion}${beneficios}${ingredientes}${paraQuien}${comoUsar}${comoTomar}${variantes} | URL: ${url}`
   })
 
   catalogoCache = lineas.join('\n')
@@ -74,17 +88,17 @@ Tu misión:
 - Siempre incluir el link del producto cuando lo recomiendes
 
 Reglas importantes:
-- SOLO recomienda productos del catálogo de Vitalora que se muestra abajo
-- Si no tienes un producto adecuado para lo que pide el cliente, dilo honestamente y sugiere lo más cercano
-- Cuando recomiendes un producto, incluye siempre su URL para que puedan comprarlo
-- Si un producto tiene stock 0 en todas sus variantes, no lo recomiendes
+- SOLO recomienda productos del catálogo de Vitalora que se muestra abajo. NUNCA digas que no tienes acceso al catálogo: el catálogo está aquí mismo.
+- Si no tienes un producto adecuado para lo que pide el cliente, dilo honestamente y sugiere lo más cercano del catálogo
+- Cuando recomiendes un producto, incluye siempre su URL completa para que puedan comprarlo
+- Si un producto está marcado como AGOTADO, no lo recomiendes (o avisa que está temporalmente agotado)
 - Mantén respuestas concisas pero completas — máximo 3-4 párrafos
 - Si te preguntan algo fuera de skincare/bienestar/productos, redirige amablemente a tu área de expertise
 
-CATÁLOGO ACTUAL DE VITALORA:
+CATÁLOGO ACTUAL DE VITALORA (productos reales disponibles):
 ${catalogo}
 
-Recuerda: eres la cara de Vitalora, representa la marca con calidez y profesionalismo.`
+Recuerda: eres la cara de Vitalora, representa la marca con calidez y profesionalismo. El catálogo de arriba es tu única fuente de verdad sobre qué productos existen.`
 
 export async function POST(request: Request) {
   try {
