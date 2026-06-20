@@ -6,7 +6,6 @@ const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 })
 
-// Usar service role key para leer el catálogo (salta RLS, igual que las APIs del admin)
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -43,7 +42,17 @@ async function obtenerCatalogo(): Promise<string> {
     return 'Catálogo no disponible en este momento.'
   }
 
-  const lineas = productos.map(p => {
+  // Calcular stock total y ordenar de mayor a menor inventario
+  const conStock = productos.map(p => {
+    const stockTotal = p.producto_variantes?.length > 0
+      ? p.producto_variantes.reduce((a: number, v: { stock: number }) => a + (v.stock ?? 0), 0)
+      : (p.stock ?? 0)
+    return { ...p, stockTotal }
+  })
+
+  conStock.sort((a, b) => b.stockTotal - a.stockTotal)
+
+  const lineas = conStock.map(p => {
     const variantes = p.producto_variantes?.length > 0
       ? ` | Variantes: ${p.producto_variantes.map((v: { nombre: string; stock: number }) => `${v.nombre} (stock: ${v.stock})`).join(', ')}`
       : ''
@@ -55,10 +64,7 @@ async function obtenerCatalogo(): Promise<string> {
     const comoTomar = p.como_tomar ? ` | Cómo tomar: ${p.como_tomar}` : ''
     const paraQuien = p.para_quien ? ` | Para quién: ${p.para_quien}` : ''
     const descripcion = p.descripcion ? ` | Descripción: ${p.descripcion}` : ''
-    const stockTotal = p.producto_variantes?.length > 0
-      ? p.producto_variantes.reduce((a: number, v: { stock: number }) => a + (v.stock ?? 0), 0)
-      : (p.stock ?? 0)
-    const disponibilidad = stockTotal > 0 ? 'EN STOCK' : 'AGOTADO'
+    const disponibilidad = p.stockTotal > 0 ? `EN STOCK (${p.stockTotal} uds.)` : 'AGOTADO'
     const precio = `$${p.precio?.toLocaleString('es-MX')} MXN`
     const ruta = p.tipo === 'cosmetico' ? 'cosmeticos' : 'suplementos'
     const url = `https://vitalora.com.mx/${ruta}/${p.slug}`
@@ -84,17 +90,28 @@ Tu misión:
 - Crear rutinas de skincare personalizadas con los productos de Vitalora
 - Responder dudas sobre ingredientes, beneficios y modo de uso
 - Orientar sobre suplementos según objetivos de bienestar
-- Siempre incluir el link del producto cuando lo recomiendes
+
+FLUJO DE DIAGNÓSTICO PARA RUTINA COMPLETA:
+Cuando el cliente pida una "rutina completa" o diga que necesita una rutina personalizada, NO recomiendes productos de inmediato. Primero haz un breve diagnóstico haciendo estas preguntas DE UNA EN UNA (no todas juntas, espera la respuesta antes de la siguiente):
+1. Primero pregunta su tipo de piel, dándole opciones: piel grasa, piel seca, piel mixta, piel sensible, o piel normal.
+2. Luego pregunta qué problema principal le gustaría atacar, sugiriendo opciones según lo que tengas en catálogo: por ejemplo acné, poros dilatados, manchas oscuras, líneas de expresión, deshidratación, opacidad, u otro.
+3. Opcionalmente pregunta si tiene alguna preferencia (texturas ligeras, rutina corta, presupuesto, etc.)
+Después de tener esta información, arma una rutina completa paso a paso (limpieza, tratamiento, hidratación, protección) con los productos de Vitalora que mejor se ajusten.
 
 Reglas importantes:
 - SOLO recomienda productos del catálogo de Vitalora que se muestra abajo. NUNCA digas que no tienes acceso al catálogo: el catálogo está aquí mismo.
+- PRIORIDAD DE INVENTARIO: cuando varios productos sirvan para el mismo problema o paso de la rutina, recomienda PRIMERO los que tengan MAYOR inventario disponible (el catálogo está ordenado de mayor a menor stock). Solo recomienda uno con menor stock si el cliente lo pide específicamente o si es claramente el más adecuado para su caso.
 - Si no tienes un producto adecuado para lo que pide el cliente, dilo honestamente y sugiere lo más cercano del catálogo
 - Cuando recomiendes un producto, incluye siempre su URL completa para que puedan comprarlo
 - Si un producto está marcado como AGOTADO, no lo recomiendes (o avisa que está temporalmente agotado)
-- Mantén respuestas concisas pero completas — máximo 3-4 párrafos
+- Mantén respuestas concisas pero completas
 - Si te preguntan algo fuera de skincare/bienestar/productos, redirige amablemente a tu área de expertise
 
-CATÁLOGO ACTUAL DE VITALORA (productos reales disponibles):
+AVISO MÉDICO OBLIGATORIO:
+Siempre que hagas una recomendación de producto, rutina o suplemento, termina tu mensaje con una nota breve en cursiva como esta (puedes variar la redacción):
+_Recuerda: soy tu asesora de belleza, no un sustituto de un dermatólogo o médico. Si tienes una condición de piel persistente o tomas medicamentos, consulta a un profesional de salud._
+
+CATÁLOGO ACTUAL DE VITALORA (productos reales, ordenados de mayor a menor inventario):
 ${catalogo}
 
 Recuerda: eres la cara de Vitalora, representa la marca con calidez y profesionalismo. El catálogo de arriba es tu única fuente de verdad sobre qué productos existen.`
