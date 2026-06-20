@@ -12,9 +12,10 @@ type ApiMessage = {
   content: string
 }
 
+const SUGERENCIA_DESTACADA = '✨ Quiero una rutina para atacar un problema'
+
 const SUGERENCIAS = [
   'Tengo piel grasa con acné, ¿qué me recomiendas?',
-  'Quiero una rutina anti-edad completa',
   'Busco más energía y mejor piel desde adentro',
   '¿Cómo puedo reducir manchas oscuras?',
 ]
@@ -181,13 +182,15 @@ export default function LoraChat() {
                   border: msg.role === 'lora' ? '1px solid var(--line, #E8E4DA)' : 'none',
                   whiteSpace: 'pre-wrap',
                 }}>
-                  {/* Renderizar links en las respuestas de Lora */}
+                  {/* Renderizar links, negritas y cursivas en las respuestas de Lora */}
                   {msg.role === 'lora' ? (
                     <span dangerouslySetInnerHTML={{
                       __html: msg.content
                         .replace(/&/g, '&amp;')
                         .replace(/</g, '&lt;')
                         .replace(/>/g, '&gt;')
+                        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+                        .replace(/(?<!_)_(?!_)(.+?)(?<!_)_(?!_)/g, '<em style="color:#6B6B6B;font-size:12px;">$1</em>')
                         .replace(
                           /(https?:\/\/vitalora\.com\.mx\/[^\s]+)/g,
                           '<a href="$1" target="_blank" style="color:#C9A961;text-decoration:underline;font-weight:500;">Ver producto →</a>'
@@ -201,6 +204,13 @@ export default function LoraChat() {
             {/* Sugerencias iniciales */}
             {messages.length === 1 && !loading && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px' }}>
+                {/* Sugerencia destacada: rutina completa */}
+                <button onClick={() => sendMessage(SUGERENCIA_DESTACADA)}
+                  style={{ background: 'var(--black)', border: '1px solid var(--gold)', padding: '14px 16px', fontFamily: 'inherit', fontSize: '13px', color: 'var(--gold)', textAlign: 'left', cursor: 'pointer', borderRadius: '2px', fontWeight: 600, letterSpacing: '0.02em', transition: 'opacity 0.15s' }}
+                  onMouseEnter={e => (e.currentTarget.style.opacity = '0.85')}
+                  onMouseLeave={e => (e.currentTarget.style.opacity = '1')}>
+                  {SUGERENCIA_DESTACADA}
+                </button>
                 {SUGERENCIAS.map((s, i) => (
                   <button key={i} onClick={() => sendMessage(s)}
                     style={{ background: 'white', border: '1px solid var(--line, #E8E4DA)', padding: '12px 16px', fontFamily: 'inherit', fontSize: '13px', color: 'var(--text, #0E0E0E)', textAlign: 'left', cursor: 'pointer', borderRadius: '2px', transition: 'border-color 0.15s' }}
