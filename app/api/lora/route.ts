@@ -6,18 +6,17 @@ const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 })
 
+// Usar service role key para leer el catálogo (salta RLS, igual que las APIs del admin)
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
-// Límite de mensajes por sesión
 const LIMITE_MENSAJES = 10
 
-// Cache simple en memoria para el catálogo (se refresca cada 10 minutos)
 let catalogoCache: string | null = null
 let catalogoCacheTime = 0
-const CACHE_TTL = 10 * 60 * 1000 // 10 minutos
+const CACHE_TTL = 10 * 60 * 1000
 
 async function obtenerCatalogo(): Promise<string> {
   const ahora = Date.now()
@@ -105,7 +104,6 @@ export async function POST(request: Request) {
     const body = await request.json()
     const { messages, sessionMessageCount = 0 } = body
 
-    // Validar límite de mensajes
     if (sessionMessageCount >= LIMITE_MENSAJES) {
       return NextResponse.json({
         respuesta: `Has alcanzado el límite de ${LIMITE_MENSAJES} mensajes por sesión. ¡Espero haberte ayudado! Si tienes más dudas, puedes contactarnos en hola@vitalora.com.mx 💌`,
@@ -113,15 +111,12 @@ export async function POST(request: Request) {
       })
     }
 
-    // Validar que hay mensajes
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
       return NextResponse.json({ error: 'Mensajes requeridos' }, { status: 400 })
     }
 
-    // Obtener catálogo actualizado
     const catalogo = await obtenerCatalogo()
 
-    // Llamar a Claude
     const response = await anthropic.messages.create({
       model: 'claude-haiku-4-5',
       max_tokens: 1024,
