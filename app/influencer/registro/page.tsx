@@ -283,7 +283,7 @@ export default function RegistroInfluencerPage() {
               </label>
               <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', cursor: 'pointer' }}>
                 <input type="checkbox" checked={aceptaTerminos} onChange={e => setAceptaTerminos(e.target.checked)} style={{ marginTop: '3px', accentColor: '#C9A961', width: '16px', height: '16px', flexShrink: 0 }} />
-                <span style={{ fontSize: '13px', color: '#2C2C2C', lineHeight: 1.6 }}>Acepto los términos del programa de embajadoras: 5% de comisión sobre el subtotal de ventas (sin envío), pagos los días 1 y 15 cuando el acumulado supere $500 MXN. *</span>
+                <span style={{ fontSize: '13px', color: '#2C2C2C', lineHeight: 1.6 }}>Acepto los <a href="/influencer/terminos" target="_blank" style={{ color: '#C9A961', textDecoration: 'underline' }}>términos y condiciones</a> del programa de embajadoras: 5% de comisión sobre el subtotal de ventas (sin envío). El pago se solicita manualmente desde mi portal (mínimo $500 MXN), adjuntando mi factura CFDI. *</span>
               </label>
             </div>
 
