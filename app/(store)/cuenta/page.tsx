@@ -26,6 +26,7 @@ export default function CuentaPage() {
   const isMobile = useIsMobile()
   const { user, session, perfil, setPerfil, logout, isLoggedIn } = useAuthStore()
   const [mounted, setMounted] = useState(false)
+  const [esInfluencerCuenta, setEsInfluencerCuenta] = useState(false)
   const [tab, setTab] = useState('perfil')
   const [pedidos, setPedidos] = useState<Pedido[]>([])
   const [resenando, setResenando] = useState<{ id: number; nombre: string } | null>(null)
@@ -163,6 +164,14 @@ export default function CuentaPage() {
 
   function handleLogout() { logout(); setTab('perfil') }
 
+  useEffect(() => {
+    if (!user?.email) { setEsInfluencerCuenta(false); return }
+    fetch('/api/influencer/es-influencer', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: user.email }) })
+      .then(r => r.json())
+      .then(d => setEsInfluencerCuenta(!!d.esInfluencer))
+      .catch(() => setEsInfluencerCuenta(false))
+  }, [user])
+
   if (!mounted) return null
 
   const S: React.CSSProperties = { width: '100%', padding: '12px 14px', border: '1px solid #DDD', borderRadius: '6px', fontSize: '14px', fontFamily: 'inherit', outline: 'none', background: 'white', boxSizing: 'border-box' }
@@ -213,7 +222,10 @@ export default function CuentaPage() {
             <h1 style={{ fontSize: '28px', fontWeight: 700, color: '#111', margin: '8px 0 0' }}>Mi Cuenta</h1>
             <p style={{ fontSize: '14px', color: '#888', margin: 0 }}>{user?.email}</p>
           </div>
-          <button onClick={handleLogout} style={{ padding: '10px 20px', background: 'none', border: '1px solid #DDD', borderRadius: '6px', color: '#888', fontSize: '12px', cursor: 'pointer', fontFamily: 'inherit' }}>Cerrar Sesión</button>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            {esInfluencerCuenta && <a href="/influencer/portal" style={{ padding: '10px 20px', background: '#0E0E0E', border: '1px solid #0E0E0E', borderRadius: '6px', color: '#C9A961', fontSize: '12px', cursor: 'pointer', fontFamily: 'inherit', textDecoration: 'none', fontWeight: 600, whiteSpace: 'nowrap' }}>✦ Mi portal de embajadora</a>}
+            <button onClick={handleLogout} style={{ padding: '10px 20px', background: 'none', border: '1px solid #DDD', borderRadius: '6px', color: '#888', fontSize: '12px', cursor: 'pointer', fontFamily: 'inherit' }}>Cerrar Sesión</button>
+          </div>
         </div>
 
         <div style={{ display: 'flex', gap: '0', borderBottom: '1px solid #DDD', marginBottom: '32px', overflowX: 'auto' }}>

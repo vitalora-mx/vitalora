@@ -13,6 +13,13 @@ export default function PortalInfluencerPage() {
   const [data, setData] = useState<any>(null)
   const [esInfluencer, setEsInfluencer] = useState<boolean | null>(null)
 
+  // Login propio del portal
+  const [loginEmail, setLoginEmail] = useState('')
+  const [loginPass, setLoginPass] = useState('')
+  const [loginVerPass, setLoginVerPass] = useState(false)
+  const [loginError, setLoginError] = useState('')
+  const [loginCargando, setLoginCargando] = useState(false)
+
   // Solicitud de pago
   const [mostrarModal, setMostrarModal] = useState(false)
   const [facturaFile, setFacturaFile] = useState<File | null>(null)
@@ -57,6 +64,43 @@ export default function PortalInfluencerPage() {
   }
 
   useEffect(() => { setMounted(true) }, [])
+
+  async function iniciarSesion() {
+    setLoginError('')
+    if (!loginEmail || !loginPass) { setLoginError('Ingresa tu correo y contraseña.'); return }
+    setLoginCargando(true)
+    try {
+      const res = await fetch('/api/cuenta/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'login', email: loginEmail, password: loginPass }),
+      })
+      const d = await res.json()
+      if (d.error) {
+        setLoginError(d.error)
+        setLoginCargando(false)
+        return
+      }
+      // Verificar que sea influencer antes de dar acceso
+      const resInf = await fetch('/api/influencer/es-influencer', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: d.user.email }),
+      })
+      const infData = await resInf.json()
+      if (!infData.esInfluencer) {
+        setLoginError('Este correo no está registrado como embajadora. Si eres cliente, inicia sesión en tu cuenta.')
+        setLoginCargando(false)
+        return
+      }
+      // Guardar sesión y recargar datos del portal
+      useAuthStore.getState().setAuth(d.user, d.session)
+      setLoginCargando(false)
+    } catch {
+      setLoginError('Error al iniciar sesión. Intenta de nuevo.')
+      setLoginCargando(false)
+    }
+  }
 
   const cargar = useCallback(async () => {
     if (!user?.email) return
@@ -123,13 +167,51 @@ export default function PortalInfluencerPage() {
 
   if (!isLoggedIn || !user) {
     return (
-      <div style={{ minHeight: '100vh', background: '#F5F0E8', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px', fontFamily: 'system-ui' }}>
-        <div style={{ background: 'white', maxWidth: '420px', padding: '48px 40px', borderRadius: '4px', border: '1px solid #E8E4DA', textAlign: 'center' }}>
-          <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '24px', fontWeight: 600, color: '#0E0E0E', marginBottom: '12px' }}>Portal de Embajadoras</h1>
-          <p style={{ fontSize: '14px', color: '#6B6B6B', marginBottom: '24px' }}>Inicia sesión con tu cuenta para ver tu panel.</p>
-          <a href="/cuenta" style={{ display: 'inline-block', padding: '12px 28px', background: '#0E0E0E', color: '#C9A961', textDecoration: 'none', borderRadius: '3px', fontSize: '13px', fontWeight: 600 }}>Iniciar sesión</a>
+      <>
+        <style>{`@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Italiana&display=swap');`}</style>
+        <div style={{ minHeight: '100vh', background: '#F5F0E8', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px', fontFamily: 'system-ui, sans-serif' }}>
+          <div style={{ background: 'white', maxWidth: '420px', width: '100%', padding: '48px 40px', borderRadius: '4px', border: '1px solid #E8E4DA' }}>
+            <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+              <img src="/images/logo/logo-header.png" alt="Vitalora" style={{ height: '36px', width: 'auto', marginBottom: '16px' }} />
+              <p style={{ fontSize: '11px', letterSpacing: '0.2em', textTransform: 'uppercase', color: '#C9A961', marginBottom: '8px' }}>Portal de embajadoras</p>
+              <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '24px', fontWeight: 600, color: '#0E0E0E' }}>Inicia sesión</h1>
+            </div>
+
+            <label style={{ display: 'block', fontSize: '11px', letterSpacing: '0.1em', textTransform: 'uppercase', color: '#6B6B6B', marginBottom: '6px', fontWeight: 500 }}>Correo electrónico</label>
+            <input type="email" value={loginEmail} onChange={e => setLoginEmail(e.target.value)}
+              style={{ width: '100%', padding: '12px 14px', border: '1px solid #E8E4DA', borderRadius: '3px', fontSize: '14px', fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box', marginBottom: '16px' }} />
+
+            <label style={{ display: 'block', fontSize: '11px', letterSpacing: '0.1em', textTransform: 'uppercase', color: '#6B6B6B', marginBottom: '6px', fontWeight: 500 }}>Contraseña</label>
+            <div style={{ position: 'relative', marginBottom: '8px' }}>
+              <input type={loginVerPass ? 'text' : 'password'} value={loginPass} onChange={e => setLoginPass(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') iniciarSesion() }}
+                style={{ width: '100%', padding: '12px 44px 12px 14px', border: '1px solid #E8E4DA', borderRadius: '3px', fontSize: '14px', fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }} />
+              <button type="button" onClick={() => setLoginVerPass(!loginVerPass)}
+                style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px', padding: '4px' }}>
+                {loginVerPass ? '🙈' : '👁️'}
+              </button>
+            </div>
+
+            <div style={{ textAlign: 'right', marginBottom: '16px' }}>
+              <a href="/recuperar" style={{ fontSize: '12px', color: '#C9A961', textDecoration: 'none' }}>¿Olvidaste tu contraseña?</a>
+            </div>
+
+            {loginError && (
+              <div style={{ padding: '11px 14px', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: '4px', marginBottom: '16px', fontSize: '13px', color: '#EF4444' }}>{loginError}</div>
+            )}
+
+            <button onClick={iniciarSesion} disabled={loginCargando}
+              style={{ width: '100%', padding: '14px', background: loginCargando ? '#A8A8A8' : '#0E0E0E', color: '#C9A961', border: 'none', borderRadius: '3px', fontSize: '13px', fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', cursor: loginCargando ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}>
+              {loginCargando ? 'Entrando…' : 'Iniciar sesión'}
+            </button>
+
+            <p style={{ textAlign: 'center', fontSize: '12px', color: '#A8A8A8', marginTop: '20px', lineHeight: 1.6 }}>
+              ¿Quieres ser embajadora?<br />
+              <a href="/influencer/registro" style={{ color: '#C9A961', textDecoration: 'none' }}>Regístrate aquí</a>
+            </p>
+          </div>
         </div>
-      </div>
+      </>
     )
   }
 
@@ -317,6 +399,8 @@ export default function PortalInfluencerPage() {
             <a href="/influencer/terminos" target="_blank" style={{ color: '#C9A961', textDecoration: 'none' }}>Términos del programa</a>
             {'  ·  '}
             <button onClick={() => { setMostrarPass(true); setExitoPass(false); setErrorPass('') }} style={{ background: 'none', border: 'none', color: '#C9A961', cursor: 'pointer', fontSize: '12px', fontFamily: 'inherit', padding: 0 }}>Cambiar contraseña</button>
+            {'  ·  '}
+            <a href="/cuenta" style={{ color: '#C9A961', textDecoration: 'none' }}>Ir a mi cuenta de cliente</a>
           </p>
         </div>
       </div>
