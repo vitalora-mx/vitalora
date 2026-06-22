@@ -257,15 +257,21 @@ export default function PortalInfluencerPage() {
         <div style={{ maxWidth: '720px', margin: '0 auto' }}>
 
           {/* Encabezado */}
-          <div style={{ marginBottom: '28px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <div style={{ marginBottom: '28px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px', flexWrap: 'wrap' }}>
             <div>
               <p style={{ fontSize: '11px', letterSpacing: '0.2em', textTransform: 'uppercase', color: '#C9A961', marginBottom: '6px' }}>Portal de embajadora</p>
               <h1 style={{ fontFamily: "'Italiana', serif", fontSize: '32px', color: '#0E0E0E', lineHeight: 1 }}>Hola, {inf.nombre.split(' ')[0]}</h1>
             </div>
-            <button onClick={() => { useAuthStore.getState().logout(); window.location.href = '/cuenta' }}
-              style={{ padding: '8px 16px', border: '1px solid #E8E4DA', borderRadius: '6px', background: '#fff', color: '#6B6B6B', fontSize: '12px', cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}>
-              Cerrar sesión
-            </button>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+              <a href="/cuenta"
+                style={{ padding: '10px 20px', background: '#0E0E0E', border: '1px solid #0E0E0E', borderRadius: '6px', color: '#C9A961', fontSize: '12px', cursor: 'pointer', fontFamily: 'inherit', textDecoration: 'none', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                Mi cuenta de cliente
+              </a>
+              <button onClick={() => { useAuthStore.getState().logout(); window.location.href = '/cuenta' }}
+                style={{ padding: '10px 20px', border: '1px solid #DDD', borderRadius: '6px', background: 'none', color: '#888', fontSize: '12px', cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}>
+                Cerrar sesión
+              </button>
+            </div>
           </div>
 
           {/* Alerta de saldo alto */}
@@ -399,8 +405,6 @@ export default function PortalInfluencerPage() {
             <a href="/influencer/terminos" target="_blank" style={{ color: '#C9A961', textDecoration: 'none' }}>Términos del programa</a>
             {'  ·  '}
             <button onClick={() => { setMostrarPass(true); setExitoPass(false); setErrorPass('') }} style={{ background: 'none', border: 'none', color: '#C9A961', cursor: 'pointer', fontSize: '12px', fontFamily: 'inherit', padding: 0 }}>Cambiar contraseña</button>
-            {'  ·  '}
-            <a href="/cuenta" style={{ color: '#C9A961', textDecoration: 'none' }}>Ir a mi cuenta de cliente</a>
           </p>
         </div>
       </div>
