@@ -11,6 +11,19 @@ const resend = new Resend(process.env.RESEND_API_KEY)
 
 const BASE_URL = 'https://vitalora.com.mx'
 
+// Buscar un usuario por email en el sistema de auth de Supabase
+async function buscarUsuarioPorEmail(email: string) {
+  // listUsers pagina de 50 en 50; buscamos en las primeras páginas
+  for (let page = 1; page <= 20; page++) {
+    const { data, error } = await supabaseAdmin.auth.admin.listUsers({ page, perPage: 1000 })
+    if (error || !data) break
+    const encontrado = data.users.find(u => u.email?.toLowerCase() === email)
+    if (encontrado) return encontrado
+    if (data.users.length < 1000) break // no hay más páginas
+  }
+  return null
+}
+
 export async function POST(req: NextRequest) {
   try {
     const { email } = await req.json()
@@ -18,16 +31,11 @@ export async function POST(req: NextRequest) {
 
     const emailLimpio = email.toLowerCase().trim()
 
-    // Verificar que el usuario existe (buscamos en perfiles por email)
-    const { data: perfil } = await supabaseAdmin
-      .from('perfiles')
-      .select('id, email')
-      .eq('email', emailLimpio)
-      .maybeSingle()
+    // Verificar que el usuario existe en el sistema de auth
+    const usuario = await buscarUsuarioPorEmail(emailLimpio)
 
-    // IMPORTANTE: por seguridad, respondemos OK aunque el email no exista
-    // (no revelar qué correos están registrados)
-    if (!perfil) {
+    // Por seguridad, respondemos OK aunque no exista (no revelar correos registrados)
+    if (!usuario) {
       return NextResponse.json({ ok: true })
     }
 
@@ -35,7 +43,6 @@ export async function POST(req: NextRequest) {
     const token = crypto.randomBytes(32).toString('hex')
     const expira = new Date(Date.now() + 60 * 60 * 1000) // 1 hora
 
-    // Guardar token
     await supabaseAdmin.from('password_reset_tokens').insert({
       email: emailLimpio,
       token,
@@ -44,7 +51,6 @@ export async function POST(req: NextRequest) {
 
     const enlace = `${BASE_URL}/recuperar/nueva?token=${token}`
 
-    // Enviar correo con Resend
     await resend.emails.send({
       from: 'Vitalora <hola@vitalora.com.mx>',
       to: emailLimpio,
@@ -79,7 +85,6 @@ export async function POST(req: NextRequest) {
 
   } catch (err) {
     console.error('Error solicitar recuperación:', err)
-    // Aún así respondemos OK por seguridad
     return NextResponse.json({ ok: true })
   }
 }

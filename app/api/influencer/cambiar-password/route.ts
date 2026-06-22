@@ -6,6 +6,17 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
+async function buscarUsuarioPorEmail(email: string) {
+  for (let page = 1; page <= 20; page++) {
+    const { data, error } = await supabase.auth.admin.listUsers({ page, perPage: 1000 })
+    if (error || !data) break
+    const encontrado = data.users.find(u => u.email?.toLowerCase() === email)
+    if (encontrado) return encontrado
+    if (data.users.length < 1000) break
+  }
+  return null
+}
+
 export async function POST(request: Request) {
   try {
     const { email, passwordActual, passwordNueva } = await request.json()
@@ -30,19 +41,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Tu contraseña actual no es correcta.' }, { status: 401 })
     }
 
-    // Obtener el id del usuario
-    const { data: perfil } = await supabase
-      .from('perfiles')
-      .select('id')
-      .eq('email', emailLimpio)
-      .maybeSingle()
+    // Buscar el usuario en auth
+    const usuario = await buscarUsuarioPorEmail(emailLimpio)
 
-    if (!perfil) {
+    if (!usuario) {
       return NextResponse.json({ error: 'Usuario no encontrado.' }, { status: 404 })
     }
 
-    // Actualizar contraseña
-    const { error: errUpdate } = await supabase.auth.admin.updateUserById(perfil.id, {
+    const { error: errUpdate } = await supabase.auth.admin.updateUserById(usuario.id, {
       password: passwordNueva,
     })
 

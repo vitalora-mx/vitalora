@@ -6,6 +6,17 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
+async function buscarUsuarioPorEmail(email: string) {
+  for (let page = 1; page <= 20; page++) {
+    const { data, error } = await supabaseAdmin.auth.admin.listUsers({ page, perPage: 1000 })
+    if (error || !data) break
+    const encontrado = data.users.find(u => u.email?.toLowerCase() === email)
+    if (encontrado) return encontrado
+    if (data.users.length < 1000) break
+  }
+  return null
+}
+
 export async function POST(req: NextRequest) {
   try {
     const { token, password } = await req.json()
@@ -30,25 +41,20 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'El enlace no es válido o ya fue usado.' }, { status: 400 })
     }
 
-    // Verificar expiración
     if (new Date(tokenData.expira_at) < new Date()) {
       return NextResponse.json({ error: 'El enlace ha expirado. Solicita uno nuevo.' }, { status: 400 })
     }
 
-    // Buscar el usuario por email para obtener su id
-    const { data: perfil } = await supabaseAdmin
-      .from('perfiles')
-      .select('id')
-      .eq('email', tokenData.email)
-      .maybeSingle()
+    // Buscar el usuario en el sistema de auth por email
+    const usuario = await buscarUsuarioPorEmail(tokenData.email)
 
-    if (!perfil) {
+    if (!usuario) {
       return NextResponse.json({ error: 'Usuario no encontrado.' }, { status: 400 })
     }
 
-    // Actualizar la contraseña con la service role key
+    // Actualizar la contraseña
     const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
-      perfil.id,
+      usuario.id,
       { password }
     )
 

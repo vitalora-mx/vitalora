@@ -109,14 +109,17 @@ export async function PATCH(request: Request) {
       let cuentaCreada = false
       const emailLimpio = influencer.email.toLowerCase().trim()
 
-      // Verificar si ya tiene perfil/cuenta
-      const { data: perfilExistente } = await supabase
-        .from('perfiles')
-        .select('id')
-        .eq('email', emailLimpio)
-        .maybeSingle()
+      // Verificar si ya tiene cuenta en el sistema de auth
+      let usuarioExistente = null
+      for (let page = 1; page <= 20; page++) {
+        const { data: usersData } = await supabase.auth.admin.listUsers({ page, perPage: 1000 })
+        if (!usersData) break
+        usuarioExistente = usersData.users.find(u => u.email?.toLowerCase() === emailLimpio) ?? null
+        if (usuarioExistente) break
+        if (usersData.users.length < 1000) break
+      }
 
-      if (!perfilExistente) {
+      if (!usuarioExistente) {
         // Crear usuario con contraseña aleatoria temporal (la cambiará vía correo)
         const passwordTemp = crypto.randomBytes(24).toString('hex')
         const { data: nuevoUser, error: errUser } = await supabase.auth.admin.createUser({
@@ -127,12 +130,14 @@ export async function PATCH(request: Request) {
 
         if (!errUser && nuevoUser.user) {
           cuentaCreada = true
-          // Poner el nombre en su perfil
+          // Poner el nombre en su perfil (el perfil se crea por trigger; lo actualizamos por id)
           const [nombre, ...apellidoArr] = influencer.nombre.split(' ')
           await supabase
             .from('perfiles')
             .update({ nombre, apellido: apellidoArr.join(' ') })
             .eq('id', nuevoUser.user.id)
+        } else if (errUser) {
+          console.error('Error al crear cuenta de influencer:', errUser)
         }
       }
 
