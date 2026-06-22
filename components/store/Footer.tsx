@@ -76,6 +76,7 @@ export default function Footer() {
               {[
                 { label: 'Cosméticos', href: '/cosmeticos' },
                 { label: 'Suplementos', href: '/suplementos' },
+                { label: 'Programa de embajadoras', href: '/programa-embajadoras' },
               ].map((item) => (
                 <li key={item.label}>
                   <Link href={item.href} style={{ color: 'rgba(245,240,232,0.6)', textDecoration: 'none', fontSize: '13px' }}>
