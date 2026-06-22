@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/escalacion-influencers",
+      "schedule": "0 9 * * *"
+    }
+  ]
+}
