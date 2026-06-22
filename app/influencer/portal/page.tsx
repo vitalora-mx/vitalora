@@ -37,6 +37,60 @@ export default function PortalInfluencerPage() {
   const [errorPass, setErrorPass] = useState('')
   const [exitoPass, setExitoPass] = useState(false)
 
+  // Reporte de ventas
+  const hoyStr = new Date().toISOString().split('T')[0]
+  const hace30 = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+  const [repDesde, setRepDesde] = useState(hace30)
+  const [repHasta, setRepHasta] = useState(hoyStr)
+  const [repVentas, setRepVentas] = useState<any[]>([])
+  const [repTotales, setRepTotales] = useState<any>(null)
+  const [repCargando, setRepCargando] = useState(false)
+  const [descargando, setDescargando] = useState(false)
+
+  const cargarReporte = useCallback(async (desde: string, hasta: string) => {
+    if (!user?.email) return
+    setRepCargando(true)
+    try {
+      const res = await fetch('/api/influencer/reporte', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: user.email, desde, hasta }),
+      })
+      const d = await res.json()
+      if (d.esInfluencer) {
+        setRepVentas(d.ventas ?? [])
+        setRepTotales(d.totales ?? null)
+      }
+    } catch { /* silencioso */ }
+    finally { setRepCargando(false) }
+  }, [user?.email])
+
+  async function descargarExcel() {
+    if (!user?.email) return
+    setDescargando(true)
+    try {
+      const res = await fetch('/api/influencer/reporte-excel', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: user.email, desde: repDesde, hasta: repHasta }),
+      })
+      if (!res.ok) throw new Error('Error')
+      const blob = await res.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `reporte-ventas-${repDesde}-${repHasta}.xlsx`
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      window.URL.revokeObjectURL(url)
+    } catch {
+      alert('No se pudo descargar el reporte. Intenta de nuevo.')
+    } finally {
+      setDescargando(false)
+    }
+  }
+
   async function cambiarPassword() {
     setErrorPass('')
     if (passNueva.length < 6) { setErrorPass('La nueva contraseña debe tener al menos 6 caracteres.'); return }
@@ -123,7 +177,7 @@ export default function PortalInfluencerPage() {
   }, [user?.email])
 
   useEffect(() => {
-    if (mounted && user?.email) cargar()
+    if (mounted && user?.email) { cargar(); cargarReporte(hace30, hoyStr) }
     else if (mounted && !user) setCargando(false)
   }, [mounted, user, cargar])
 
@@ -385,21 +439,88 @@ export default function PortalInfluencerPage() {
             </div>
           )}
 
-          {/* Mis ventas */}
-          {data.ventas.length > 0 && (
-            <div className="card" style={{ padding: '24px' }}>
-              <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '18px', fontWeight: 600, color: '#0E0E0E', marginBottom: '4px' }}>Ventas pendientes de cobro</p>
-              <p style={{ fontSize: '12px', color: '#6B6B6B', marginBottom: '16px' }}>Por privacidad, no mostramos los datos de tus compradores.</p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {data.ventas.map((v: any) => (
-                  <div key={v.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid #F0EDE5' }}>
-                    <span style={{ fontSize: '12px', color: '#6B6B6B' }}>Venta del {fechaCorta(v.fecha)}</span>
-                    <span style={{ fontSize: '14px', fontWeight: 600, color: '#C9A961', fontFamily: "'Cormorant Garamond', serif" }}>+{fmt(v.comision)}</span>
+          {/* Reporte de ventas */}
+          <div className="card" style={{ padding: '24px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px', marginBottom: '16px' }}>
+              <div>
+                <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '18px', fontWeight: 600, color: '#0E0E0E' }}>Mis ventas</p>
+                <p style={{ fontSize: '12px', color: '#6B6B6B', marginTop: '2px' }}>Detalle de tus comisiones. Por privacidad, no mostramos datos de tus compradores.</p>
+              </div>
+              <button onClick={descargarExcel} disabled={descargando || repVentas.length === 0}
+                style={{ padding: '9px 16px', background: (descargando || repVentas.length === 0) ? '#E8E4DA' : '#0E0E0E', color: (descargando || repVentas.length === 0) ? '#A8A8A8' : '#C9A961', border: 'none', borderRadius: '6px', fontSize: '12px', fontWeight: 600, cursor: (descargando || repVentas.length === 0) ? 'not-allowed' : 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}>
+                {descargando ? 'Generando…' : '⬇ Descargar Excel'}
+              </button>
+            </div>
+
+            {/* Filtro de fechas */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', marginBottom: '20px', padding: '12px 14px', background: '#FAFAF7', borderRadius: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <label style={{ fontSize: '11px', color: '#6B6B6B', fontWeight: 500 }}>Desde</label>
+                <input type="date" value={repDesde} max={repHasta} onChange={e => setRepDesde(e.target.value)}
+                  style={{ padding: '6px 9px', border: '1px solid #E8E4DA', borderRadius: '5px', fontSize: '12px', fontFamily: 'inherit', color: '#2C2C2C', outline: 'none', background: '#fff' }} />
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <label style={{ fontSize: '11px', color: '#6B6B6B', fontWeight: 500 }}>Hasta</label>
+                <input type="date" value={repHasta} min={repDesde} max={hoyStr} onChange={e => setRepHasta(e.target.value)}
+                  style={{ padding: '6px 9px', border: '1px solid #E8E4DA', borderRadius: '5px', fontSize: '12px', fontFamily: 'inherit', color: '#2C2C2C', outline: 'none', background: '#fff' }} />
+              </div>
+              <button onClick={() => cargarReporte(repDesde, repHasta)} disabled={repCargando}
+                style={{ padding: '7px 16px', background: '#0E0E0E', color: '#C9A961', border: 'none', borderRadius: '5px', fontSize: '12px', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
+                {repCargando ? 'Cargando…' : 'Ver'}
+              </button>
+            </div>
+
+            {/* Resumen del periodo */}
+            {repTotales && (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px', marginBottom: '18px' }}>
+                {[
+                  { label: 'Ventas', valor: String(repTotales.numVentas) },
+                  { label: 'Comisión total', valor: fmt(repTotales.totalComision) },
+                  { label: 'Pagado', valor: fmt(repTotales.totalPagado), color: '#6A8A62' },
+                  { label: 'Pendiente', valor: fmt(repTotales.totalPendiente), color: '#C9A961' },
+                ].map((s, i) => (
+                  <div key={i} style={{ padding: '12px', background: '#FAFAF7', borderRadius: '8px' }}>
+                    <p style={{ fontSize: '10px', letterSpacing: '0.08em', textTransform: 'uppercase', color: '#6B6B6B', marginBottom: '5px' }}>{s.label}</p>
+                    <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '17px', fontWeight: 600, color: s.color ?? '#0E0E0E' }}>{s.valor}</p>
                   </div>
                 ))}
               </div>
-            </div>
-          )}
+            )}
+
+            {/* Tabla de detalle */}
+            {repCargando ? (
+              <p style={{ textAlign: 'center', color: '#A8A8A8', fontSize: '13px', padding: '24px' }}>Cargando…</p>
+            ) : repVentas.length === 0 ? (
+              <p style={{ textAlign: 'center', color: '#A8A8A8', fontSize: '13px', padding: '24px' }}>No hay ventas en este periodo.</p>
+            ) : (
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '460px' }}>
+                  <thead>
+                    <tr style={{ borderBottom: '1px solid #E8E4DA' }}>
+                      {['Fecha', 'Pedido', 'Venta', 'Comisión', 'Estado'].map((h, i) => (
+                        <th key={i} style={{ textAlign: i >= 2 && i <= 3 ? 'right' : 'left', padding: '8px 10px', fontSize: '10px', letterSpacing: '0.08em', textTransform: 'uppercase', color: '#6B6B6B', fontWeight: 600 }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {repVentas.map((v: any) => (
+                      <tr key={v.id} style={{ borderBottom: '1px solid #F0EDE5' }}>
+                        <td style={{ padding: '10px', fontSize: '12px', color: '#6B6B6B', whiteSpace: 'nowrap' }}>{fechaCorta(v.fecha)}</td>
+                        <td style={{ padding: '10px', fontSize: '12px', color: '#6B6B6B', fontFamily: 'monospace' }}>#{String(v.pedido_id).slice(-6).toUpperCase()}</td>
+                        <td style={{ padding: '10px', textAlign: 'right', fontSize: '13px', color: '#2C2C2C' }}>{fmt(v.subtotal)}</td>
+                        <td style={{ padding: '10px', textAlign: 'right', fontSize: '13px', fontWeight: 600, color: '#0E0E0E', fontFamily: "'Cormorant Garamond', serif" }}>{fmt(v.comision)}</td>
+                        <td style={{ padding: '10px' }}>
+                          <span style={{ fontSize: '11px', padding: '2px 9px', borderRadius: '100px', fontWeight: 500, background: v.estado === 'pagada' ? 'rgba(168,181,160,0.2)' : 'rgba(201,169,97,0.15)', color: v.estado === 'pagada' ? '#6A8A62' : '#8B7530' }}>
+                            {v.estado === 'pagada' ? 'Pagada' : 'Pendiente'}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
 
           <p style={{ textAlign: 'center', fontSize: '12px', color: '#A8A8A8', marginTop: '24px' }}>
             <a href="/influencer/terminos" target="_blank" style={{ color: '#C9A961', textDecoration: 'none' }}>Términos del programa</a>
