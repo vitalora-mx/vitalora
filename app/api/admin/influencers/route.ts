@@ -209,6 +209,63 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ ok: true, codigo, cuentaCreada })
     }
 
+    // ─── ELIMINAR ───
+    if (accion === 'eliminar') {
+      // Verificar que no tenga saldo pendiente
+      // 1) Comisiones pendientes sin pagar
+      const { data: comisionesPend } = await supabase
+        .from('influencer_comisiones')
+        .select('id, monto_comision')
+        .eq('influencer_id', id)
+        .eq('estado', 'pendiente')
+
+      const saldoPendiente = (comisionesPend ?? []).reduce((a, c) => a + (c.monto_comision ?? 0), 0)
+
+      // 2) Solicitudes de pago en proceso
+      const { data: solicitudesPend } = await supabase
+        .from('influencer_pagos')
+        .select('id')
+        .eq('influencer_id', id)
+        .eq('estado', 'solicitado')
+
+      if (saldoPendiente > 0 || (solicitudesPend && solicitudesPend.length > 0)) {
+        return NextResponse.json({
+          error: 'No puedes eliminar a esta embajadora porque tiene saldo o pagos pendientes. Resuelve los pagos primero.'
+        }, { status: 400 })
+      }
+
+      // Sin saldo pendiente: borrar todo
+      // a) Borrar su código de descuento
+      if (influencer.codigo) {
+        await supabase.from('codigos_descuento').delete().eq('codigo', influencer.codigo)
+      }
+
+      // b) Borrar comisiones (todas ya están pagadas o no hay) y pagos
+      await supabase.from('influencer_comisiones').delete().eq('influencer_id', id)
+      await supabase.from('influencer_pagos').delete().eq('influencer_id', id)
+
+      // c) Borrar su cuenta de Supabase Auth (para liberar el correo)
+      const emailLimpio = influencer.email.toLowerCase().trim()
+      const { data: perfil } = await supabase
+        .from('perfiles')
+        .select('id')
+        .eq('email', emailLimpio)
+        .maybeSingle()
+
+      if (perfil) {
+        try {
+          await supabase.auth.admin.deleteUser(perfil.id)
+        } catch (e) {
+          console.error('Error al borrar cuenta auth:', e)
+        }
+      }
+
+      // d) Borrar el registro del influencer
+      await supabase.from('influencers').delete().eq('id', id)
+
+      return NextResponse.json({ ok: true, eliminado: true })
+    }
+
     // ─── RECHAZAR / PAUSAR / REACTIVAR ───
     if (accion === 'rechazar' || accion === 'pausar' || accion === 'reactivar') {
       const nuevoEstado = accion === 'rechazar' ? 'rechazado' : accion === 'pausar' ? 'pausado' : 'aprobado'

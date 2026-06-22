@@ -55,6 +55,8 @@ function ModalDetalle({ inf, onClose, onAccion }: {
 }) {
   const [procesando, setProcesando] = useState(false)
   const [verConstancia, setVerConstancia] = useState(false)
+  const [confirmarBorrar, setConfirmarBorrar] = useState(false)
+  const [errorBorrar, setErrorBorrar] = useState('')
 
   const esPendiente = inf.estado === 'pendiente'
   const esAprobado = inf.estado === 'aprobado'
@@ -65,6 +67,30 @@ function ModalDetalle({ inf, onClose, onAccion }: {
     await onAccion(inf.id, accion)
     setProcesando(false)
     onClose()
+  }
+
+  async function ejecutarBorrado() {
+    setProcesando(true)
+    setErrorBorrar('')
+    try {
+      const res = await fetch('/api/admin/influencers', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: inf.id, accion: 'eliminar' }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setErrorBorrar(data.error ?? 'No se pudo eliminar.')
+        setProcesando(false)
+      } else {
+        // Recargar la lista cerrando el modal
+        await onAccion(inf.id, 'recargar')
+        onClose()
+      }
+    } catch {
+      setErrorBorrar('Error al eliminar.')
+      setProcesando(false)
+    }
   }
 
   async function abrirConstancia() {
@@ -163,37 +189,63 @@ function ModalDetalle({ inf, onClose, onAccion }: {
         </div>
 
         {/* Acciones */}
-        <div style={{ padding: '16px 24px 24px', borderTop: '1px solid #E8E4DA', display: 'flex', gap: '8px', position: 'sticky', bottom: 0, background: '#fff' }}>
-          <button onClick={onClose}
-            style={{ flex: 1, padding: '11px', border: '1px solid #E8E4DA', borderRadius: '6px', background: '#FAFAF7', fontSize: '13px', cursor: 'pointer', color: '#6B6B6B', fontFamily: 'inherit', fontWeight: 500 }}>
-            Cerrar
-          </button>
-
-          {esPendiente && (
-            <>
-              <button onClick={() => ejecutar('rechazar')} disabled={procesando}
-                style={{ flex: 1, padding: '11px', border: '1px solid rgba(239,68,68,0.3)', borderRadius: '6px', background: 'rgba(239,68,68,0.06)', fontSize: '13px', cursor: 'pointer', color: '#EF4444', fontFamily: 'inherit', fontWeight: 500 }}>
-                Rechazar
+        <div style={{ padding: '16px 24px 24px', borderTop: '1px solid #E8E4DA', position: 'sticky', bottom: 0, background: '#fff' }}>
+          {confirmarBorrar ? (
+            <div>
+              <p style={{ fontSize: '13px', color: '#0E0E0E', fontWeight: 500, marginBottom: '6px' }}>¿Eliminar a {inf.nombre} permanentemente?</p>
+              <p style={{ fontSize: '12px', color: '#6B6B6B', lineHeight: 1.5, marginBottom: '12px' }}>Se borrará su registro, código, cuenta de acceso e historial. El correo quedará libre para registrarse de nuevo. Esta acción no se puede deshacer.</p>
+              {errorBorrar && <p style={{ fontSize: '12px', color: '#EF4444', marginBottom: '10px' }}>{errorBorrar}</p>}
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button onClick={() => { setConfirmarBorrar(false); setErrorBorrar('') }} disabled={procesando}
+                  style={{ flex: 1, padding: '11px', border: '1px solid #E8E4DA', borderRadius: '6px', background: '#FAFAF7', fontSize: '13px', cursor: 'pointer', color: '#6B6B6B', fontFamily: 'inherit', fontWeight: 500 }}>
+                  Cancelar
+                </button>
+                <button onClick={ejecutarBorrado} disabled={procesando}
+                  style={{ flex: 1, padding: '11px', border: 'none', borderRadius: '6px', background: procesando ? '#A8A8A8' : '#EF4444', color: '#fff', fontSize: '13px', cursor: procesando ? 'not-allowed' : 'pointer', fontFamily: 'inherit', fontWeight: 600 }}>
+                  {procesando ? 'Eliminando…' : 'Sí, eliminar'}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              <button onClick={onClose}
+                style={{ flex: 1, padding: '11px', border: '1px solid #E8E4DA', borderRadius: '6px', background: '#FAFAF7', fontSize: '13px', cursor: 'pointer', color: '#6B6B6B', fontFamily: 'inherit', fontWeight: 500 }}>
+                Cerrar
               </button>
-              <button onClick={() => ejecutar('aprobar')} disabled={procesando}
-                style={{ flex: 2, padding: '11px', border: 'none', borderRadius: '6px', background: procesando ? '#A8A8A8' : '#0E0E0E', color: '#C9A961', fontSize: '13px', cursor: procesando ? 'not-allowed' : 'pointer', fontFamily: 'inherit', fontWeight: 600 }}>
-                {procesando ? 'Procesando…' : '✓ Aprobar y generar código'}
+
+              {esPendiente && (
+                <>
+                  <button onClick={() => ejecutar('rechazar')} disabled={procesando}
+                    style={{ flex: 1, padding: '11px', border: '1px solid rgba(239,68,68,0.3)', borderRadius: '6px', background: 'rgba(239,68,68,0.06)', fontSize: '13px', cursor: 'pointer', color: '#EF4444', fontFamily: 'inherit', fontWeight: 500 }}>
+                    Rechazar
+                  </button>
+                  <button onClick={() => ejecutar('aprobar')} disabled={procesando}
+                    style={{ flex: 2, padding: '11px', border: 'none', borderRadius: '6px', background: procesando ? '#A8A8A8' : '#0E0E0E', color: '#C9A961', fontSize: '13px', cursor: procesando ? 'not-allowed' : 'pointer', fontFamily: 'inherit', fontWeight: 600 }}>
+                    {procesando ? 'Procesando…' : '✓ Aprobar y generar código'}
+                  </button>
+                </>
+              )}
+
+              {esAprobado && (
+                <button onClick={() => ejecutar('pausar')} disabled={procesando}
+                  style={{ flex: 1, padding: '11px', border: '1px solid #E8E4DA', borderRadius: '6px', background: '#fff', color: '#6B6B6B', fontSize: '13px', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 500 }}>
+                  Pausar
+                </button>
+              )}
+
+              {esPausado && (
+                <button onClick={() => ejecutar('reactivar')} disabled={procesando}
+                  style={{ flex: 1, padding: '11px', border: 'none', borderRadius: '6px', background: '#0E0E0E', color: '#C9A961', fontSize: '13px', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600 }}>
+                  Reactivar
+                </button>
+              )}
+
+              {/* Botón eliminar disponible para todos los estados */}
+              <button onClick={() => setConfirmarBorrar(true)} disabled={procesando}
+                style={{ flex: '0 0 auto', padding: '11px 14px', border: '1px solid rgba(239,68,68,0.3)', borderRadius: '6px', background: 'rgba(239,68,68,0.06)', fontSize: '13px', cursor: 'pointer', color: '#EF4444', fontFamily: 'inherit', fontWeight: 500 }}>
+                🗑 Eliminar
               </button>
-            </>
-          )}
-
-          {esAprobado && (
-            <button onClick={() => ejecutar('pausar')} disabled={procesando}
-              style={{ flex: 2, padding: '11px', border: '1px solid #E8E4DA', borderRadius: '6px', background: '#fff', color: '#6B6B6B', fontSize: '13px', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 500 }}>
-              Pausar influencer
-            </button>
-          )}
-
-          {esPausado && (
-            <button onClick={() => ejecutar('reactivar')} disabled={procesando}
-              style={{ flex: 2, padding: '11px', border: 'none', borderRadius: '6px', background: '#0E0E0E', color: '#C9A961', fontSize: '13px', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600 }}>
-              Reactivar influencer
-            </button>
+            </div>
           )}
         </div>
       </div>
@@ -224,6 +276,10 @@ export default function AdminInfluencersPage() {
   useEffect(() => { cargar() }, [cargar])
 
   async function ejecutarAccion(id: number, accion: string) {
+    if (accion === 'recargar') {
+      await cargar()
+      return
+    }
     await fetch('/api/admin/influencers', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
