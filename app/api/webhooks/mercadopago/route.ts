@@ -1,4 +1,4 @@
-﻿import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { MercadoPagoConfig, Payment } from 'mercadopago'
 import { Resend } from 'resend'
@@ -81,6 +81,13 @@ export async function POST(req: NextRequest) {
             })
           } catch {}
         }
+
+        // ════════════════════════════════════════════════════════
+        // NUEVO: Lógica del programa de influencers
+        // ════════════════════════════════════════════════════════
+        if (pedido.codigo_descuento) {
+          await procesarComisionInfluencer(pedido)
+        }
       }
     }
 
@@ -94,6 +101,65 @@ export async function POST(req: NextRequest) {
 // GET para verificacion de MP
 export async function GET() {
   return NextResponse.json({ ok: true })
+}
+
+// ============================================================
+// PROGRAMA DE INFLUENCERS
+// Cuando un pedido pagado usó un código de influencer:
+//   1. Candado: si el comprador tiene cuenta, marcar primera_compra_usada
+//      (pierde el descuento de primera compra para siempre)
+//   2. Registrar la comisión del 5% sobre el subtotal (sin envío)
+// ============================================================
+async function procesarComisionInfluencer(pedido: any) {
+  try {
+    // Verificar si el código usado es de un influencer
+    const { data: codigo } = await supabaseAdmin
+      .from('codigos_descuento')
+      .select('es_influencer, influencer_id')
+      .eq('codigo', pedido.codigo_descuento)
+      .single()
+
+    if (!codigo || !codigo.es_influencer || !codigo.influencer_id) {
+      return // No es código de influencer, no hacer nada
+    }
+
+    // 1) CANDADO DE EXCLUSIÓN MUTUA
+    // Si el comprador tiene cuenta, marcar primera_compra_usada = true
+    // (al usar un código de influencer, pierde el descuento de primera compra)
+    if (pedido.user_id) {
+      await supabaseAdmin
+        .from('perfiles')
+        .update({ primera_compra_usada: true })
+        .eq('id', pedido.user_id)
+    }
+
+    // 2) REGISTRAR COMISIÓN
+    // Verificar que este pedido no tenga ya una comisión registrada (evitar duplicados)
+    const { data: comisionExistente } = await supabaseAdmin
+      .from('influencer_comisiones')
+      .select('id')
+      .eq('pedido_id', pedido.id)
+      .maybeSingle()
+
+    if (comisionExistente) return // Ya se registró
+
+    // La comisión es 5% del subtotal SIN envío
+    const subtotalVenta = pedido.subtotal || 0
+    const montoComision = Math.round(subtotalVenta * 0.05 * 100) / 100
+
+    await supabaseAdmin
+      .from('influencer_comisiones')
+      .insert({
+        influencer_id: codigo.influencer_id,
+        pedido_id: pedido.id,
+        subtotal_venta: subtotalVenta,
+        monto_comision: montoComision,
+        estado: 'pendiente',
+      })
+
+  } catch (e) {
+    console.error('Error al procesar comisión de influencer:', e)
+  }
 }
 
 // ============================================================

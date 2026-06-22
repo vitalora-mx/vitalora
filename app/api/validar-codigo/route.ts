@@ -5,34 +5,49 @@ const supabaseAdmin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, proces
 
 export async function POST(req: NextRequest) {
   const { codigo, subtotal, email } = await req.json()
-
   if (!codigo) return NextResponse.json({ error: 'Código requerido' }, { status: 400 })
+
+  const codigoLimpio = codigo.toUpperCase().trim()
+  const emailLimpio = email ? email.toLowerCase().trim() : null
 
   const { data, error } = await supabaseAdmin
     .from('codigos_descuento')
     .select('*')
-    .eq('codigo', codigo.toUpperCase().trim())
+    .eq('codigo', codigoLimpio)
     .eq('activo', true)
     .single()
 
   if (error || !data) return NextResponse.json({ error: 'Código no válido' }, { status: 400 })
 
-  // Verificar usos totales
+  // Verificar usos totales (solo si tiene límite)
   if (data.max_usos && data.usos_actuales >= data.max_usos) {
     return NextResponse.json({ error: 'Este código ya alcanzó el límite de usos' }, { status: 400 })
   }
 
-  // Verificar si este email ya usó el código
-  if (email) {
-    const { data: usado } = await supabaseAdmin
+  // ─── Verificación de usos por email ───
+  if (emailLimpio) {
+    // Contar cuántas veces este email ya usó este código
+    const { data: usos } = await supabaseAdmin
       .from('codigos_usados')
       .select('id')
-      .eq('codigo', codigo.toUpperCase().trim())
-      .eq('email', email.toLowerCase().trim())
-      .single()
+      .eq('codigo', codigoLimpio)
+      .eq('email', emailLimpio)
 
-    if (usado) {
-      return NextResponse.json({ error: 'Ya utilizaste este código anteriormente' }, { status: 400 })
+    const vecesUsado = usos?.length ?? 0
+
+    if (data.es_influencer) {
+      // Código de influencer: máximo 3 usos por email (o el valor de max_usos_por_email)
+      const limitePorEmail = data.max_usos_por_email ?? 3
+      if (vecesUsado >= limitePorEmail) {
+        return NextResponse.json({
+          error: `Ya usaste este código el máximo de ${limitePorEmail} veces permitidas`
+        }, { status: 400 })
+      }
+    } else {
+      // Código normal: una sola vez por email (comportamiento original)
+      if (vecesUsado >= 1) {
+        return NextResponse.json({ error: 'Ya utilizaste este código anteriormente' }, { status: 400 })
+      }
     }
   }
 
@@ -64,6 +79,7 @@ export async function POST(req: NextRequest) {
     tipo: data.tipo,
     valor: data.valor,
     montoDescuento,
+    esInfluencer: data.es_influencer ?? false,
     descripcion: data.tipo === 'porcentaje' ? `${data.valor}% de descuento` : `$${data.valor} de descuento`,
   })
 }
