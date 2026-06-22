@@ -21,6 +21,9 @@ interface Influencer {
   constancia_url: string | null
   banco: string | null
   clabe: string | null
+  clabe_anterior: string | null
+  clabe_cambiada_at: string | null
+  clabe_cambio_revisado: boolean | null
   titular_cuenta: string | null
   estado: string
   notas_admin: string | null
@@ -184,6 +187,19 @@ function ModalDetalle({ inf, onClose, onAccion }: {
               <Campo label="Banco" valor={inf.banco} />
               <Campo label="Titular" valor={inf.titular_cuenta} />
               <Campo label="CLABE" valor={inf.clabe} mono />
+              {inf.clabe_cambio_revisado === false && (
+                <div style={{ gridColumn: '1 / -1', marginTop: '8px', padding: '12px 14px', background: 'rgba(239,68,68,0.07)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: '8px' }}>
+                  <p style={{ fontSize: '12px', color: '#EF4444', fontWeight: 600, marginBottom: '4px' }}>{'\u26A0'} CLABE modificada recientemente</p>
+                  <p style={{ fontSize: '12px', color: '#6B6B6B', lineHeight: 1.5 }}>
+                    {inf.clabe_anterior ? `Anterior: ${inf.clabe_anterior}` : ''}
+                    {inf.clabe_cambiada_at ? ` \u00b7 ${new Date(inf.clabe_cambiada_at).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' })}` : ''}
+                  </p>
+                  <button onClick={() => ejecutar('marcar_clabe_revisada')} disabled={procesando}
+                    style={{ marginTop: '8px', padding: '7px 14px', background: '#0E0E0E', color: '#C9A961', border: 'none', borderRadius: '5px', fontSize: '12px', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
+                    {'\u2713'} Marcar como revisada
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>

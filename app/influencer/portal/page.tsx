@@ -642,12 +642,20 @@ export default function PortalInfluencerPage() {
             )}
           </div>
 
-          <p style={{ textAlign: 'center', fontSize: '12px', color: '#A8A8A8', marginTop: '24px' }}>
-            <button onClick={abrirEditar} style={{ background: 'none', border: 'none', color: '#C9A961', cursor: 'pointer', fontSize: '12px', fontFamily: 'inherit', padding: 0 }}>Editar mis datos</button>
-            {'  ·  '}
+          {/* Botones de gestión de cuenta */}
+          <div style={{ display: 'flex', gap: '12px', marginTop: '28px', flexWrap: 'wrap' }}>
+            <button onClick={abrirEditar}
+              style={{ flex: 1, minWidth: '200px', padding: '14px 20px', background: '#fff', border: '1.5px solid #C9A961', borderRadius: '8px', color: '#8B7530', fontSize: '14px', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+              ✎ Editar mis datos
+            </button>
+            <button onClick={() => { setMostrarPass(true); setExitoPass(false); setErrorPass('') }}
+              style={{ flex: 1, minWidth: '200px', padding: '14px 20px', background: '#fff', border: '1.5px solid #C9A961', borderRadius: '8px', color: '#8B7530', fontSize: '14px', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+              🔑 Cambiar contraseña
+            </button>
+          </div>
+
+          <p style={{ textAlign: 'center', fontSize: '12px', color: '#A8A8A8', marginTop: '20px' }}>
             <a href="/influencer/terminos" target="_blank" style={{ color: '#C9A961', textDecoration: 'none' }}>Términos del programa</a>
-            {'  ·  '}
-            <button onClick={() => { setMostrarPass(true); setExitoPass(false); setErrorPass('') }} style={{ background: 'none', border: 'none', color: '#C9A961', cursor: 'pointer', fontSize: '12px', fontFamily: 'inherit', padding: 0 }}>Cambiar contraseña</button>
           </p>
         </div>
       </div>
@@ -807,7 +815,8 @@ export default function PortalInfluencerPage() {
                           style={{ width: '100%', padding: '10px 12px', border: '1px solid #E8E4DA', borderRadius: '6px', fontSize: '14px', fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }} />
                       </div>
                       <div>
-                        <label style={{ fontSize: '11px', letterSpacing: '0.08em', textTransform: 'uppercase', color: '#6B6B6B', marginBottom: '5px', display: 'block' }}>Nueva Constancia de Situación Fiscal (PDF)</label>
+                        <label style={{ fontSize: '11px', letterSpacing: '0.08em', textTransform: 'uppercase', color: '#6B6B6B', marginBottom: '5px', display: 'block' }}>Nueva Constancia de Situación Fiscal (PDF) *</label>
+                        <p style={{ fontSize: '11px', color: '#A8A8A8', marginBottom: '8px' }}>Obligatoria. No mayor a 3 meses de antigüedad.</p>
                         {constanciaNuevaPath ? (
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: 'rgba(168,181,160,0.12)', border: '1px solid rgba(168,181,160,0.4)', borderRadius: '6px' }}>
                             <span style={{ fontSize: '13px', color: '#6A8A62' }}>✓ {constanciaNuevaNombre}</span>
@@ -815,16 +824,17 @@ export default function PortalInfluencerPage() {
                           </div>
                         ) : (
                           <label style={{ display: 'block', padding: '14px', background: '#FAFAF7', border: '1px dashed #C9A961', borderRadius: '6px', textAlign: 'center', cursor: subiendoConstancia ? 'wait' : 'pointer' }}>
-                            <span style={{ fontSize: '13px', color: '#8B7530' }}>{subiendoConstancia ? 'Subiendo…' : '📎 Subir nueva constancia (opcional)'}</span>
+                            <span style={{ fontSize: '13px', color: '#8B7530' }}>{subiendoConstancia ? 'Subiendo…' : '📎 Subir constancia actualizada'}</span>
                             <input type="file" accept="application/pdf" style={{ display: 'none' }} disabled={subiendoConstancia}
                               onChange={e => { if (e.target.files?.[0]) subirConstanciaNueva(e.target.files[0]) }} />
                           </label>
                         )}
                       </div>
-                      <button onClick={solicitarCambioFiscal} disabled={guardandoDatos}
-                        style={{ marginTop: '4px', padding: '12px', background: guardandoDatos ? '#A8A8A8' : '#0E0E0E', color: '#C9A961', border: 'none', borderRadius: '6px', fontSize: '13px', fontWeight: 600, cursor: guardandoDatos ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}>
+                      <button onClick={solicitarCambioFiscal} disabled={guardandoDatos || !constanciaNuevaPath}
+                        style={{ marginTop: '4px', padding: '12px', background: (guardandoDatos || !constanciaNuevaPath) ? '#A8A8A8' : '#0E0E0E', color: '#C9A961', border: 'none', borderRadius: '6px', fontSize: '13px', fontWeight: 600, cursor: (guardandoDatos || !constanciaNuevaPath) ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}>
                         {guardandoDatos ? 'Enviando…' : 'Solicitar cambio fiscal'}
                       </button>
+                      {!constanciaNuevaPath && <p style={{ fontSize: '11px', color: '#A8A8A8', textAlign: 'center' }}>Debes subir tu constancia actualizada para solicitar el cambio.</p>}
                     </>
                   )}
                 </div>

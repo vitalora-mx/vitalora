@@ -10,6 +10,8 @@ interface DashboardData {
   alertas: {
     esperandoGuia: number; facturasPendientes: number
     stockBajo: { nombre: string; stock: number }[]; resenasPendientes: number
+    cambiosFiscalesPendientes: number
+    clabesCambiadas: { id: number; nombre: string; clabe: string; clabe_anterior: string; fecha: string }[]
   }
   grafica: { dias: { label: string; total: number; esHoy: boolean }[]; total7dias: number; pedidos7dias: number }
   topProductos: { nombre: string; cantidad: number; total: number }[]
@@ -122,10 +124,16 @@ export default function AdminDashboardPage() {
               {data.alertas.resenasPendientes > 0 && (
                 <AlertCard color="#5B7C99" icon="★" title={`${data.alertas.resenasPendientes} reseña${data.alertas.resenasPendientes > 1 ? 's' : ''} por moderar`} desc="Apruébalas para que aparezcan en los productos." />
               )}
+              {data.alertas.cambiosFiscalesPendientes > 0 && (
+                <AlertCard color="#C9A961" icon="📋" title={`${data.alertas.cambiosFiscalesPendientes} cambio${data.alertas.cambiosFiscalesPendientes > 1 ? 's' : ''} fiscal${data.alertas.cambiosFiscalesPendientes > 1 ? 'es' : ''} por revisar`} desc="Embajadoras solicitaron modificar sus datos fiscales." />
+              )}
+              {data.alertas.clabesCambiadas.length > 0 && (
+                <AlertCard color="#EF4444" icon="🏦" title={`${data.alertas.clabesCambiadas.length} CLABE${data.alertas.clabesCambiadas.length > 1 ? 's' : ''} modificada${data.alertas.clabesCambiadas.length > 1 ? 's' : ''}`} desc={data.alertas.clabesCambiadas.slice(0, 3).map(c => c.nombre).join(', ') + '. Revisa en Influencers.'} />
+              )}
               {data.alertas.stockBajo.length > 0 && (
                 <AlertCard color="#F59E0B" icon="📦" title={`${data.alertas.stockBajo.length} producto${data.alertas.stockBajo.length > 1 ? 's' : ''} con stock bajo`} desc={data.alertas.stockBajo.slice(0, 3).map(p => `${p.nombre} (${p.stock})`).join(', ')} />
               )}
-              {data.alertas.esperandoGuia === 0 && data.alertas.resenasPendientes === 0 && data.alertas.stockBajo.length === 0 && (
+              {data.alertas.esperandoGuia === 0 && data.alertas.resenasPendientes === 0 && data.alertas.stockBajo.length === 0 && data.alertas.cambiosFiscalesPendientes === 0 && data.alertas.clabesCambiadas.length === 0 && (
                 <AlertCard color="#4ADE80" icon="✓" title="Todo en orden" desc="No hay alertas pendientes por ahora." />
               )}
             </div>

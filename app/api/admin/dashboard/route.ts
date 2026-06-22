@@ -102,6 +102,19 @@ export async function GET() {
     // Simplificado: pedidos de venta sin factura_url
     const facturasPendientes = ventas.filter(p => !p.factura_url).length
 
+    // --- Solicitudes de cambio fiscal pendientes ---
+    const { count: cambiosFiscalesPendientes } = await supabaseAdmin
+      .from('influencer_cambios_fiscales')
+      .select('id', { count: 'exact', head: true })
+      .eq('estado', 'pendiente')
+
+    // --- CLABEs cambiadas sin revisar ---
+    const { data: clabesCambiadas } = await supabaseAdmin
+      .from('influencers')
+      .select('id, nombre, clabe, clabe_anterior, clabe_cambiada_at')
+      .eq('clabe_cambio_revisado', false)
+      .order('clabe_cambiada_at', { ascending: false })
+
     function pct(hoy: number, ayer: number) {
       if (ayer === 0) return hoy > 0 ? 100 : 0
       return Math.round(((hoy - ayer) / ayer) * 100)
@@ -122,6 +135,8 @@ export async function GET() {
         facturasPendientes,
         stockBajo: (productosBajos || []).map(p => ({ nombre: p.nombre, stock: p.stock })),
         resenasPendientes: resenasPendientes || 0,
+        cambiosFiscalesPendientes: cambiosFiscalesPendientes || 0,
+        clabesCambiadas: (clabesCambiadas || []).map(c => ({ id: c.id, nombre: c.nombre, clabe: c.clabe, clabe_anterior: c.clabe_anterior, fecha: c.clabe_cambiada_at })),
       },
       grafica: { dias: dias7, total7dias, pedidos7dias },
       topProductos,

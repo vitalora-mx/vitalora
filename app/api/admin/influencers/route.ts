@@ -271,6 +271,15 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ ok: true, eliminado: true })
     }
 
+    // ─── MARCAR CLABE COMO REVISADA ───
+    if (accion === 'marcar_clabe_revisada') {
+      await supabase
+        .from('influencers')
+        .update({ clabe_cambio_revisado: true })
+        .eq('id', id)
+      return NextResponse.json({ ok: true })
+    }
+
     // ─── RECHAZAR / PAUSAR / REACTIVAR ───
     if (accion === 'rechazar' || accion === 'pausar' || accion === 'reactivar') {
       const nuevoEstado = accion === 'rechazar' ? 'rechazado' : accion === 'pausar' ? 'pausado' : 'aprobado'
