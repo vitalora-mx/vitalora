@@ -9,6 +9,7 @@ function NuevaPasswordForm() {
 
   const [password, setPassword] = useState('')
   const [password2, setPassword2] = useState('')
+  const [verPass, setVerPass] = useState(false)
   const [guardando, setGuardando] = useState(false)
   const [error, setError] = useState('')
   const [exito, setExito] = useState(false)
@@ -61,13 +62,25 @@ function NuevaPasswordForm() {
       </div>
 
       <label style={{ display: 'block', fontSize: '11px', letterSpacing: '0.1em', textTransform: 'uppercase', color: '#6B6B6B', marginBottom: '6px', fontWeight: 500 }}>Nueva contraseña</label>
-      <input type="password" value={password} onChange={e => setPassword(e.target.value)}
-        style={{ width: '100%', padding: '12px 14px', border: '1px solid #E8E4DA', borderRadius: '3px', fontSize: '14px', fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box', marginBottom: '16px' }} />
+      <div style={{ position: 'relative', marginBottom: '16px' }}>
+        <input type={verPass ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)}
+          style={{ width: '100%', padding: '12px 44px 12px 14px', border: '1px solid #E8E4DA', borderRadius: '3px', fontSize: '14px', fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }} />
+        <button type="button" onClick={() => setVerPass(!verPass)}
+          style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px', padding: '4px' }}>
+          {verPass ? '🙈' : '👁️'}
+        </button>
+      </div>
 
       <label style={{ display: 'block', fontSize: '11px', letterSpacing: '0.1em', textTransform: 'uppercase', color: '#6B6B6B', marginBottom: '6px', fontWeight: 500 }}>Confirma tu contraseña</label>
-      <input type="password" value={password2} onChange={e => setPassword2(e.target.value)}
-        onKeyDown={e => { if (e.key === 'Enter') cambiar() }}
-        style={{ width: '100%', padding: '12px 14px', border: '1px solid #E8E4DA', borderRadius: '3px', fontSize: '14px', fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box', marginBottom: '20px' }} />
+      <div style={{ position: 'relative', marginBottom: '20px' }}>
+        <input type={verPass ? 'text' : 'password'} value={password2} onChange={e => setPassword2(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter') cambiar() }}
+          style={{ width: '100%', padding: '12px 44px 12px 14px', border: '1px solid #E8E4DA', borderRadius: '3px', fontSize: '14px', fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }} />
+        <button type="button" onClick={() => setVerPass(!verPass)}
+          style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px', padding: '4px' }}>
+          {verPass ? '🙈' : '👁️'}
+        </button>
+      </div>
 
       {error && (
         <div style={{ padding: '11px 14px', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: '4px', marginBottom: '16px', fontSize: '13px', color: '#EF4444' }}>{error}</div>
