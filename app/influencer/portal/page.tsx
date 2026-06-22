@@ -47,6 +47,126 @@ export default function PortalInfluencerPage() {
   const [repCargando, setRepCargando] = useState(false)
   const [descargando, setDescargando] = useState(false)
 
+  // Edición de datos
+  const [mostrarEditar, setMostrarEditar] = useState(false)
+  const [tabEditar, setTabEditar] = useState<'personales' | 'fiscales'>('personales')
+  const [formDatos, setFormDatos] = useState<any>(null)
+  const [cambioFiscalPendiente, setCambioFiscalPendiente] = useState<any>(null)
+  const [guardandoDatos, setGuardandoDatos] = useState(false)
+  const [msgDatos, setMsgDatos] = useState('')
+  const [errorDatos, setErrorDatos] = useState('')
+  const [constanciaNuevaPath, setConstanciaNuevaPath] = useState('')
+  const [constanciaNuevaNombre, setConstanciaNuevaNombre] = useState('')
+  const [subiendoConstancia, setSubiendoConstancia] = useState(false)
+
+  const REGIMENES = [
+    { codigo: '605', desc: 'Sueldos y Salarios' },
+    { codigo: '606', desc: 'Arrendamiento' },
+    { codigo: '608', desc: 'Demás ingresos' },
+    { codigo: '612', desc: 'Personas Físicas con Actividades Empresariales' },
+    { codigo: '621', desc: 'Incorporación Fiscal' },
+    { codigo: '625', desc: 'Plataformas Tecnológicas' },
+    { codigo: '626', desc: 'RESICO' },
+    { codigo: '601', desc: 'General de Ley Personas Morales' },
+    { codigo: '603', desc: 'Personas Morales Fines no Lucrativos' },
+  ]
+
+  async function abrirEditar() {
+    setMostrarEditar(true)
+    setMsgDatos(''); setErrorDatos('')
+    try {
+      const res = await fetch('/api/influencer/editar-datos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: user!.email, accion: 'obtener' }),
+      })
+      const d = await res.json()
+      setFormDatos(d.datos ?? null)
+      setCambioFiscalPendiente(d.cambioFiscalPendiente ?? null)
+    } catch { /* silencioso */ }
+  }
+
+  const setCampo = (k: string, v: string) => setFormDatos((f: any) => ({ ...f, [k]: v }))
+
+  async function guardarPersonales() {
+    setErrorDatos(''); setMsgDatos('')
+    if (formDatos.clabe && !/^\d{18}$/.test(formDatos.clabe)) {
+      setErrorDatos('La CLABE debe tener exactamente 18 dígitos.')
+      return
+    }
+    setGuardandoDatos(true)
+    try {
+      const res = await fetch('/api/influencer/editar-datos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: user!.email, accion: 'guardar_personales', datos: formDatos }),
+      })
+      const d = await res.json()
+      if (!res.ok) setErrorDatos(d.error ?? 'Error al guardar.')
+      else { setMsgDatos('Datos actualizados correctamente.'); await cargar() }
+    } catch {
+      setErrorDatos('Error de conexión.')
+    } finally {
+      setGuardandoDatos(false)
+    }
+  }
+
+  async function subirConstanciaNueva(file: File) {
+    setErrorDatos('')
+    if (file.type !== 'application/pdf') { setErrorDatos('La constancia debe ser PDF.'); return }
+    if (file.size > 5 * 1024 * 1024) { setErrorDatos('Máximo 5 MB.'); return }
+    setSubiendoConstancia(true)
+    try {
+      const fd = new FormData()
+      fd.append('file', file)
+      const res = await fetch('/api/influencer/constancia-cambio', { method: 'POST', body: fd })
+      const d = await res.json()
+      if (!res.ok) setErrorDatos(d.error ?? 'Error al subir.')
+      else { setConstanciaNuevaPath(d.path); setConstanciaNuevaNombre(file.name) }
+    } catch {
+      setErrorDatos('Error al subir el archivo.')
+    } finally {
+      setSubiendoConstancia(false)
+    }
+  }
+
+  async function solicitarCambioFiscal() {
+    setErrorDatos(''); setMsgDatos('')
+    if (!formDatos.fiscal_rfc || !formDatos.fiscal_razon_social || !formDatos.fiscal_regimen) {
+      setErrorDatos('Completa RFC, razón social y régimen.')
+      return
+    }
+    setGuardandoDatos(true)
+    try {
+      const res = await fetch('/api/influencer/editar-datos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: user!.email,
+          accion: 'solicitar_fiscal',
+          datos: {
+            fiscal_rfc: formDatos.fiscal_rfc,
+            fiscal_razon_social: formDatos.fiscal_razon_social,
+            fiscal_regimen: formDatos.fiscal_regimen,
+            fiscal_cp: formDatos.fiscal_cp,
+            constancia_url: constanciaNuevaPath || null,
+          },
+        }),
+      })
+      const d = await res.json()
+      if (!res.ok) setErrorDatos(d.error ?? 'Error al enviar la solicitud.')
+      else {
+        setMsgDatos('Solicitud de cambio fiscal enviada. La revisaremos pronto.')
+        setConstanciaNuevaPath(''); setConstanciaNuevaNombre('')
+        await abrirEditar() // recargar para ver el pendiente
+      }
+    } catch {
+      setErrorDatos('Error de conexión.')
+    } finally {
+      setGuardandoDatos(false)
+    }
+  }
+
   const cargarReporte = useCallback(async (desde: string, hasta: string) => {
     if (!user?.email) return
     setRepCargando(true)
@@ -523,6 +643,8 @@ export default function PortalInfluencerPage() {
           </div>
 
           <p style={{ textAlign: 'center', fontSize: '12px', color: '#A8A8A8', marginTop: '24px' }}>
+            <button onClick={abrirEditar} style={{ background: 'none', border: 'none', color: '#C9A961', cursor: 'pointer', fontSize: '12px', fontFamily: 'inherit', padding: 0 }}>Editar mis datos</button>
+            {'  ·  '}
             <a href="/influencer/terminos" target="_blank" style={{ color: '#C9A961', textDecoration: 'none' }}>Términos del programa</a>
             {'  ·  '}
             <button onClick={() => { setMostrarPass(true); setExitoPass(false); setErrorPass('') }} style={{ background: 'none', border: 'none', color: '#C9A961', cursor: 'pointer', fontSize: '12px', fontFamily: 'inherit', padding: 0 }}>Cambiar contraseña</button>
@@ -582,6 +704,136 @@ export default function PortalInfluencerPage() {
           </div>
         </div>
       )}
+      {/* Modal editar datos */}
+      {mostrarEditar && formDatos && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(14,14,14,0.55)', backdropFilter: 'blur(4px)', padding: '24px' }}>
+          <div style={{ background: '#fff', borderRadius: '12px', width: '100%', maxWidth: '560px', maxHeight: '90vh', overflow: 'auto' }}>
+            <div style={{ padding: '20px 24px', borderBottom: '1px solid #E8E4DA', background: '#FAFAF7', position: 'sticky', top: 0, zIndex: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '20px', fontWeight: 600, color: '#0E0E0E' }}>Editar mis datos</h2>
+              <button onClick={() => setMostrarEditar(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#A8A8A8', fontSize: '20px' }}>✕</button>
+            </div>
+
+            {/* Tabs */}
+            <div style={{ display: 'flex', gap: '4px', padding: '16px 24px 0' }}>
+              <button onClick={() => { setTabEditar('personales'); setMsgDatos(''); setErrorDatos('') }}
+                style={{ padding: '8px 16px', fontSize: '13px', border: 'none', borderRadius: '6px', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 500, background: tabEditar === 'personales' ? '#0E0E0E' : 'transparent', color: tabEditar === 'personales' ? '#C9A961' : '#6B6B6B' }}>
+                Personales y bancarios
+              </button>
+              <button onClick={() => { setTabEditar('fiscales'); setMsgDatos(''); setErrorDatos('') }}
+                style={{ padding: '8px 16px', fontSize: '13px', border: 'none', borderRadius: '6px', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 500, background: tabEditar === 'fiscales' ? '#0E0E0E' : 'transparent', color: tabEditar === 'fiscales' ? '#C9A961' : '#6B6B6B' }}>
+                Datos fiscales
+              </button>
+            </div>
+
+            <div style={{ padding: '20px 24px' }}>
+              {msgDatos && <div style={{ padding: '10px 14px', background: 'rgba(168,181,160,0.15)', borderRadius: '6px', marginBottom: '16px', fontSize: '13px', color: '#6A8A62' }}>{msgDatos}</div>}
+              {errorDatos && <div style={{ padding: '10px 14px', background: 'rgba(239,68,68,0.08)', borderRadius: '6px', marginBottom: '16px', fontSize: '13px', color: '#EF4444' }}>{errorDatos}</div>}
+
+              {tabEditar === 'personales' ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                  {[
+                    { k: 'nombre', label: 'Nombre completo' },
+                    { k: 'telefono', label: 'Teléfono' },
+                    { k: 'instagram', label: 'Instagram' },
+                    { k: 'tiktok', label: 'TikTok' },
+                    { k: 'youtube', label: 'YouTube' },
+                    { k: 'facebook', label: 'Facebook' },
+                    { k: 'otra_red', label: 'Otra plataforma' },
+                    { k: 'seguidores', label: 'Seguidores (aprox.)' },
+                  ].map(f => (
+                    <div key={f.k}>
+                      <label style={{ fontSize: '11px', letterSpacing: '0.08em', textTransform: 'uppercase', color: '#6B6B6B', marginBottom: '5px', display: 'block' }}>{f.label}</label>
+                      <input value={formDatos[f.k] ?? ''} onChange={e => setCampo(f.k, e.target.value)}
+                        style={{ width: '100%', padding: '10px 12px', border: '1px solid #E8E4DA', borderRadius: '6px', fontSize: '14px', fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }} />
+                    </div>
+                  ))}
+
+                  <div style={{ height: '1px', background: '#F0EDE5', margin: '4px 0' }} />
+                  <p style={{ fontSize: '11px', letterSpacing: '0.1em', textTransform: 'uppercase', color: '#A8B5A0', fontWeight: 600 }}>Datos bancarios (SPEI)</p>
+                  {[
+                    { k: 'banco', label: 'Banco' },
+                    { k: 'titular_cuenta', label: 'Titular de la cuenta' },
+                  ].map(f => (
+                    <div key={f.k}>
+                      <label style={{ fontSize: '11px', letterSpacing: '0.08em', textTransform: 'uppercase', color: '#6B6B6B', marginBottom: '5px', display: 'block' }}>{f.label}</label>
+                      <input value={formDatos[f.k] ?? ''} onChange={e => setCampo(f.k, e.target.value)}
+                        style={{ width: '100%', padding: '10px 12px', border: '1px solid #E8E4DA', borderRadius: '6px', fontSize: '14px', fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }} />
+                    </div>
+                  ))}
+                  <div>
+                    <label style={{ fontSize: '11px', letterSpacing: '0.08em', textTransform: 'uppercase', color: '#6B6B6B', marginBottom: '5px', display: 'block' }}>CLABE (18 dígitos)</label>
+                    <input value={formDatos.clabe ?? ''} maxLength={18} onChange={e => setCampo('clabe', e.target.value.replace(/\D/g, ''))}
+                      style={{ width: '100%', padding: '10px 12px', border: '1px solid #E8E4DA', borderRadius: '6px', fontSize: '14px', fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }} />
+                  </div>
+
+                  <button onClick={guardarPersonales} disabled={guardandoDatos}
+                    style={{ marginTop: '8px', padding: '12px', background: guardandoDatos ? '#A8A8A8' : '#0E0E0E', color: '#C9A961', border: 'none', borderRadius: '6px', fontSize: '13px', fontWeight: 600, cursor: guardandoDatos ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}>
+                    {guardandoDatos ? 'Guardando…' : 'Guardar cambios'}
+                  </button>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                  {cambioFiscalPendiente ? (
+                    <div style={{ padding: '14px 16px', background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.3)', borderRadius: '8px' }}>
+                      <p style={{ fontSize: '13px', color: '#D97706', fontWeight: 600, marginBottom: '4px' }}>⏳ Tienes un cambio fiscal en revisión</p>
+                      <p style={{ fontSize: '12px', color: '#6B6B6B', lineHeight: 1.6 }}>Tus datos fiscales actuales siguen vigentes mientras revisamos tu solicitud. Te avisaremos cuando se apruebe.</p>
+                    </div>
+                  ) : (
+                    <>
+                      <div style={{ padding: '12px 14px', background: 'rgba(201,169,97,0.08)', border: '1px solid rgba(201,169,97,0.25)', borderRadius: '6px' }}>
+                        <p style={{ fontSize: '12px', color: '#8B7530', lineHeight: 1.6 }}>📋 Los cambios fiscales requieren revisión. Tus datos actuales siguen vigentes hasta que aprobemos la solicitud.</p>
+                      </div>
+                      <div>
+                        <label style={{ fontSize: '11px', letterSpacing: '0.08em', textTransform: 'uppercase', color: '#6B6B6B', marginBottom: '5px', display: 'block' }}>RFC</label>
+                        <input value={formDatos.fiscal_rfc ?? ''} onChange={e => setCampo('fiscal_rfc', e.target.value.toUpperCase())}
+                          style={{ width: '100%', padding: '10px 12px', border: '1px solid #E8E4DA', borderRadius: '6px', fontSize: '14px', fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }} />
+                      </div>
+                      <div>
+                        <label style={{ fontSize: '11px', letterSpacing: '0.08em', textTransform: 'uppercase', color: '#6B6B6B', marginBottom: '5px', display: 'block' }}>Razón social</label>
+                        <input value={formDatos.fiscal_razon_social ?? ''} onChange={e => setCampo('fiscal_razon_social', e.target.value)}
+                          style={{ width: '100%', padding: '10px 12px', border: '1px solid #E8E4DA', borderRadius: '6px', fontSize: '14px', fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }} />
+                      </div>
+                      <div>
+                        <label style={{ fontSize: '11px', letterSpacing: '0.08em', textTransform: 'uppercase', color: '#6B6B6B', marginBottom: '5px', display: 'block' }}>Régimen fiscal</label>
+                        <select value={formDatos.fiscal_regimen ?? ''} onChange={e => setCampo('fiscal_regimen', e.target.value)}
+                          style={{ width: '100%', padding: '10px 12px', border: '1px solid #E8E4DA', borderRadius: '6px', fontSize: '14px', fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box', background: '#fff' }}>
+                          <option value="">Selecciona tu régimen</option>
+                          {REGIMENES.map(r => <option key={r.codigo} value={r.codigo}>{r.codigo} — {r.desc}</option>)}
+                        </select>
+                      </div>
+                      <div>
+                        <label style={{ fontSize: '11px', letterSpacing: '0.08em', textTransform: 'uppercase', color: '#6B6B6B', marginBottom: '5px', display: 'block' }}>Código postal fiscal</label>
+                        <input value={formDatos.fiscal_cp ?? ''} onChange={e => setCampo('fiscal_cp', e.target.value)}
+                          style={{ width: '100%', padding: '10px 12px', border: '1px solid #E8E4DA', borderRadius: '6px', fontSize: '14px', fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }} />
+                      </div>
+                      <div>
+                        <label style={{ fontSize: '11px', letterSpacing: '0.08em', textTransform: 'uppercase', color: '#6B6B6B', marginBottom: '5px', display: 'block' }}>Nueva Constancia de Situación Fiscal (PDF)</label>
+                        {constanciaNuevaPath ? (
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: 'rgba(168,181,160,0.12)', border: '1px solid rgba(168,181,160,0.4)', borderRadius: '6px' }}>
+                            <span style={{ fontSize: '13px', color: '#6A8A62' }}>✓ {constanciaNuevaNombre}</span>
+                            <button onClick={() => { setConstanciaNuevaPath(''); setConstanciaNuevaNombre('') }} style={{ background: 'none', border: 'none', color: '#A8A8A8', cursor: 'pointer', fontSize: '12px', fontFamily: 'inherit' }}>cambiar</button>
+                          </div>
+                        ) : (
+                          <label style={{ display: 'block', padding: '14px', background: '#FAFAF7', border: '1px dashed #C9A961', borderRadius: '6px', textAlign: 'center', cursor: subiendoConstancia ? 'wait' : 'pointer' }}>
+                            <span style={{ fontSize: '13px', color: '#8B7530' }}>{subiendoConstancia ? 'Subiendo…' : '📎 Subir nueva constancia (opcional)'}</span>
+                            <input type="file" accept="application/pdf" style={{ display: 'none' }} disabled={subiendoConstancia}
+                              onChange={e => { if (e.target.files?.[0]) subirConstanciaNueva(e.target.files[0]) }} />
+                          </label>
+                        )}
+                      </div>
+                      <button onClick={solicitarCambioFiscal} disabled={guardandoDatos}
+                        style={{ marginTop: '4px', padding: '12px', background: guardandoDatos ? '#A8A8A8' : '#0E0E0E', color: '#C9A961', border: 'none', borderRadius: '6px', fontSize: '13px', fontWeight: 600, cursor: guardandoDatos ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}>
+                        {guardandoDatos ? 'Enviando…' : 'Solicitar cambio fiscal'}
+                      </button>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Modal cambiar contraseña */}
       {mostrarPass && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(14,14,14,0.55)', backdropFilter: 'blur(4px)', padding: '24px' }}>
