@@ -59,6 +59,48 @@ export default function PortalInfluencerPage() {
   const [constanciaNuevaNombre, setConstanciaNuevaNombre] = useState('')
   const [subiendoConstancia, setSubiendoConstancia] = useState(false)
 
+  // Soporte / ayuda
+  const [mostrarSoporte, setMostrarSoporte] = useState(false)
+  const [catSoporte, setCatSoporte] = useState('ayuda')
+  const [msgSoporte, setMsgSoporte] = useState('')
+  const [enviandoSoporte, setEnviandoSoporte] = useState(false)
+  const [errorSoporte, setErrorSoporte] = useState('')
+  const [exitoSoporte, setExitoSoporte] = useState(false)
+
+  const CATEGORIAS_SOPORTE = [
+    { key: 'ayuda', label: 'Ayuda', emoji: '💬' },
+    { key: 'sugerencia', label: 'Sugerencia', emoji: '💡' },
+    { key: 'falla', label: 'Reporte de falla', emoji: '🐛' },
+    { key: 'otro', label: 'Otro', emoji: '✉️' },
+  ]
+
+  async function enviarSoporte() {
+    setErrorSoporte('')
+    if (msgSoporte.trim().length < 5) {
+      setErrorSoporte('Escribe un mensaje más detallado.')
+      return
+    }
+    setEnviandoSoporte(true)
+    try {
+      const res = await fetch('/api/influencer/soporte', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: user!.email, categoria: catSoporte, mensaje: msgSoporte }),
+      })
+      const d = await res.json()
+      if (!res.ok) setErrorSoporte(d.error ?? 'Error al enviar.')
+      else {
+        setExitoSoporte(true)
+        setMsgSoporte('')
+        setCatSoporte('ayuda')
+      }
+    } catch {
+      setErrorSoporte('Error de conexión.')
+    } finally {
+      setEnviandoSoporte(false)
+    }
+  }
+
   const REGIMENES = [
     { codigo: '605', desc: 'Sueldos y Salarios' },
     { codigo: '606', desc: 'Arrendamiento' },
@@ -652,6 +694,10 @@ export default function PortalInfluencerPage() {
               style={{ flex: 1, minWidth: '200px', padding: '14px 20px', background: '#fff', border: '1.5px solid #C9A961', borderRadius: '8px', color: '#8B7530', fontSize: '14px', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
               🔑 Cambiar contraseña
             </button>
+            <button onClick={() => { setMostrarSoporte(true); setExitoSoporte(false); setErrorSoporte('') }}
+              style={{ flex: 1, minWidth: '200px', padding: '14px 20px', background: '#fff', border: '1.5px solid #C9A961', borderRadius: '8px', color: '#8B7530', fontSize: '14px', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+              💬 Ayuda y soporte
+            </button>
           </div>
 
           <p style={{ textAlign: 'center', fontSize: '12px', color: '#A8A8A8', marginTop: '20px' }}>
@@ -838,6 +884,58 @@ export default function PortalInfluencerPage() {
                     </>
                   )}
                 </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal ayuda y soporte */}
+      {mostrarSoporte && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(14,14,14,0.55)', backdropFilter: 'blur(4px)', padding: '24px' }}>
+          <div style={{ background: '#fff', borderRadius: '12px', width: '100%', maxWidth: '480px', maxHeight: '90vh', overflow: 'auto' }}>
+            <div style={{ padding: '20px 24px', borderBottom: '1px solid #E8E4DA', background: '#FAFAF7', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '20px', fontWeight: 600, color: '#0E0E0E' }}>Ayuda y soporte</h2>
+              <button onClick={() => setMostrarSoporte(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#A8A8A8', fontSize: '20px' }}>✕</button>
+            </div>
+
+            <div style={{ padding: '20px 24px' }}>
+              {exitoSoporte ? (
+                <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                  <p style={{ fontSize: '36px', marginBottom: '12px' }}>✓</p>
+                  <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '18px', fontWeight: 600, color: '#0E0E0E', marginBottom: '6px' }}>¡Mensaje enviado!</p>
+                  <p style={{ fontSize: '13px', color: '#6B6B6B', lineHeight: 1.6, marginBottom: '20px' }}>Gracias por escribirnos. Te responderemos a tu correo lo antes posible.</p>
+                  <button onClick={() => setMostrarSoporte(false)}
+                    style={{ padding: '11px 24px', background: '#0E0E0E', color: '#C9A961', border: 'none', borderRadius: '6px', fontSize: '13px', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
+                    Cerrar
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <p style={{ fontSize: '13px', color: '#6B6B6B', lineHeight: 1.6, marginBottom: '18px' }}>¿Necesitas ayuda, tienes una sugerencia para mejorar el portal o encontraste una falla? Escríbenos y te respondemos a tu correo.</p>
+
+                  {errorSoporte && <div style={{ padding: '10px 14px', background: 'rgba(239,68,68,0.08)', borderRadius: '6px', marginBottom: '16px', fontSize: '13px', color: '#EF4444' }}>{errorSoporte}</div>}
+
+                  <label style={{ fontSize: '11px', letterSpacing: '0.08em', textTransform: 'uppercase', color: '#6B6B6B', marginBottom: '8px', display: 'block' }}>¿De qué se trata?</label>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px', marginBottom: '18px' }}>
+                    {CATEGORIAS_SOPORTE.map(c => (
+                      <button key={c.key} onClick={() => setCatSoporte(c.key)}
+                        style={{ padding: '11px', border: catSoporte === c.key ? '1.5px solid #C9A961' : '1px solid #E8E4DA', background: catSoporte === c.key ? 'rgba(201,169,97,0.08)' : '#fff', borderRadius: '8px', fontSize: '13px', cursor: 'pointer', fontFamily: 'inherit', color: catSoporte === c.key ? '#8B7530' : '#6B6B6B', fontWeight: catSoporte === c.key ? 600 : 400, display: 'flex', alignItems: 'center', gap: '7px', justifyContent: 'center' }}>
+                        <span>{c.emoji}</span> {c.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  <label style={{ fontSize: '11px', letterSpacing: '0.08em', textTransform: 'uppercase', color: '#6B6B6B', marginBottom: '8px', display: 'block' }}>Tu mensaje</label>
+                  <textarea value={msgSoporte} onChange={e => setMsgSoporte(e.target.value)} rows={5}
+                    placeholder="Cuéntanos con detalle…"
+                    style={{ width: '100%', padding: '12px', border: '1px solid #E8E4DA', borderRadius: '6px', fontSize: '14px', fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box', resize: 'vertical', lineHeight: 1.6 }} />
+
+                  <button onClick={enviarSoporte} disabled={enviandoSoporte}
+                    style={{ marginTop: '16px', width: '100%', padding: '13px', background: enviandoSoporte ? '#A8A8A8' : '#0E0E0E', color: '#C9A961', border: 'none', borderRadius: '6px', fontSize: '14px', fontWeight: 600, cursor: enviandoSoporte ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}>
+                    {enviandoSoporte ? 'Enviando…' : 'Enviar mensaje'}
+                  </button>
+                </>
               )}
             </div>
           </div>
