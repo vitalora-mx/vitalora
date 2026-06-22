@@ -62,14 +62,14 @@ export async function POST(request: Request) {
       'Referencia de pago': '',
     })
 
-    // Crear el libro de Excel
-    const ws = XLSX.utils.json_to_sheet(filas, { origin: 'A3' })
-
-    // Encabezado del reporte (filas 1-2)
-    XLSX.utils.sheet_add_aoa(ws, [
+    // Crear el libro de Excel: primero el encabezado, luego las filas
+    const ws = XLSX.utils.aoa_to_sheet([
       [`Reporte de ventas — ${influencer.nombre} (código ${influencer.codigo})`],
       [`Periodo: ${desde ? fmtFecha(desde + 'T12:00:00') : 'inicio'} al ${hasta ? fmtFecha(hasta + 'T12:00:00') : 'hoy'}`],
-    ], { origin: 'A1' })
+    ])
+
+    // Agregar las filas de datos a partir de la fila 3 (con sus encabezados de columna)
+    XLSX.utils.sheet_add_json(ws, filas, { origin: 'A3' })
 
     // Anchos de columna
     ws['!cols'] = [
