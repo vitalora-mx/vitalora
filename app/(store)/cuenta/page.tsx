@@ -90,7 +90,13 @@ export default function CuentaPage() {
     const res = await fetch('/api/cuenta/auth', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: authMode, ...authForm }) })
     const data = await res.json()
     if (data.error) { setAuthError(data.error); setAuthLoading(false); return }
-    useAuthStore.getState().setAuth(data.user, data.session); setAuthLoading(false)
+    useAuthStore.getState().setAuth(data.user, data.session)
+    try {
+      const resInf = await fetch('/api/influencer/es-influencer', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: data.user.email }) })
+      const infData = await resInf.json()
+      if (infData.esInfluencer) { window.location.href = '/influencer/portal'; return }
+    } catch {}
+    setAuthLoading(false)
   }
 
   async function guardarPerfil() {

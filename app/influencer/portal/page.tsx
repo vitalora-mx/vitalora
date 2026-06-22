@@ -21,6 +21,41 @@ export default function PortalInfluencerPage() {
   const [exitoPago, setExitoPago] = useState(false)
   const [copiado, setCopiado] = useState(false)
 
+  // Cambio de contraseña
+  const [mostrarPass, setMostrarPass] = useState(false)
+  const [passActual, setPassActual] = useState('')
+  const [passNueva, setPassNueva] = useState('')
+  const [passNueva2, setPassNueva2] = useState('')
+  const [cambiandoPass, setCambiandoPass] = useState(false)
+  const [errorPass, setErrorPass] = useState('')
+  const [exitoPass, setExitoPass] = useState(false)
+
+  async function cambiarPassword() {
+    setErrorPass('')
+    if (passNueva.length < 6) { setErrorPass('La nueva contraseña debe tener al menos 6 caracteres.'); return }
+    if (passNueva !== passNueva2) { setErrorPass('Las contraseñas nuevas no coinciden.'); return }
+
+    setCambiandoPass(true)
+    try {
+      const res = await fetch('/api/influencer/cambiar-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: user!.email, passwordActual: passActual, passwordNueva: passNueva }),
+      })
+      const d = await res.json()
+      if (!res.ok) {
+        setErrorPass(d.error ?? 'Error al cambiar la contraseña.')
+      } else {
+        setExitoPass(true)
+        setPassActual(''); setPassNueva(''); setPassNueva2('')
+      }
+    } catch {
+      setErrorPass('Error de conexión.')
+    } finally {
+      setCambiandoPass(false)
+    }
+  }
+
   useEffect(() => { setMounted(true) }, [])
 
   const cargar = useCallback(async () => {
@@ -140,9 +175,15 @@ export default function PortalInfluencerPage() {
         <div style={{ maxWidth: '720px', margin: '0 auto' }}>
 
           {/* Encabezado */}
-          <div style={{ marginBottom: '28px' }}>
-            <p style={{ fontSize: '11px', letterSpacing: '0.2em', textTransform: 'uppercase', color: '#C9A961', marginBottom: '6px' }}>Portal de embajadora</p>
-            <h1 style={{ fontFamily: "'Italiana', serif", fontSize: '32px', color: '#0E0E0E', lineHeight: 1 }}>Hola, {inf.nombre.split(' ')[0]}</h1>
+          <div style={{ marginBottom: '28px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div>
+              <p style={{ fontSize: '11px', letterSpacing: '0.2em', textTransform: 'uppercase', color: '#C9A961', marginBottom: '6px' }}>Portal de embajadora</p>
+              <h1 style={{ fontFamily: "'Italiana', serif", fontSize: '32px', color: '#0E0E0E', lineHeight: 1 }}>Hola, {inf.nombre.split(' ')[0]}</h1>
+            </div>
+            <button onClick={() => { useAuthStore.getState().logout(); window.location.href = '/cuenta' }}
+              style={{ padding: '8px 16px', border: '1px solid #E8E4DA', borderRadius: '6px', background: '#fff', color: '#6B6B6B', fontSize: '12px', cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}>
+              Cerrar sesión
+            </button>
           </div>
 
           {/* Alerta de saldo alto */}
@@ -275,7 +316,7 @@ export default function PortalInfluencerPage() {
           <p style={{ textAlign: 'center', fontSize: '12px', color: '#A8A8A8', marginTop: '24px' }}>
             <a href="/influencer/terminos" target="_blank" style={{ color: '#C9A961', textDecoration: 'none' }}>Términos del programa</a>
             {'  ·  '}
-            <a href="/cuenta" style={{ color: '#C9A961', textDecoration: 'none' }}>Mi cuenta</a>
+            <button onClick={() => { setMostrarPass(true); setExitoPass(false); setErrorPass('') }} style={{ background: 'none', border: 'none', color: '#C9A961', cursor: 'pointer', fontSize: '12px', fontFamily: 'inherit', padding: 0 }}>Cambiar contraseña</button>
           </p>
         </div>
       </div>
@@ -325,6 +366,53 @@ export default function PortalInfluencerPage() {
                   <button onClick={solicitarPago} disabled={enviandoPago || !facturaFile}
                     style={{ flex: 2, padding: '11px', border: 'none', borderRadius: '6px', background: (enviandoPago || !facturaFile) ? '#A8A8A8' : '#0E0E0E', color: '#C9A961', fontSize: '13px', cursor: (enviandoPago || !facturaFile) ? 'not-allowed' : 'pointer', fontFamily: 'inherit', fontWeight: 600 }}>
                     {enviandoPago ? 'Enviando…' : 'Confirmar solicitud'}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+      {/* Modal cambiar contraseña */}
+      {mostrarPass && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(14,14,14,0.55)', backdropFilter: 'blur(4px)', padding: '24px' }}>
+          <div style={{ background: '#fff', borderRadius: '12px', width: '100%', maxWidth: '420px', overflow: 'hidden' }}>
+            <div style={{ padding: '24px', borderBottom: '1px solid #E8E4DA', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '20px', fontWeight: 600, color: '#0E0E0E' }}>Cambiar contraseña</h2>
+              <button onClick={() => setMostrarPass(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#A8A8A8', fontSize: '20px' }}>✕</button>
+            </div>
+
+            {exitoPass ? (
+              <div style={{ padding: '32px 24px', textAlign: 'center' }}>
+                <div style={{ fontSize: '32px', marginBottom: '12px' }}>✓</div>
+                <p style={{ fontSize: '14px', color: '#0E0E0E', fontWeight: 600, marginBottom: '20px' }}>Contraseña actualizada</p>
+                <button onClick={() => setMostrarPass(false)} style={{ padding: '11px 28px', background: '#0E0E0E', color: '#C9A961', border: 'none', borderRadius: '6px', fontSize: '13px', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>Entendido</button>
+              </div>
+            ) : (
+              <>
+                <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                  <div>
+                    <label style={{ fontSize: '11px', letterSpacing: '0.1em', textTransform: 'uppercase', color: '#6B6B6B', marginBottom: '6px', display: 'block' }}>Contraseña actual</label>
+                    <input type="password" value={passActual} onChange={e => setPassActual(e.target.value)}
+                      style={{ width: '100%', padding: '10px 12px', border: '1px solid #E8E4DA', borderRadius: '6px', fontSize: '14px', fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }} />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '11px', letterSpacing: '0.1em', textTransform: 'uppercase', color: '#6B6B6B', marginBottom: '6px', display: 'block' }}>Nueva contraseña</label>
+                    <input type="password" value={passNueva} onChange={e => setPassNueva(e.target.value)}
+                      style={{ width: '100%', padding: '10px 12px', border: '1px solid #E8E4DA', borderRadius: '6px', fontSize: '14px', fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }} />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '11px', letterSpacing: '0.1em', textTransform: 'uppercase', color: '#6B6B6B', marginBottom: '6px', display: 'block' }}>Confirma la nueva contraseña</label>
+                    <input type="password" value={passNueva2} onChange={e => setPassNueva2(e.target.value)}
+                      style={{ width: '100%', padding: '10px 12px', border: '1px solid #E8E4DA', borderRadius: '6px', fontSize: '14px', fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }} />
+                  </div>
+                  {errorPass && <p style={{ fontSize: '12px', color: '#EF4444' }}>{errorPass}</p>}
+                </div>
+                <div style={{ padding: '0 24px 24px', display: 'flex', gap: '8px' }}>
+                  <button onClick={() => setMostrarPass(false)} style={{ flex: 1, padding: '11px', border: '1px solid #E8E4DA', borderRadius: '6px', background: '#FAFAF7', fontSize: '13px', cursor: 'pointer', color: '#6B6B6B', fontFamily: 'inherit', fontWeight: 500 }}>Cancelar</button>
+                  <button onClick={cambiarPassword} disabled={cambiandoPass}
+                    style={{ flex: 2, padding: '11px', border: 'none', borderRadius: '6px', background: cambiandoPass ? '#A8A8A8' : '#0E0E0E', color: '#C9A961', fontSize: '13px', cursor: cambiandoPass ? 'not-allowed' : 'pointer', fontFamily: 'inherit', fontWeight: 600 }}>
+                    {cambiandoPass ? 'Guardando…' : 'Cambiar contraseña'}
                   </button>
                 </div>
               </>
