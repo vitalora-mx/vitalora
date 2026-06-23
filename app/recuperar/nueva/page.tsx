@@ -6,6 +6,7 @@ import { useSearchParams } from 'next/navigation'
 function NuevaPasswordForm() {
   const searchParams = useSearchParams()
   const token = searchParams.get('token') ?? ''
+  const destino = searchParams.get('destino') ?? ''
 
   const [password, setPassword] = useState('')
   const [password2, setPassword2] = useState('')
@@ -49,7 +50,7 @@ function NuevaPasswordForm() {
         <div style={{ fontSize: '36px', marginBottom: '16px' }}>✓</div>
         <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '26px', fontWeight: 600, color: '#0E0E0E', marginBottom: '12px' }}>¡Contraseña actualizada!</h1>
         <p style={{ fontSize: '14px', color: '#6B6B6B', lineHeight: 1.7, marginBottom: '24px' }}>Ya puedes iniciar sesión con tu nueva contraseña.</p>
-        <a href="/cuenta" style={{ display: 'inline-block', padding: '12px 28px', background: '#0E0E0E', color: '#C9A961', textDecoration: 'none', borderRadius: '3px', fontSize: '13px', fontWeight: 600, letterSpacing: '0.05em' }}>Iniciar sesión</a>
+        <a href={destino === 'admin' ? "/admin" : "/cuenta"} style={{ display: 'inline-block', padding: '12px 28px', background: '#0E0E0E', color: '#C9A961', textDecoration: 'none', borderRadius: '3px', fontSize: '13px', fontWeight: 600, letterSpacing: '0.05em' }}>{destino === 'admin' ? 'Entrar al admin' : 'Iniciar sesion'}</a>
       </div>
     )
   }

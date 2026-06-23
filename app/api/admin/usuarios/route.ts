@@ -126,7 +126,7 @@ export async function POST(request: Request) {
       token,
       expira_at: expira.toISOString(),
     })
-    const enlace = `${BASE_URL}/recuperar/nueva?token=${token}`
+    const enlace = `${BASE_URL}/recuperar/nueva?token=${token}&destino=admin`
 
     // Enviar correo de invitación
     const rolLabel = rol === 'dueno' ? 'Dueño' : rol === 'gerente' ? 'Gerente' : rol === 'editor' ? 'Editor' : 'Ventas'
