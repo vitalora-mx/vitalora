@@ -158,6 +158,43 @@ function EditarProductoInner() {
     setImagenesExistentes(prev => prev.filter(img => img.id !== imgId))
   }
 
+  async function moverImagen(index: number, direccion: number) {
+    const nuevoIndex = index + direccion
+    if (nuevoIndex < 0 || nuevoIndex >= imagenesExistentes.length) return
+    const nuevoArreglo = [...imagenesExistentes]
+    const temp = nuevoArreglo[index]
+    nuevoArreglo[index] = nuevoArreglo[nuevoIndex]
+    nuevoArreglo[nuevoIndex] = temp
+    setImagenesExistentes(nuevoArreglo)
+    // Persistir el nuevo orden en Supabase
+    try {
+      await fetch('/api/admin/reordenar-imagenes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orden: nuevoArreglo.map(img => img.id) }),
+      })
+    } catch (e) {
+      console.error('Error al reordenar:', e)
+    }
+  }
+
+  async function hacerPrincipal(index: number) {
+    if (index === 0) return
+    const nuevoArreglo = [...imagenesExistentes]
+    const [elegida] = nuevoArreglo.splice(index, 1)
+    nuevoArreglo.unshift(elegida)
+    setImagenesExistentes(nuevoArreglo)
+    try {
+      await fetch('/api/admin/reordenar-imagenes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orden: nuevoArreglo.map(img => img.id) }),
+      })
+    } catch (e) {
+      console.error('Error al reordenar:', e)
+    }
+  }
+
   function generarSlug(nombre: string) {
     return nombre.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
   }
@@ -408,14 +445,26 @@ function EditarProductoInner() {
           <label style={L}>Imágenes del producto</label>
           {imagenesExistentes.length > 0 && (
             <div style={{ marginBottom: '12px' }}>
-              <p style={{ fontSize: '12px', color: '#888', marginBottom: '8px' }}>Imágenes actuales — click en ✕ para eliminar de Supabase:</p>
+              <p style={{ fontSize: '12px', color: '#888', marginBottom: '8px' }}>Imágenes actuales — usa ◀ ▶ para reordenar o ★ para hacer principal · ✕ elimina:</p>
               <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-                {imagenesExistentes.map(img => (
-                  <div key={img.id} style={{ position: 'relative' }}>
-                    <img src={img.url} alt="" style={{ width: '100px', height: '100px', objectFit: 'contain', borderRadius: '8px', border: '1px solid #DDD', background: 'white' }} />
-                    <button onClick={() => quitarImagenExistente(img.id)} style={{ position: 'absolute', top: '-6px', right: '-6px', width: '22px', height: '22px', borderRadius: '50%', background: '#F33', color: 'white', border: 'none', cursor: 'pointer', fontSize: '12px', fontWeight: 700 }}>✕</button>
-                  </div>
-                ))}
+                {imagenesExistentes.map((img, idx) => (
+                    <div key={img.id} style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+                      <div style={{ position: 'relative' }}>
+                        <img src={img.url} alt="" style={{ width: '100px', height: '100px', objectFit: 'contain', borderRadius: '8px', border: idx === 0 ? '2px solid #C9A961' : '1px solid #DDD', background: 'white' }} />
+                        <button type="button" onClick={() => quitarImagenExistente(img.id)} style={{ position: 'absolute', top: '-6px', right: '-6px', width: '22px', height: '22px', borderRadius: '50%', background: '#F33', color: 'white', border: 'none', cursor: 'pointer', fontSize: '12px', fontWeight: 700 }}>X</button>
+                        {idx === 0 && (
+                          <div style={{ position: 'absolute', bottom: '4px', left: '4px', padding: '2px 6px', background: '#C9A961', color: 'white', fontSize: '9px', borderRadius: '3px', fontWeight: 700 }}>Principal</div>
+                        )}
+                      </div>
+                      <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                        <button type="button" onClick={() => moverImagen(idx, -1)} disabled={idx === 0} title="Mover a la izquierda" style={{ width: '24px', height: '24px', borderRadius: '4px', border: '1px solid #CCC', background: idx === 0 ? '#F5F5F5' : 'white', color: idx === 0 ? '#CCC' : '#333', cursor: idx === 0 ? 'default' : 'pointer', fontSize: '12px' }}>{'<'}</button>
+                        {idx !== 0 && (
+                          <button type="button" onClick={() => hacerPrincipal(idx)} title="Hacer principal" style={{ padding: '0 8px', height: '24px', borderRadius: '4px', border: '1px solid #C9A961', background: 'white', color: '#8B7530', cursor: 'pointer', fontSize: '10px', fontWeight: 600 }}>Principal</button>
+                        )}
+                        <button type="button" onClick={() => moverImagen(idx, 1)} disabled={idx === imagenesExistentes.length - 1} title="Mover a la derecha" style={{ width: '24px', height: '24px', borderRadius: '4px', border: '1px solid #CCC', background: idx === imagenesExistentes.length - 1 ? '#F5F5F5' : 'white', color: idx === imagenesExistentes.length - 1 ? '#CCC' : '#333', cursor: idx === imagenesExistentes.length - 1 ? 'default' : 'pointer', fontSize: '12px' }}>{'>'}</button>
+                      </div>
+                    </div>
+                  ))}
               </div>
             </div>
           )}
