@@ -126,6 +126,22 @@ export default function AdminUsuariosPage() {
     setTimeout(() => setMensaje(''), 3000)
   }
 
+  async function eliminar(id: string, nombre: string) {
+    if (!yo) return
+    if (!confirm(`¿Eliminar a ${nombre} por completo? Esta acción no se puede deshacer. Si quieres darle acceso de nuevo, tendrás que enviarle una nueva invitación.`)) return
+    try {
+      const res = await fetch(`/api/admin/usuarios?solicitanteId=${yo.id}&id=${id}`, {
+        method: 'DELETE',
+      })
+      const data = await res.json()
+      if (data.error) setMensaje('Error: ' + data.error)
+      else { setMensaje('Usuario eliminado.'); cargar() }
+    } catch {
+      setMensaje('Error al eliminar.')
+    }
+    setTimeout(() => setMensaje(''), 3000)
+  }
+
   // Si no es dueño, no mostrar nada (el layout ya bloquea, esto es respaldo)
   if (yo && yo.rol !== 'dueno') {
     return (
@@ -220,6 +236,13 @@ export default function AdminUsuariosPage() {
                 {!esYo && u.rol !== 'dueno' && (
                   <button onClick={() => toggleActivo(u.id, u.activo)} style={{ padding: '6px 12px', background: u.activo ? 'white' : '#0E0E0E', color: u.activo ? '#B91C1C' : '#C9A961', border: u.activo ? '1px solid #E5B4B4' : 'none', borderRadius: '6px', fontSize: '12px', cursor: 'pointer', fontFamily: 'inherit' }}>
                     {u.activo ? 'Desactivar' : 'Reactivar'}
+                  </button>
+                )}
+
+                {/* Eliminar por completo (no para uno mismo ni para otros dueños) */}
+                {!esYo && u.rol !== 'dueno' && (
+                  <button onClick={() => eliminar(u.id, u.nombre)} title="Eliminar por completo" style={{ padding: '6px 10px', background: 'white', color: '#888', border: '1px solid #DDD', borderRadius: '6px', fontSize: '12px', cursor: 'pointer', fontFamily: 'inherit' }}>
+                    Eliminar
                   </button>
                 )}
               </div>

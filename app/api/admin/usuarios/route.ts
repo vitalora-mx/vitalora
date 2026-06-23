@@ -173,6 +173,63 @@ export async function POST(request: Request) {
   }
 }
 
+// DELETE: eliminar por completo a un usuario admin (solo dueño)
+export async function DELETE(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url)
+    const solicitanteId = searchParams.get('solicitanteId') || ''
+    const id = searchParams.get('id') || ''
+
+    if (!(await esDueno(solicitanteId))) {
+      return NextResponse.json({ error: 'Solo el Dueño puede eliminar usuarios.' }, { status: 403 })
+    }
+
+    if (!id) {
+      return NextResponse.json({ error: 'Falta el id del usuario.' }, { status: 400 })
+    }
+
+    // No permitir eliminarse a si mismo
+    if (id === solicitanteId) {
+      return NextResponse.json({ error: 'No puedes eliminar tu propia cuenta.' }, { status: 400 })
+    }
+
+    // Verificar el rol del usuario a eliminar (no permitir borrar a otro Dueño)
+    const { data: objetivo } = await supabaseAdmin
+      .from('admin_usuarios')
+      .select('rol')
+      .eq('id', id)
+      .maybeSingle()
+
+    if (objetivo?.rol === 'dueno') {
+      return NextResponse.json({ error: 'No se puede eliminar a un Dueño.' }, { status: 400 })
+    }
+
+    // 1) Quitarlo de admin_usuarios
+    const { error: errAdmin } = await supabaseAdmin
+      .from('admin_usuarios')
+      .delete()
+      .eq('id', id)
+
+    if (errAdmin) {
+      return NextResponse.json({ error: 'No se pudo eliminar de la lista de admins.' }, { status: 500 })
+    }
+
+    // 2) Eliminar su cuenta de Supabase Auth por completo
+    //    (asi, si se reinvita, recibe una invitacion nueva desde cero)
+    try {
+      await supabaseAdmin.auth.admin.deleteUser(id)
+    } catch (e) {
+      console.error('Error al eliminar usuario de Auth (no critico):', e)
+      // No bloqueamos: ya salio de admin_usuarios, que es lo que controla el acceso
+    }
+
+    return NextResponse.json({ ok: true })
+  } catch (err) {
+    console.error('Error al eliminar usuario admin:', err)
+    return NextResponse.json({ error: 'Error al eliminar usuario.' }, { status: 500 })
+  }
+}
+
 // PATCH: cambiar rol o activar/desactivar (solo dueño)
 export async function PATCH(request: Request) {
   try {
