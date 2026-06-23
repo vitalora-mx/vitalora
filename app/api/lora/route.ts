@@ -13,9 +13,15 @@ const supabase = createClient(
 
 const LIMITE_MENSAJES = 10
 
+// Cache del catalogo
 let catalogoCache: string | null = null
 let catalogoCacheTime = 0
 const CACHE_TTL = 10 * 60 * 1000
+
+// Cache de la personalidad (editable desde el admin)
+let personalidadCache: string | null = null
+let personalidadCacheTime = 0
+const PERSONALIDAD_TTL = 2 * 60 * 1000
 
 async function obtenerCatalogo(): Promise<string> {
   const ahora = Date.now()
@@ -34,15 +40,14 @@ async function obtenerCatalogo(): Promise<string> {
     .order('nombre')
 
   if (error) {
-    console.error('Error al obtener catálogo:', error)
-    return 'Catálogo no disponible en este momento.'
+    console.error('Error al obtener catalogo:', error)
+    return 'Catalogo no disponible en este momento.'
   }
 
   if (!productos || productos.length === 0) {
-    return 'Catálogo no disponible en este momento.'
+    return 'Catalogo no disponible en este momento.'
   }
 
-  // Calcular stock total y ordenar de mayor a menor inventario
   const conStock = productos.map(p => {
     const stockTotal = p.producto_variantes?.length > 0
       ? p.producto_variantes.reduce((a: number, v: { stock: number }) => a + (v.stock ?? 0), 0)
@@ -60,10 +65,10 @@ async function obtenerCatalogo(): Promise<string> {
       ? ` | Beneficios: ${p.beneficios.join(', ')}`
       : ''
     const ingredientes = p.ingredientes ? ` | Ingredientes: ${p.ingredientes}` : ''
-    const comoUsar = p.como_usar ? ` | Cómo usar: ${p.como_usar}` : ''
-    const comoTomar = p.como_tomar ? ` | Cómo tomar: ${p.como_tomar}` : ''
-    const paraQuien = p.para_quien ? ` | Para quién: ${p.para_quien}` : ''
-    const descripcion = p.descripcion ? ` | Descripción: ${p.descripcion}` : ''
+    const comoUsar = p.como_usar ? ` | Como usar: ${p.como_usar}` : ''
+    const comoTomar = p.como_tomar ? ` | Como tomar: ${p.como_tomar}` : ''
+    const paraQuien = p.para_quien ? ` | Para quien: ${p.para_quien}` : ''
+    const descripcion = p.descripcion ? ` | Descripcion: ${p.descripcion}` : ''
     const disponibilidad = p.stockTotal > 0 ? `EN STOCK (${p.stockTotal} uds.)` : 'AGOTADO'
     const precio = `$${p.precio?.toLocaleString('es-MX')} MXN`
     const ruta = p.tipo === 'cosmetico' ? 'cosmeticos' : 'suplementos'
@@ -77,7 +82,8 @@ async function obtenerCatalogo(): Promise<string> {
   return catalogoCache
 }
 
-const SISTEMA = (catalogo: string) => `Eres Lora, la asesora de belleza y bienestar de Vitalora, una tienda mexicana especializada en cosméticos K-Beauty y suplementos naturales de alta calidad.
+// Personalidad por defecto (respaldo si la tabla lora_config falla o esta vacia)
+const PERSONALIDAD_DEFAULT = `Eres Lora, la asesora de belleza y bienestar de Vitalora, una tienda mexicana especializada en cosméticos K-Beauty y suplementos naturales de alta calidad.
 
 Tu personalidad:
 - Cálida, experta y cercana — como una amiga que sabe mucho de skincare
@@ -115,7 +121,32 @@ Reglas importantes:
 
 AVISO MÉDICO OBLIGATORIO:
 Siempre que hagas una recomendación de producto, rutina o suplemento, termina tu mensaje con una nota breve en cursiva como esta (puedes variar la redacción):
-_Recuerda: soy tu asesora de belleza, no un sustituto de un dermatólogo o médico. Te recomiendo hacer una prueba de parche antes de usar un producto nuevo, y si tienes una condición de piel persistente, alergias o tomas medicamentos, consulta a un profesional de salud._
+_Recuerda: soy tu asesora de belleza, no un sustituto de un dermatólogo o médico. Te recomiendo hacer una prueba de parche antes de usar un producto nuevo, y si tienes una condición de piel persistente, alergias o tomas medicamentos, consulta a un profesional de salud._`
+
+async function obtenerPersonalidad(): Promise<string> {
+  const ahora = Date.now()
+  if (personalidadCache && ahora - personalidadCacheTime < PERSONALIDAD_TTL) {
+    return personalidadCache
+  }
+  try {
+    const { data } = await supabase
+      .from('lora_config')
+      .select('personalidad')
+      .eq('id', 1)
+      .single()
+    if (data?.personalidad) {
+      personalidadCache = data.personalidad
+      personalidadCacheTime = ahora
+      return data.personalidad
+    }
+  } catch (e) {
+    console.error('Error al obtener personalidad de LORA:', e)
+  }
+  return PERSONALIDAD_DEFAULT
+}
+
+// Arma el system prompt final: personalidad (editable) + catalogo (dinamico)
+const SISTEMA = (personalidad: string, catalogo: string) => `${personalidad}
 
 CATÁLOGO ACTUAL DE VITALORA (productos reales, ordenados de mayor a menor inventario):
 ${catalogo}
@@ -139,11 +170,12 @@ export async function POST(request: Request) {
     }
 
     const catalogo = await obtenerCatalogo()
+    const personalidad = await obtenerPersonalidad()
 
     const response = await anthropic.messages.create({
       model: 'claude-haiku-4-5',
       max_tokens: 1024,
-      system: SISTEMA(catalogo),
+      system: SISTEMA(personalidad, catalogo),
       messages: messages.map((m: { role: string; content: string }) => ({
         role: m.role as 'user' | 'assistant',
         content: m.content,

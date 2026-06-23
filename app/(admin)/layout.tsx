@@ -54,6 +54,12 @@ const SECCIONES: { label: string; items: NavItem[] }[] = [
       { label: 'Reportes', href: '/admin/reportes', icon: ICON('<line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>') },
     ],
   },
+  {
+    label: 'Asistente',
+    items: [
+      { label: 'Lora', href: '/admin/lora', icon: ICON('<path d="M12 8V4H8"/><rect x="4" y="8" width="16" height="12" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/>') },
+    ],
+  },
 ]
 
 function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
