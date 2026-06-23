@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
+import { puedeVer, ROL_LABEL, type RolAdmin } from '@/lib/admin-permisos'
 
 const ICON = (path: string) => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" dangerouslySetInnerHTML={{ __html: path }} />
@@ -60,9 +61,22 @@ const SECCIONES: { label: string; items: NavItem[] }[] = [
       { label: 'Lora', href: '/admin/lora', icon: ICON('<path d="M12 8V4H8"/><rect x="4" y="8" width="16" height="12" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/>') },
     ],
   },
+  {
+    label: 'Administración',
+    items: [
+      { label: 'Usuarios', href: '/admin/usuarios', icon: ICON('<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/>') },
+    ],
+  },
 ]
 
-function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
+interface AdminUser {
+  id: string
+  email: string
+  nombre: string
+  rol: RolAdmin
+}
+
+function Sidebar({ usuario, onNavigate, onLogout }: { usuario: AdminUser; onNavigate?: () => void; onLogout: () => void }) {
   const pathname = usePathname()
   const [badges, setBadges] = useState<{ pedidos: number; resenas: number; facturas: number }>({ pedidos: 0, resenas: 0, facturas: 0 })
 
@@ -80,12 +94,20 @@ function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
     return pathname.startsWith(href)
   }
 
+  // Filtrar secciones segun el rol del usuario
+  const seccionesVisibles = SECCIONES
+    .map(sec => ({
+      ...sec,
+      items: sec.items.filter(item => puedeVer(usuario.rol, item.href)),
+    }))
+    .filter(sec => sec.items.length > 0)
+
   return (
     <aside style={{ background: '#0E0E0E', color: 'rgba(245,240,232,0.7)', padding: '24px 0', width: '240px', minHeight: '100vh', display: 'flex', flexDirection: 'column', position: 'sticky', top: 0, height: '100vh', overflowY: 'auto', flexShrink: 0 }}>
       <div style={{ fontFamily: "'Italiana', serif", fontSize: '24px', letterSpacing: '0.2em', color: '#F5F0E8', textAlign: 'center', padding: '0 24px 24px', borderBottom: '1px solid rgba(245,240,232,0.1)', marginBottom: '16px' }}>VITALORA</div>
 
       <div style={{ flex: 1 }}>
-        {SECCIONES.map(sec => (
+        {seccionesVisibles.map(sec => (
           <div key={sec.label} style={{ padding: '12px 0' }}>
             <div style={{ fontSize: '10px', letterSpacing: '0.2em', textTransform: 'uppercase', color: 'rgba(245,240,232,0.4)', padding: '0 24px', marginBottom: '8px' }}>{sec.label}</div>
             {sec.items.map(item => {
@@ -110,38 +132,77 @@ function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
           Ver tienda
         </Link>
         <div style={{ padding: '16px 24px', borderTop: '1px solid rgba(245,240,232,0.1)', display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'linear-gradient(135deg, #C9A961, #D9BE7B)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Italiana', serif", color: '#0E0E0E', fontSize: '14px', flexShrink: 0 }}>V</div>
-          <div>
-            <div style={{ fontSize: '13px', color: '#F5F0E8', fontWeight: 500 }}>Vitalora MX</div>
-            <div style={{ fontSize: '11px', color: 'rgba(245,240,232,0.4)' }}>Administradora</div>
+          <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'linear-gradient(135deg, #C9A961, #D9BE7B)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Italiana', serif", color: '#0E0E0E', fontSize: '14px', flexShrink: 0 }}>{usuario.nombre.charAt(0).toUpperCase()}</div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: '13px', color: '#F5F0E8', fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{usuario.nombre}</div>
+            <div style={{ fontSize: '11px', color: 'rgba(245,240,232,0.4)' }}>{ROL_LABEL[usuario.rol]}</div>
           </div>
         </div>
+        <button onClick={onLogout} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 24px', width: '100%', background: 'none', border: 'none', color: 'rgba(245,240,232,0.5)', cursor: 'pointer', fontSize: '12px', fontFamily: 'inherit', textAlign: 'left' }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          Cerrar sesión
+        </button>
       </div>
     </aside>
   )
 }
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  const [autenticado, setAutenticado] = useState(false)
+  const pathname = usePathname()
+  const [usuario, setUsuario] = useState<AdminUser | null>(null)
+  const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [checking, setChecking] = useState(true)
+  const [entrando, setEntrando] = useState(false)
   const [menuAbierto, setMenuAbierto] = useState(false)
 
+  // Al cargar, revalidar la sesion guardada contra el servidor
   useEffect(() => {
-    const saved = localStorage.getItem('vitalora-admin')
-    if (saved === 'true') setAutenticado(true)
-    setChecking(false)
+    const guardado = localStorage.getItem('vitalora-admin-user')
+    if (!guardado) { setChecking(false); return }
+    try {
+      const u = JSON.parse(guardado) as AdminUser
+      fetch(`/api/admin/auth?id=${u.id}`)
+        .then(r => r.json())
+        .then(d => {
+          if (d.valido) setUsuario(d.usuario)
+          else localStorage.removeItem('vitalora-admin-user')
+        })
+        .catch(() => {})
+        .finally(() => setChecking(false))
+    } catch {
+      localStorage.removeItem('vitalora-admin-user')
+      setChecking(false)
+    }
   }, [])
 
-  function handleLogin() {
-    if (password === process.env.NEXT_PUBLIC_ADMIN_PASSWORD) {
-      localStorage.setItem('vitalora-admin', 'true')
-      setAutenticado(true)
-      setError('')
-    } else {
-      setError('Contraseña incorrecta')
+  async function handleLogin() {
+    setEntrando(true)
+    setError('')
+    try {
+      const res = await fetch('/api/admin/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      })
+      const data = await res.json()
+      if (data.error) {
+        setError(data.error)
+      } else {
+        localStorage.setItem('vitalora-admin-user', JSON.stringify(data.usuario))
+        setUsuario(data.usuario)
+        setPassword('')
+      }
+    } catch {
+      setError('Error al iniciar sesión. Intenta de nuevo.')
     }
+    setEntrando(false)
+  }
+
+  function handleLogout() {
+    localStorage.removeItem('vitalora-admin-user')
+    setUsuario(null)
   }
 
   function handleKeyDown(e: React.KeyboardEvent) {
@@ -150,20 +211,26 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   if (checking) return null
 
-  if (!autenticado) {
+  // Pantalla de login
+  if (!usuario) {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F5F0E8', fontFamily: 'system-ui, sans-serif' }}>
         <div style={{ background: 'white', padding: '48px', borderRadius: '12px', border: '1px solid #E5E5E5', boxShadow: '0 4px 20px rgba(0,0,0,0.08)', maxWidth: '400px', width: '100%', textAlign: 'center' }}>
-          <img src="/images/logo/logo-header.png" alt="Vitalora" style={{ height: '40px', width: 'auto', display: 'block', marginBottom: '8px' }} />
+          <img src="/images/logo/logo-header.png" alt="Vitalora" style={{ height: '40px', width: 'auto', display: 'block', marginBottom: '8px', marginLeft: 'auto', marginRight: 'auto' }} />
           <div style={{ fontSize: '10px', letterSpacing: '0.3em', color: '#C9A961', marginBottom: '32px' }}>PANEL DE ADMINISTRACIÓN</div>
+          <input type="email" value={email} onChange={e => setEmail(e.target.value)} onKeyDown={handleKeyDown} placeholder="Correo electrónico"
+            style={{ width: '100%', padding: '14px 16px', border: '1px solid #DDD', borderRadius: '8px', fontSize: '14px', fontFamily: 'inherit', outline: 'none', marginBottom: '12px', boxSizing: 'border-box', textAlign: 'center' }} autoFocus />
           <input type="password" value={password} onChange={e => setPassword(e.target.value)} onKeyDown={handleKeyDown} placeholder="Contraseña"
-            style={{ width: '100%', padding: '14px 16px', border: '1px solid #DDD', borderRadius: '8px', fontSize: '14px', fontFamily: 'inherit', outline: 'none', marginBottom: '16px', boxSizing: 'border-box', textAlign: 'center' }} autoFocus />
+            style={{ width: '100%', padding: '14px 16px', border: '1px solid #DDD', borderRadius: '8px', fontSize: '14px', fontFamily: 'inherit', outline: 'none', marginBottom: '16px', boxSizing: 'border-box', textAlign: 'center' }} />
           {error && <p style={{ fontSize: '13px', color: '#D33', marginBottom: '12px' }}>{error}</p>}
-          <button onClick={handleLogin} style={{ width: '100%', padding: '14px', background: '#111', color: 'white', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>Entrar</button>
+          <button onClick={handleLogin} disabled={entrando} style={{ width: '100%', padding: '14px', background: entrando ? '#999' : '#111', color: 'white', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: 600, cursor: entrando ? 'default' : 'pointer', fontFamily: 'inherit' }}>{entrando ? 'Entrando…' : 'Entrar'}</button>
         </div>
       </div>
     )
   }
+
+  // Proteccion: si el usuario no puede ver la ruta actual, bloquear
+  const tieneAcceso = puedeVer(usuario.rol, pathname)
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: '#FAFAF7' }}>
@@ -179,7 +246,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         }
       `}</style>
 
-      <div className="admin-sidebar-desktop"><Sidebar /></div>
+      <div className="admin-sidebar-desktop"><Sidebar usuario={usuario} onLogout={handleLogout} /></div>
 
       <div className="admin-mobile-bar" style={{ display: 'none', position: 'fixed', top: 0, left: 0, right: 0, height: '56px', background: '#0E0E0E', zIndex: 100, alignItems: 'center', justifyContent: 'space-between', padding: '0 16px' }}>
         <span style={{ fontFamily: "'Italiana', serif", fontSize: '20px', letterSpacing: '0.2em', color: '#F5F0E8' }}>VITALORA</span>
@@ -190,12 +257,19 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
       {menuAbierto && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 99, background: 'rgba(0,0,0,0.5)' }} onClick={() => setMenuAbierto(false)}>
-          <div onClick={e => e.stopPropagation()} style={{ marginTop: '56px' }}><Sidebar onNavigate={() => setMenuAbierto(false)} /></div>
+          <div onClick={e => e.stopPropagation()} style={{ marginTop: '56px' }}><Sidebar usuario={usuario} onNavigate={() => setMenuAbierto(false)} onLogout={handleLogout} /></div>
         </div>
       )}
 
       <div style={{ flex: 1, minWidth: 0 }} className="admin-content-wrap">
-        {children}
+        {tieneAcceso ? children : (
+          <div style={{ padding: '60px 32px', textAlign: 'center', fontFamily: 'system-ui, sans-serif' }}>
+            <div style={{ fontSize: '48px', marginBottom: '16px' }}>🔒</div>
+            <h2 style={{ fontSize: '22px', color: '#0E0E0E', marginBottom: '8px' }}>Acceso restringido</h2>
+            <p style={{ fontSize: '14px', color: '#6B6B6B' }}>Tu rol ({ROL_LABEL[usuario.rol]}) no tiene permiso para ver esta sección.</p>
+            <Link href="/admin" style={{ display: 'inline-block', marginTop: '20px', padding: '12px 24px', background: '#0E0E0E', color: '#C9A961', textDecoration: 'none', borderRadius: '6px', fontSize: '13px' }}>Volver al inicio</Link>
+          </div>
+        )}
       </div>
     </div>
   )
