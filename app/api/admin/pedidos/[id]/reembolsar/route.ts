@@ -23,7 +23,7 @@ export async function POST(
     // 1. Buscar el pedido y su mp_payment_id
     const { data: pedido, error: pedidoError } = await supabaseAdmin
       .from('pedidos')
-      .select('id, estado, mp_payment_id, total')
+      .select('id, estado, mp_payment_id, total, monto_reembolsado')
       .eq('id', id)
       .single()
 
@@ -35,8 +35,8 @@ export async function POST(
       return NextResponse.json({ error: 'Este pedido no tiene un pago de Mercado Pago asociado.' }, { status: 400 })
     }
 
-    if (pedido.estado !== 'pagado') {
-      return NextResponse.json({ error: `Solo se pueden reembolsar pedidos pagados. Estado actual: ${pedido.estado}.` }, { status: 400 })
+    if (pedido.estado !== 'pagado' && pedido.estado !== 'reembolso_parcial') {
+      return NextResponse.json({ error: `Solo se pueden reembolsar pedidos pagados o con reembolso parcial. Estado actual: ${pedido.estado}.` }, { status: 400 })
     }
 
     // 2. Leer monto opcional del body (reembolso parcial)
@@ -50,9 +50,10 @@ export async function POST(
       // sin body -> reembolso total
     }
 
-    // Validar que el parcial no exceda el total del pedido
-    if (monto !== null && monto > (pedido.total || 0)) {
-      return NextResponse.json({ error: `El monto a reembolsar ($${monto}) no puede ser mayor al total del pedido ($${pedido.total}).` }, { status: 400 })
+    // Validar que el parcial no exceda el SALDO restante (total - lo ya reembolsado)
+    const saldoRestante = (pedido.total || 0) - (pedido.monto_reembolsado || 0)
+    if (monto !== null && monto > saldoRestante) {
+      return NextResponse.json({ error: `El monto a reembolsar ($${monto}) no puede ser mayor al saldo restante ($${saldoRestante}).` }, { status: 400 })
     }
 
     // 3. Llamar a la API de reembolsos de Mercado Pago
@@ -80,15 +81,37 @@ export async function POST(
       return NextResponse.json({ error: msg, detalle: mpData }, { status: mpRes.status })
     }
 
-    // 4. Exito. El webhook de MP se encargara de devolver stock y marcar 'reembolsado'.
-    // Para reembolsos parciales el pedido puede quedar 'pagado' en MP; igual avisamos al admin.
+    // 4. Registrar el reembolso en la base de datos (total acumulado).
+    const yaReembolsado = pedido.monto_reembolsado || 0
+    const montoEsteReembolso = monto !== null ? monto : (pedido.total || 0)
+    const nuevoAcumulado = yaReembolsado + montoEsteReembolso
+
+    if (monto !== null) {
+      // Reembolso PARCIAL: el webhook de MP no se dispara (el pago sigue approved).
+      // Guardamos el acumulado y marcamos el pedido como 'reembolso_parcial'.
+      // Si el acumulado ya cubre el total, lo marcamos como 'reembolsado'.
+      const nuevoEstado = nuevoAcumulado >= (pedido.total || 0) ? 'reembolsado' : 'reembolso_parcial'
+      await supabaseAdmin
+        .from('pedidos')
+        .update({ monto_reembolsado: nuevoAcumulado, estado: nuevoEstado })
+        .eq('id', pedido.id)
+    } else {
+      // Reembolso TOTAL: el webhook de MP marcara 'reembolsado' y devolvera stock.
+      // Aqui solo registramos el monto acumulado para el reporte.
+      await supabaseAdmin
+        .from('pedidos')
+        .update({ monto_reembolsado: nuevoAcumulado })
+        .eq('id', pedido.id)
+    }
+
     return NextResponse.json({
       success: true,
       tipo: monto !== null ? 'parcial' : 'total',
-      monto: monto ?? pedido.total,
+      monto: montoEsteReembolso,
+      total_reembolsado: nuevoAcumulado,
       refund_id: mpData?.id || null,
       mensaje: monto !== null
-        ? `Reembolso parcial de $${monto} procesado correctamente.`
+        ? `Reembolso parcial de $${montoEsteReembolso} procesado. Total reembolsado: $${nuevoAcumulado} de $${pedido.total}.`
         : 'Reembolso total procesado correctamente. El inventario se actualizara automaticamente.',
     })
   } catch (error) {

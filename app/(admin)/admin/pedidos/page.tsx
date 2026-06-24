@@ -27,6 +27,7 @@ const ESTADOS = [
   { value: 'enviado',      label: 'Enviado',      color: '#6A8A62', bg: 'rgba(106,138,98,0.1)' },
   { value: 'entregado',    label: 'Entregado',    color: '#3A8A3A', bg: 'rgba(58,138,58,0.1)'  },
   { value: 'cancelado',    label: 'Cancelado',    color: '#EF4444', bg: 'rgba(239,68,68,0.1)'  },
+  { value: 'reembolso_parcial', label: 'Reembolso parcial', color: '#E08A2B', bg: 'rgba(224,138,43,0.1)' },
   { value: 'reembolsado',  label: 'Reembolsado',  color: '#A8A8A8', bg: 'rgba(168,168,168,0.1)'},
 ]
 

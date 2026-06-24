@@ -31,6 +31,7 @@ interface Pedido {
   subtotal: number
   costo_envio: number
   total: number
+  monto_reembolsado: number | null
   numero_guia: string | null
   factura_url: string | null
   factura_rfc: string | null
@@ -54,6 +55,7 @@ const ESTADOS = [
   { value: 'enviado',     label: 'Enviado',      color: '#6A8A62' },
   { value: 'entregado',   label: 'Entregado',    color: '#3A8A3A' },
   { value: 'cancelado',   label: 'Cancelado',    color: '#EF4444' },
+  { value: 'reembolso_parcial', label: 'Reembolso parcial', color: '#E08A2B' },
   { value: 'reembolsado', label: 'Reembolsado',  color: '#A8A8A8' },
 ]
 
@@ -414,13 +416,16 @@ export default function PedidoDetallePage() {
               </div>
             </div>
 
-            {/* Reembolso (solo si esta pagado) */}
-            {pedido.estado === 'pagado' && (
+            {/* Reembolso (si esta pagado o con reembolso parcial) */}
+            {(pedido.estado === 'pagado' || pedido.estado === 'reembolso_parcial') && (
               <div style={{ background: '#fff', border: '1px solid #E8E4DA', borderRadius: '8px', overflow: 'hidden' }}>
                 <div style={{ padding: '14px 18px', borderBottom: '1px solid #E8E4DA', background: '#FAFAF7' }}>
                   <p style={{ fontSize: '10px', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#6B6B6B', fontWeight: 600 }}>Reembolso</p>
                 </div>
                 <div style={{ padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  {(pedido.monto_reembolsado ?? 0) > 0 && (
+                    <p style={{ fontSize: '11px', color: '#E08A2B', fontWeight: 600 }}>Reembolsado: ${pedido.monto_reembolsado} de ${pedido.total}</p>
+                  )}
                   {!mostrarReembolso ? (
                     <button onClick={() => setMostrarReembolso(true)}
                       style={{ width: '100%', padding: '10px 16px', border: '1px solid rgba(239,68,68,0.3)', background: 'rgba(239,68,68,0.06)', color: '#EF4444', borderRadius: '6px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', fontWeight: 600 }}>
