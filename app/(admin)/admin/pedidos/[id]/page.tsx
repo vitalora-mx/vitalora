@@ -89,6 +89,10 @@ export default function PedidoDetallePage() {
   const [mensaje, setMensaje] = useState('')
   const [guiaInput, setGuiaInput] = useState('')
   const [mostrarGuiaInput, setMostrarGuiaInput] = useState(false)
+  const [reembolsando, setReembolsando] = useState(false)
+  const [mostrarReembolso, setMostrarReembolso] = useState(false)
+  const [tipoReembolso, setTipoReembolso] = useState<'total' | 'parcial'>('total')
+  const [montoReembolso, setMontoReembolso] = useState('')
 
   const cargar = useCallback(async () => {
     setCargando(true)
@@ -153,6 +157,44 @@ export default function PedidoDetallePage() {
       mostrarMsg('Factura subida correctamente')
       cargar()
     }
+  }
+
+  async function reembolsar() {
+    if (!pedido) return
+    // Confirmacion doble: el reembolso mueve dinero real y es irreversible.
+    const esParcial = tipoReembolso === 'parcial'
+    let monto: number | null = null
+    if (esParcial) {
+      monto = parseFloat(montoReembolso)
+      if (!monto || monto <= 0) { mostrarMsg('Ingresa un monto valido para el reembolso parcial.'); return }
+      if (monto > pedido.total) { mostrarMsg('El monto no puede ser mayor al total del pedido.'); return }
+    }
+    const texto = esParcial
+      ? `Vas a reembolsar $${monto} al cliente. El inventario NO se ajusta solo en parciales: hazlo tu si aplica. Esta accion es irreversible. Continuar?`
+      : `Vas a reembolsar el TOTAL ($${pedido.total}) al cliente. El inventario se devolvera automaticamente. Esta accion es irreversible. Continuar?`
+    if (!window.confirm(texto)) return
+
+    setReembolsando(true)
+    try {
+      const res = await fetch(`/api/admin/pedidos/${params.id}/reembolsar`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: esParcial ? JSON.stringify({ monto }) : JSON.stringify({}),
+      })
+      const data = await res.json()
+      if (res.ok && data.success) {
+        mostrarMsg(data.mensaje || 'Reembolso procesado.')
+        setMostrarReembolso(false)
+        setMontoReembolso('')
+        // Esperar un momento a que MP dispare el webhook y refrescar
+        setTimeout(() => cargar(), 2500)
+      } else {
+        mostrarMsg(data.error || 'No se pudo procesar el reembolso.')
+      }
+    } catch {
+      mostrarMsg('Error de conexion al procesar el reembolso.')
+    }
+    setReembolsando(false)
   }
 
   if (cargando) return (
@@ -371,6 +413,56 @@ export default function PedidoDetallePage() {
                 )}
               </div>
             </div>
+
+            {/* Reembolso (solo si esta pagado) */}
+            {pedido.estado === 'pagado' && (
+              <div style={{ background: '#fff', border: '1px solid #E8E4DA', borderRadius: '8px', overflow: 'hidden' }}>
+                <div style={{ padding: '14px 18px', borderBottom: '1px solid #E8E4DA', background: '#FAFAF7' }}>
+                  <p style={{ fontSize: '10px', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#6B6B6B', fontWeight: 600 }}>Reembolso</p>
+                </div>
+                <div style={{ padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  {!mostrarReembolso ? (
+                    <button onClick={() => setMostrarReembolso(true)}
+                      style={{ width: '100%', padding: '10px 16px', border: '1px solid rgba(239,68,68,0.3)', background: 'rgba(239,68,68,0.06)', color: '#EF4444', borderRadius: '6px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', fontWeight: 600 }}>
+                      Reembolsar pedido
+                    </button>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <button onClick={() => setTipoReembolso('total')}
+                          style={{ flex: 1, padding: '8px', borderRadius: '5px', border: tipoReembolso === 'total' ? '1px solid #EF4444' : '1px solid #E8E4DA', background: tipoReembolso === 'total' ? 'rgba(239,68,68,0.06)' : '#FAFAF7', color: tipoReembolso === 'total' ? '#EF4444' : '#6B6B6B', fontSize: '12px', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600 }}>
+                          Total
+                        </button>
+                        <button onClick={() => setTipoReembolso('parcial')}
+                          style={{ flex: 1, padding: '8px', borderRadius: '5px', border: tipoReembolso === 'parcial' ? '1px solid #EF4444' : '1px solid #E8E4DA', background: tipoReembolso === 'parcial' ? 'rgba(239,68,68,0.06)' : '#FAFAF7', color: tipoReembolso === 'parcial' ? '#EF4444' : '#6B6B6B', fontSize: '12px', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600 }}>
+                          Parcial
+                        </button>
+                      </div>
+                      {tipoReembolso === 'total' ? (
+                        <p style={{ fontSize: '11px', color: '#6B6B6B', lineHeight: 1.5 }}>Se reembolsaran <strong>${pedido.total}</strong> y el inventario se devolvera automaticamente.</p>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                          <p style={{ fontSize: '11px', color: '#6B6B6B', lineHeight: 1.5 }}>Monto a reembolsar (max ${pedido.total}). El inventario NO se ajusta solo.</p>
+                          <input type="number" placeholder="Ej. 99" value={montoReembolso}
+                            onChange={e => setMontoReembolso(e.target.value)}
+                            style={{ width: '100%', padding: '8px 10px', border: '1px solid #E8E4DA', borderRadius: '5px', fontSize: '13px', fontFamily: 'inherit', boxSizing: 'border-box' }} />
+                        </div>
+                      )}
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <button onClick={() => { setMostrarReembolso(false); setMontoReembolso('') }} disabled={reembolsando}
+                          style={{ flex: 1, padding: '9px', border: '1px solid #E8E4DA', borderRadius: '5px', background: '#FAFAF7', fontSize: '12px', cursor: 'pointer', fontFamily: 'inherit', color: '#6B6B6B' }}>
+                          Cancelar
+                        </button>
+                        <button onClick={reembolsar} disabled={reembolsando}
+                          style={{ flex: 1, padding: '9px', border: 'none', borderRadius: '5px', background: reembolsando ? '#E8E4DA' : '#EF4444', color: reembolsando ? '#A8A8A8' : '#fff', fontSize: '12px', cursor: reembolsando ? 'not-allowed' : 'pointer', fontFamily: 'inherit', fontWeight: 600 }}>
+                          {reembolsando ? 'Procesando...' : 'Confirmar reembolso'}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Guía MP */}
             <div style={{ background: '#fff', border: '1px solid #E8E4DA', borderRadius: '8px', overflow: 'hidden' }}>
