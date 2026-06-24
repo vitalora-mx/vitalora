@@ -5,6 +5,7 @@ import Header from '@/components/store/Header'
 import Footer from '@/components/store/Footer'
 import LoraChat from '@/components/store/LoraChat'
 import { useIsMobile } from '@/hooks/useIsMobile'
+import { formatearNumeroPedido } from '@/lib/utils'
 
 interface Regimen { codigo: string; descripcion: string }
 
@@ -142,7 +143,7 @@ export default function FacturacionPage() {
                 <h3 style={{ fontFamily: 'var(--font-cormorant), serif', fontSize: '20px', color: 'var(--black)', marginBottom: '20px' }}>Paso 1: Identifica tu compra</h3>
                 <div style={{ marginBottom: '20px' }}>
                   <label style={labelStyle}>Número de pedido *</label>
-                  <input value={pedidoId} onChange={e => setPedidoId(e.target.value)} placeholder="Ej: 1234 (lo encuentras en tu correo de confirmación)" style={inputStyle} />
+                  <input value={pedidoId} onChange={e => setPedidoId(e.target.value)} placeholder="Ej: VIT-10002 (lo encuentras en tu correo de confirmación)" style={inputStyle} />
                 </div>
                 <div style={{ marginBottom: '24px' }}>
                   <label style={labelStyle}>Correo de la compra *</label>
@@ -162,7 +163,7 @@ export default function FacturacionPage() {
               <>
                 <h3 style={{ fontFamily: 'var(--font-cormorant), serif', fontSize: '20px', color: 'var(--black)', marginBottom: '8px' }}>Paso 2: Tus datos fiscales</h3>
                 <div style={{ marginBottom: '24px', padding: '14px 16px', background: '#F9F9F5', borderRadius: '8px', border: '1px solid #E5E5D5', fontSize: '13px', color: '#555', lineHeight: 1.7 }}>
-                  <strong>Pedido #{pedidoInfo.id}</strong> · Total ${Number(pedidoInfo.total).toLocaleString()} MXN<br />
+                  <strong>Pedido {formatearNumeroPedido(pedidoInfo.id)}</strong> · Total ${Number(pedidoInfo.total).toLocaleString()} MXN<br />
                   Forma de pago: <strong>{pedidoInfo.forma_pago}</strong>
                 </div>
 

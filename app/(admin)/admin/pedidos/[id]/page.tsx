@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { formatearNumeroPedido } from '@/lib/utils'
 
 interface PedidoItem {
   nombre: string
@@ -243,7 +244,7 @@ export default function PedidoDetallePage() {
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '24px', fontSize: '12px', color: '#A8A8A8' }}>
           <Link href="/admin/pedidos" style={{ color: '#A8A8A8', textDecoration: 'none' }}>← Pedidos</Link>
           <span>/</span>
-          <span style={{ color: '#0E0E0E', fontWeight: 500 }}>#{String(pedido.id).slice(-6).toUpperCase()}</span>
+          <span style={{ color: '#0E0E0E', fontWeight: 500 }}>{formatearNumeroPedido(pedido.id)}</span>
         </div>
 
         {/* ── Encabezado ── */}
@@ -251,7 +252,7 @@ export default function PedidoDetallePage() {
           <div>
             <p style={{ fontSize: '11px', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#6B6B6B', marginBottom: '4px' }}>Operación · Pedidos</p>
             <h1 style={{ fontFamily: "'Italiana', serif", fontSize: '32px', letterSpacing: '0.02em', color: '#0E0E0E', lineHeight: 1 }}>
-              Pedido <em style={{ fontFamily: "'Cormorant Garamond', serif", fontStyle: 'italic', color: '#C9A961' }}>#{String(pedido.id).slice(-6).toUpperCase()}</em>
+              Pedido <em style={{ fontFamily: "'Cormorant Garamond', serif", fontStyle: 'italic', color: '#C9A961' }}>{formatearNumeroPedido(pedido.id)}</em>
             </h1>
             <p style={{ fontSize: '12px', color: '#A8A8A8', marginTop: '6px' }}>
               {new Date(pedido.created_at).toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}

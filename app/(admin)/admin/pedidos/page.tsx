@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
+import { formatearNumeroPedido } from '@/lib/utils'
 
 interface Pedido {
   id: string
@@ -243,7 +244,7 @@ export default function PedidosPage() {
 
                       {/* Pedido */}
                       <td style={{ padding: '14px 16px', verticalAlign: 'middle' }}>
-                        <p style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: '15px', color: '#0E0E0E', lineHeight: 1 }}>#{String(p.id).slice(-6).toUpperCase()}</p>
+                        <p style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: '15px', color: '#0E0E0E', lineHeight: 1 }}>{formatearNumeroPedido(p.id)}</p>
                         <p style={{ fontSize: '11px', color: '#A8A8A8', marginTop: '3px' }}>{fechaCorta(p.created_at)}</p>
                       </td>
 

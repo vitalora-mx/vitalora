@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useAuthStore } from '@/store/authStore'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import FormularioResena from '@/components/store/producto/FormularioResena'
+import { formatearNumeroPedido } from '@/lib/utils'
 
 interface Pedido {
   id: number; estado: string; total: number; subtotal: number; costo_envio: number
@@ -395,7 +396,7 @@ export default function CuentaPage() {
                   <div key={p.id} style={{ background: 'white', padding: '24px', borderRadius: '12px', border: '1px solid #E5E5E5' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                       <div>
-                        <span style={{ fontSize: '14px', fontWeight: 600, color: '#111' }}>Pedido #{p.id}</span>
+                        <span style={{ fontSize: '14px', fontWeight: 600, color: '#111' }}>{formatearNumeroPedido(p.id)}</span>
                         <span style={{ fontSize: '12px', color: '#888', marginLeft: '12px' }}>{new Date(p.created_at).toLocaleDateString('es-MX', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>

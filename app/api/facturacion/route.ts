@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { Resend } from 'resend'
+import { formatearNumeroPedido } from '@/lib/utils'
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -25,7 +26,7 @@ export async function POST(req: NextRequest) {
       const { data: pedido } = await supabaseAdmin
         .from('pedidos')
         .select('id, email, estado, total, forma_pago, created_at')
-        .eq('id', parseInt(String(pedidoId).replace('#', '').trim() || '0'))
+        .eq('id', (() => { const digitos = String(pedidoId).replace(/[^0-9]/g, ''); const n = parseInt(digitos || '0', 10); return n >= 10000 ? n - 10000 : n })())
         .single()
 
       if (!pedido) {
@@ -81,7 +82,7 @@ export async function POST(req: NextRequest) {
       <div style="margin-bottom:20px;padding:16px;background:#F9F9F5;border-radius:8px;border:1px solid #E5E5D5;">
         <h3 style="font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#C9A961;margin:0 0 12px;">Pedido</h3>
         <p style="font-size:14px;color:#333;line-height:1.8;margin:0;">
-          <strong>No. de Pedido:</strong> #${pedidoId}<br>
+          <strong>No. de Pedido:</strong> ${formatearNumeroPedido((() => { const d = String(pedidoId).replace(/[^0-9]/g,''); const n = parseInt(d||'0',10); return n >= 10000 ? n - 10000 : n })())}<br>
           <strong>Correo del pedido:</strong> ${email}<br>
           <strong>Total:</strong> $${Number(total).toLocaleString()} MXN<br>
           <strong>Forma de pago:</strong> ${formaPago}
@@ -111,7 +112,7 @@ export async function POST(req: NextRequest) {
       await resend.emails.send({
         from: 'Vitalora Facturacion <hola@vitalora.com.mx>',
         to: 'gabomaciel7@gmail.com',
-        subject: `Solicitud de factura - Pedido #${pedidoId} - ${razonSocial}`,
+        subject: `Solicitud de factura - Pedido ${formatearNumeroPedido((() => { const d = String(pedidoId).replace(/[^0-9]/g,''); const n = parseInt(d||'0',10); return n >= 10000 ? n - 10000 : n })())} - ${razonSocial}`,
         html,
         replyTo: email || undefined,
       })
