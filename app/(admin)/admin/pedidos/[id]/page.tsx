@@ -218,10 +218,13 @@ export default function PedidoDetallePage() {
   // Cálculo financiero
   const subtotalProductos = pedido.subtotal ?? (pedido.total - (pedido.costo_envio ?? 0))
   const envioCliente = pedido.costo_envio ?? 0
-  const comisionMP = pedido.total * 0.0418          // ~4.18% comisión Mercado Pago
+  const montoReembolsado = pedido.monto_reembolsado ?? 0
+  const hayReembolso = montoReembolsado > 0
+  const montoNeto = Math.max(0, pedido.total - montoReembolsado)  // lo que realmente quedo cobrado
+  const comisionMP = montoNeto * 0.0418             // ~4.18% sobre lo que quedo (MP bonifica lo reembolsado)
   const costoEnvioMP = envioCliente > 0 ? envioCliente * 0.85 : 0  // estimado: MP se queda ~15%
   const ivaEstimado = subtotalProductos * 0.16 / 1.16
-  const netoRecibido = pedido.total - comisionMP
+  const netoRecibido = montoNeto - comisionMP       // neto real despues de reembolso y comision
 
   return (
     <>
@@ -345,9 +348,13 @@ export default function PedidoDetallePage() {
                   { label: 'Total pagado por el cliente', valor: fmt(pedido.total), sub: formaPagoLabel(pedido.forma_pago), color: '#0E0E0E', bold: true },
                   null, // separador
                   { label: 'IVA estimado incluido (16%)', valor: fmt(ivaEstimado), sub: 'Incluido en el precio de venta', color: '#6B6B6B', bold: false },
-                  { label: 'Comisión Mercado Pago (~4.18%)', valor: `−${fmt(comisionMP)}`, sub: 'Sobre el total del pedido', color: '#F59E0B', bold: false },
+                  { label: 'Comisión Mercado Pago (~4.18%)', valor: `−${fmt(comisionMP)}`, sub: hayReembolso ? 'Sobre el monto neto (ya descontado el reembolso)' : 'Sobre el total del pedido', color: '#F59E0B', bold: false },
+                  ...(hayReembolso ? [
+                    null, // separador
+                    { label: 'Reembolsado al cliente', valor: `−${fmt(montoReembolsado)}`, sub: montoReembolsado >= pedido.total ? 'Reembolso total' : 'Reembolso parcial', color: '#EF4444', bold: false },
+                  ] : []),
                   null, // separador
-                  { label: 'Neto estimado recibido', valor: fmt(netoRecibido), sub: 'Después de comisión MP', color: '#6A8A62', bold: true },
+                  { label: hayReembolso ? 'Neto real recibido' : 'Neto estimado recibido', valor: fmt(netoRecibido), sub: hayReembolso ? 'Después de reembolso y comisión MP' : 'Después de comisión MP', color: '#6A8A62', bold: true },
                 ].map((fila, i) => {
                   if (fila === null) return <div key={i} style={{ height: '1px', background: '#F0EDE5', margin: '8px 0' }} />
                   return (
