@@ -405,7 +405,7 @@ export default function CuentaPage() {
                     </div>
                     {p.pedido_items?.map((item, i) => (
                       <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderTop: i === 0 ? '1px solid #EEE' : 'none', fontSize: '14px' }}>
-                        <span style={{ color: '#333' }}>{item.marca} â€” {item.nombre} <span style={{ color: '#999' }}>x{item.cantidad}</span></span>
+                        <span style={{ color: '#333' }}>{item.marca} — {item.nombre} <span style={{ color: '#999' }}>x{item.cantidad}</span></span>
                         <span style={{ color: '#333', fontWeight: 500 }}>${(item.precio * item.cantidad).toLocaleString()}</span>
                       
                         {p.estado === 'pagado' && item.producto_id && (
