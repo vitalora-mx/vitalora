@@ -21,6 +21,9 @@ export async function POST(req: NextRequest) {
       const paymentData = await payment.get({ id: paymentId })
 
       const status = paymentData.status // approved, rejected, pending, in_process, cancelled, refunded
+    const statusDetail = paymentData.status_detail // puede ser 'partially_refunded'
+    // Monto reembolsado reportado por MP (suma de refunds), si existe
+    const mpRefunded = typeof paymentData.transaction_amount_refunded === 'number' ? paymentData.transaction_amount_refunded : 0
       const preferenceId = (paymentData as any).preference_id
       const externalRef = (paymentData as any).external_reference
       const tipoPagoMP = (paymentData as any).payment_type_id || ''
@@ -39,12 +42,25 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ ok: true })
       }
 
-      // Mapear estado de MP a nuestro estado
+      // Mapear estado de MP a nuestro estado.
+      // IMPORTANTE: un pedido que ya esta en 'reembolso_parcial' o 'reembolsado'
+      // NO debe regresar a 'pagado' por una notificacion 'approved' tardia
+      // (MP deja el pago en 'approved' tras un reembolso parcial).
+      const yaReembolsadoEstado = pedido.estado === 'reembolso_parcial' || pedido.estado === 'reembolsado'
       let nuevoEstado = pedido.estado
-      if (status === 'approved') nuevoEstado = 'pagado'
-      else if (status === 'rejected' || status === 'cancelled') nuevoEstado = 'cancelado'
-      else if (status === 'refunded') nuevoEstado = 'reembolsado'
-      else if (status === 'pending' || status === 'in_process') nuevoEstado = 'pendiente'
+      if (status === 'refunded') {
+        nuevoEstado = 'reembolsado'
+      } else if (statusDetail === 'partially_refunded' || (mpRefunded > 0 && status === 'approved')) {
+        // Reembolso parcial: total si ya cubre el monto, parcial si no
+        nuevoEstado = (mpRefunded >= (pedido.total || 0)) ? 'reembolsado' : 'reembolso_parcial'
+      } else if (status === 'approved') {
+        // Solo marcar 'pagado' si NO esta ya en un estado de reembolso
+        nuevoEstado = yaReembolsadoEstado ? pedido.estado : 'pagado'
+      } else if (status === 'rejected' || status === 'cancelled') {
+        nuevoEstado = 'cancelado'
+      } else if (status === 'pending' || status === 'in_process') {
+        nuevoEstado = 'pendiente'
+      }
 
       // Actualizar pedido
       await supabaseAdmin
