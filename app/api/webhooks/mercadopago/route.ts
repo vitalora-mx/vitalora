@@ -52,6 +52,11 @@ export async function POST(req: NextRequest) {
         .update({ estado: nuevoEstado, mp_payment_id: String(paymentId), forma_pago: formaPagoTexto })
         .eq('id', pedido.id)
 
+      // Si fue reembolsado y antes estaba pagado: devolver stock al inventario
+      if (status === 'refunded' && pedido.estado === 'pagado') {
+        await devolverStock(pedido.pedido_items || [])
+      }
+
       // Si fue aprobado y antes no estaba pagado: descontar stock, enviar emails, marcar primera compra
       if (status === 'approved' && pedido.estado !== 'pagado') {
         // Descontar stock (variante / kit / producto normal)
@@ -232,6 +237,79 @@ async function descontarStock(items: any[]) {
       }
     } catch (e) {
       console.error('Error descontando stock del item', item.producto_id, e)
+    }
+  }
+}
+
+// ============================================================
+// Devolucion de stock al reembolsar un pedido (espejo de descontarStock)
+// - item con variante_id  -> suma a producto_variantes
+// - item que es kit        -> suma a cada componente (kit_componentes)
+// - item producto normal   -> suma a productos
+// ============================================================
+async function devolverStock(items: any[]) {
+  for (const item of items) {
+    const cantidad = item.cantidad || 0
+    if (cantidad <= 0) continue
+
+    try {
+      // 1) Si el item es de una variante: devolver a la variante
+      if (item.variante_id) {
+        const { data: variante } = await supabaseAdmin
+          .from('producto_variantes')
+          .select('stock')
+          .eq('id', item.variante_id)
+          .single()
+        if (variante) {
+          const nuevoStock = (variante.stock || 0) + cantidad
+          await supabaseAdmin
+            .from('producto_variantes')
+            .update({ stock: nuevoStock })
+            .eq('id', item.variante_id)
+        }
+        continue
+      }
+
+      // 2) Revisar si el producto es un kit (tiene componentes)
+      const { data: componentes } = await supabaseAdmin
+        .from('kit_componentes')
+        .select('producto_id, cantidad')
+        .eq('kit_id', item.producto_id)
+
+      if (componentes && componentes.length > 0) {
+        for (const comp of componentes) {
+          const { data: prodComp } = await supabaseAdmin
+            .from('productos')
+            .select('stock')
+            .eq('id', comp.producto_id)
+            .single()
+          if (prodComp) {
+            const sumar = (comp.cantidad || 1) * cantidad
+            const nuevoStock = (prodComp.stock || 0) + sumar
+            await supabaseAdmin
+              .from('productos')
+              .update({ stock: nuevoStock })
+              .eq('id', comp.producto_id)
+          }
+        }
+        continue
+      }
+
+      // 3) Producto normal: devolver al producto
+      const { data: prod } = await supabaseAdmin
+        .from('productos')
+        .select('stock')
+        .eq('id', item.producto_id)
+        .single()
+      if (prod) {
+        const nuevoStock = (prod.stock || 0) + cantidad
+        await supabaseAdmin
+          .from('productos')
+          .update({ stock: nuevoStock })
+          .eq('id', item.producto_id)
+      }
+    } catch (e) {
+      console.error('Error devolviendo stock del item', item.producto_id, e)
     }
   }
 }
