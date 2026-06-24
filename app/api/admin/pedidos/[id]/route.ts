@@ -21,8 +21,8 @@ export async function GET(
         calle, numero, interior, colonia, ciudad, estado_dir, cp, referencia,
         subtotal, costo_envio, total, forma_pago,
         numero_guia, factura_url,
-        factura_rfc, factura_razon_social, factura_uso_cfdi, factura_regimen, factura_cp, factura_estado,
-        user_id, email_invitado,
+        factura_rfc, factura_razon_social, factura_uso_cfdi, factura_estado,
+        user_id,
         pedido_items (
           nombre, marca, precio, cantidad, variante_nombre
         )
