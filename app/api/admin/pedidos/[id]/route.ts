@@ -52,6 +52,6 @@ export async function GET(
     return NextResponse.json({ pedido, clienteStats })
   } catch (err) {
     console.error('Error pedido detalle GET:', err)
-    return NextResponse.json({ error: 'Error al cargar pedido', detalle: String(err), msg: (err instanceof Error ? err.message : null) }, { status: 500 })
+    return NextResponse.json({ error: 'Error al cargar pedido', detalle: JSON.stringify(err, Object.getOwnPropertyNames(err)) }, { status: 500 })
   }
 }
