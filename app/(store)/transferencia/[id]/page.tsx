@@ -210,14 +210,25 @@ export default function TransferenciaPage() {
 
           {/* Subida de comprobante */}
           <div style={{ background: '#FAF7F0', border: '2px dashed #D9C9A8', borderRadius: '8px', padding: '24px', textAlign: 'center', marginBottom: '16px' }}>
-            <div style={{ fontSize: '14px', color: '#0E0E0E', fontWeight: 600, marginBottom: '12px' }}>Sube tu comprobante de pago</div>
+            <div style={{ fontSize: '14px', color: '#0E0E0E', fontWeight: 600, marginBottom: '16px' }}>Sube tu comprobante de pago</div>
+
+            <label htmlFor="archivo-comprobante" style={{ display: 'inline-block', cursor: 'pointer', padding: '14px 28px', background: 'white', border: '2px solid #C9A961', borderRadius: '6px', color: '#8B7530', fontSize: '14px', fontWeight: 600, marginBottom: '14px' }}>
+              📎 Seleccionar archivo
+            </label>
             <input
+              id="archivo-comprobante"
               type="file"
               accept="image/jpeg,image/png,image/webp,application/pdf"
               onChange={e => setArchivo(e.target.files?.[0] || null)}
-              style={{ display: 'block', margin: '0 auto 16px', fontSize: '13px', maxWidth: '100%' }}
+              style={{ display: 'none' }}
             />
-            {archivo && <div style={{ fontSize: '13px', color: '#3F6B33', marginBottom: '12px' }}>✓ {archivo.name}</div>}
+
+            {archivo ? (
+              <div style={{ fontSize: '13px', color: '#3F6B33', marginBottom: '16px', fontWeight: 500 }}>✓ {archivo.name}</div>
+            ) : (
+              <div style={{ fontSize: '12px', color: '#A8A8A8', marginBottom: '16px' }}>Ningún archivo seleccionado</div>
+            )}
+
             <p style={{ fontSize: '12px', color: '#A8A8A8', marginBottom: '16px' }}>Imágenes (JPG, PNG) o PDF · máximo 5MB</p>
             <button
               onClick={subirComprobante}

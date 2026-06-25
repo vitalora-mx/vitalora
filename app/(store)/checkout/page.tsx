@@ -491,7 +491,10 @@ export default function CheckoutPage() {
                           {metodoPago === 'mercadopago' && <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: 'var(--sage-deep)' }} />}
                         </div>
                         <div>
-                          <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--black)' }}>Tarjeta o efectivo</div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--black)' }}>Tarjeta o efectivo</div>
+                            <img src="/images/pagos/mercadopago.png" alt="Mercado Pago" style={{ height: '20px', width: 'auto' }} />
+                          </div>
                           <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Paga con tarjeta, OXXO o dinero en Mercado Pago. Inmediato.</div>
                         </div>
                       </div>
@@ -502,7 +505,10 @@ export default function CheckoutPage() {
                           {metodoPago === 'transferencia' && <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: 'var(--sage-deep)' }} />}
                         </div>
                         <div>
-                          <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--black)' }}>Transferencia bancaria</div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--black)' }}>Transferencia bancaria</div>
+                            <img src="/images/pagos/spei.png" alt="SPEI" style={{ height: '18px', width: 'auto' }} />
+                          </div>
                           <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Transfiere por SPEI y sube tu comprobante. Confirmacion manual.</div>
                         </div>
                       </div>
