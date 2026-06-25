@@ -3,6 +3,10 @@
     {
       "path": "/api/cron/escalacion-influencers",
       "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/cron/cancelar-transferencias",
+      "schedule": "0 10 * * *"
     }
   ]
 }

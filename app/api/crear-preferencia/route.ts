@@ -112,6 +112,13 @@ export async function POST(req: NextRequest) {
         statement_descriptor: 'VITALORA',
         notification_url: 'https://vitalora.com.mx/api/webhooks/mercadopago',
         external_reference: String(pedido.id),
+        payment_methods: {
+          // Excluir transferencia bancaria SPEI: las transferencias van por el sistema manual de Vitalora.
+          // Se mantienen tarjetas, efectivo (OXXO) y dinero en cuenta de Mercado Pago.
+          excluded_payment_types: [
+            { id: 'bank_transfer' },
+          ],
+        },
       },
     })
 

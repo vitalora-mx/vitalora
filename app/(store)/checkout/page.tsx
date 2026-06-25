@@ -24,6 +24,7 @@ export default function CheckoutPage() {
   const [paso, setPaso] = useState(1)
   const [enviando, setEnviando] = useState(false)
   const [datosConfirmados, setDatosConfirmados] = useState(false)
+  const [metodoPago, setMetodoPago] = useState('mercadopago')
   const [direcciones, setDirecciones] = useState<Direccion[]>([])
   const [direccionSeleccionada, setDireccionSeleccionada] = useState<number | null>(null)
   const [usarNuevaDireccion, setUsarNuevaDireccion] = useState(false)
@@ -153,6 +154,41 @@ export default function CheckoutPage() {
 
   async function handlePagar() {
     setEnviando(true)
+
+      // Si el metodo es transferencia, crear pedido por transferencia y redirigir
+      if (metodoPago === 'transferencia') {
+        try {
+          const resT = await fetch('/api/transferencia/crear', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              items,
+              comprador: { nombre: form.nombre, apellido: form.apellido, email: form.email, telefono: form.telefono },
+              direccion: { cp: form.cp, calle: form.calle, numero: form.numero, interior: form.interior, colonia: form.colonia, ciudad: form.ciudad, estado: form.estado, referencia: form.referencia },
+              costoEnvio,
+              userId: user?.id || null,
+              descuento: montoDescuento,
+              descuentoTipo: codigoAplicado ? 'codigo' : (descuentoPrimeraCompra ? 'primera_compra' : null),
+              codigoDescuento: codigoAplicado ? codigoAplicado.codigo : null,
+            }),
+          })
+          const dataT = await resT.json()
+          if (dataT.pedidoId) {
+            // Limpiar carrito antes de redirigir
+            window.location.href = '/transferencia/' + dataT.pedidoId
+            return
+          } else {
+            alert('Error al crear el pedido. Intenta de nuevo.')
+            setEnviando(false)
+            return
+          }
+        } catch (e) {
+          console.error(e)
+          alert('Error al procesar. Intenta de nuevo.')
+          setEnviando(false)
+          return
+        }
+      }
     try {
       const res = await fetch('/api/crear-preferencia', {
         method: 'POST',
@@ -445,10 +481,38 @@ export default function CheckoutPage() {
                   </label>
                 </div>
 
+                {/* metodo-pago-selector */}
+                <div style={{ marginBottom: '24px' }}>
+                  <div style={{ fontSize: '11px', letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '12px' }}>Metodo de pago</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    <div onClick={() => setMetodoPago('mercadopago')} style={{ padding: '16px', border: '2px solid', borderColor: metodoPago === 'mercadopago' ? 'var(--sage-deep)' : 'var(--line)', borderRadius: '6px', cursor: 'pointer', background: metodoPago === 'mercadopago' ? '#F0F7F0' : 'white', transition: 'all 0.2s' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <div style={{ width: '20px', height: '20px', borderRadius: '50%', border: '2px solid', borderColor: metodoPago === 'mercadopago' ? 'var(--sage-deep)' : 'var(--line)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          {metodoPago === 'mercadopago' && <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: 'var(--sage-deep)' }} />}
+                        </div>
+                        <div>
+                          <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--black)' }}>Tarjeta o efectivo</div>
+                          <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Paga con tarjeta, OXXO o dinero en Mercado Pago. Inmediato.</div>
+                        </div>
+                      </div>
+                    </div>
+                    <div onClick={() => setMetodoPago('transferencia')} style={{ padding: '16px', border: '2px solid', borderColor: metodoPago === 'transferencia' ? 'var(--sage-deep)' : 'var(--line)', borderRadius: '6px', cursor: 'pointer', background: metodoPago === 'transferencia' ? '#F0F7F0' : 'white', transition: 'all 0.2s' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <div style={{ width: '20px', height: '20px', borderRadius: '50%', border: '2px solid', borderColor: metodoPago === 'transferencia' ? 'var(--sage-deep)' : 'var(--line)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          {metodoPago === 'transferencia' && <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: 'var(--sage-deep)' }} />}
+                        </div>
+                        <div>
+                          <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--black)' }}>Transferencia bancaria</div>
+                          <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Transfiere por SPEI y sube tu comprobante. Confirmacion manual.</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
                 <div style={{ display: 'flex', gap: '16px' }}>
                   <button onClick={() => setPaso(2)} style={{ flex: 1, padding: '18px', background: 'none', border: '1px solid var(--line)', fontSize: '13px', letterSpacing: '0.2em', textTransform: 'uppercase', cursor: 'pointer', fontFamily: 'inherit', borderRadius: '2px', color: 'var(--text-muted)' }}>← Regresar</button>
                   <button onClick={handlePagar} disabled={!validarPaso3() || enviando} style={{ flex: 2, padding: '18px', background: validarPaso3() ? 'var(--gold)' : 'var(--line)', color: validarPaso3() ? 'var(--black)' : 'var(--text-muted)', border: 'none', fontSize: '13px', letterSpacing: '0.2em', textTransform: 'uppercase', fontWeight: 700, cursor: validarPaso3() ? 'pointer' : 'not-allowed', fontFamily: 'inherit', borderRadius: '2px', opacity: enviando ? 0.7 : 1 }}>
-                    {enviando ? 'Procesando...' : '✦ Pagar con Mercado Pago'}
+                    {enviando ? 'Procesando...' : (metodoPago === 'transferencia' ? 'Continuar con transferencia' : 'Pagar con Mercado Pago')}
                   </button>
                 </div>
               </div>

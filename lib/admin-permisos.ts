@@ -9,6 +9,7 @@ export type RolAdmin = 'dueno' | 'gerente' | 'editor' | 'ventas'
 export const TODAS_SECCIONES = [
   '/admin',                      // Dashboard
   '/admin/pedidos',
+  '/admin/transferencias',
   '/admin/facturas',
   '/admin/inventario',
   '/admin/productos',
@@ -33,6 +34,7 @@ export const PERMISOS: Record<RolAdmin, string[]> = {
   gerente: [
     '/admin',
     '/admin/pedidos',
+  '/admin/transferencias',
     '/admin/facturas',
     '/admin/inventario',
     '/admin/productos',
@@ -61,6 +63,7 @@ export const PERMISOS: Record<RolAdmin, string[]> = {
   ventas: [
     '/admin',
     '/admin/pedidos',
+  '/admin/transferencias',
     '/admin/facturas',
     '/admin/inventario',
     '/admin/clientes',

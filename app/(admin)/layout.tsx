@@ -22,6 +22,7 @@ const SECCIONES: { label: string; items: NavItem[] }[] = [
     items: [
       { label: 'Dashboard', href: '/admin', icon: ICON('<rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>') },
       { label: 'Pedidos', href: '/admin/pedidos', badgeKey: 'pedidos', icon: ICON('<path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/>') },
+      { label: 'Transferencias', href: '/admin/transferencias', icon: ICON('<polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>') },
       { label: 'Facturas', href: '/admin/facturas', badgeKey: 'facturas', icon: ICON('<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>') },
     ],
   },
