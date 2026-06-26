@@ -251,7 +251,7 @@ export default function CheckoutPage() {
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '48px' }}>
           {['Datos personales', 'Dirección de envío', 'Confirmar pedido'].map((label, i) => (
             <div key={i} style={{ display: 'flex', alignItems: 'center' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%' }}>
                 <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: paso > i + 1 ? 'var(--sage-deep)' : paso === i + 1 ? 'var(--black)' : 'var(--line)', color: paso >= i + 1 ? 'white' : 'var(--text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: 600 }}>
                   {paso > i + 1 ? '✓' : i + 1}
                 </div>
@@ -491,9 +491,9 @@ export default function CheckoutPage() {
                           {metodoPago === 'mercadopago' && <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: 'var(--sage-deep)' }} />}
                         </div>
                         <div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%' }}>
                             <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--black)' }}>Tarjeta o efectivo</div>
-                            <img src="/images/pagos/mercadopago.png" alt="Mercado Pago" style={{ height: '20px', width: 'auto' }} />
+                            <img src="/images/pagos/mercadopago.png" alt="Mercado Pago" style={{ height: '40px', width: 'auto', marginLeft: 'auto' }} />
                           </div>
                           <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Paga con tarjeta, OXXO o dinero en Mercado Pago. Inmediato.</div>
                         </div>
@@ -505,9 +505,9 @@ export default function CheckoutPage() {
                           {metodoPago === 'transferencia' && <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: 'var(--sage-deep)' }} />}
                         </div>
                         <div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%' }}>
                             <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--black)' }}>Transferencia bancaria</div>
-                            <img src="/images/pagos/spei.png" alt="SPEI" style={{ height: '18px', width: 'auto' }} />
+                            <img src="/images/pagos/spei.png" alt="SPEI" style={{ height: '32px', width: 'auto', marginLeft: 'auto' }} />
                           </div>
                           <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Transfiere por SPEI y sube tu comprobante. Confirmacion manual.</div>
                         </div>
@@ -569,7 +569,7 @@ export default function CheckoutPage() {
               <div style={{ fontSize: '11px', letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '10px' }}>Código de descuento</div>
               {codigoAplicado ? (
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%' }}>
                     <span style={{ padding: '4px 10px', background: '#111', color: 'white', borderRadius: '4px', fontFamily: 'monospace', fontSize: '13px', fontWeight: 700, letterSpacing: '0.1em' }}>{codigoAplicado.codigo}</span>
                     <span style={{ fontSize: '12px', color: '#3A8A3A' }}>✓</span>
                   </div>
