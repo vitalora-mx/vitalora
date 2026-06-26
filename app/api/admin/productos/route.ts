@@ -10,6 +10,7 @@ export async function GET() {
   const { data, error } = await supabaseAdmin
     .from('productos')
     .select('*, producto_imagenes(*), producto_videos(*), producto_variantes(*, variante_imagenes(*))')
+    .or('archivado.is.null,archivado.eq.false')
     .order('created_at', { ascending: false })
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
@@ -122,7 +123,30 @@ export async function DELETE(req: NextRequest) {
     }
   }
 
-  const { error } = await supabaseAdmin.from('productos').delete().eq('id', id)
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  return NextResponse.json({ success: true })
+  // Revisar si el producto tiene referencias (ventas o resenas) que impiden borrarlo.
+    const { count: ventasCount } = await supabaseAdmin
+      .from('pedido_items')
+      .select('id', { count: 'exact', head: true })
+      .eq('producto_id', id)
+    const { count: resenasCount } = await supabaseAdmin
+      .from('resenas')
+      .select('id', { count: 'exact', head: true })
+      .eq('producto_id', id)
+
+    const tieneReferencias = (ventasCount || 0) > 0 || (resenasCount || 0) > 0
+
+    if (tieneReferencias) {
+      // Borrado logico: archivar y desactivar (conserva historial; lo oculta de tienda y admin)
+      const { error: errArch } = await supabaseAdmin
+        .from('productos')
+        .update({ archivado: true, activo: false })
+        .eq('id', id)
+      if (errArch) return NextResponse.json({ error: errArch.message }, { status: 500 })
+      return NextResponse.json({ success: true, archivado: true })
+    }
+
+    // Sin referencias: borrado fisico real
+    const { error } = await supabaseAdmin.from('productos').delete().eq('id', id)
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ success: true, archivado: false })
 }
