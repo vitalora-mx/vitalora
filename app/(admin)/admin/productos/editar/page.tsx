@@ -153,6 +153,39 @@ function EditarProductoInner() {
     setPreviewsNuevas(prev => prev.filter((_, idx) => idx !== i))
   }
 
+  // Reordena una foto NUEVA (preview, antes de guardar). Mueve ambos arrays a la vez.
+  function moverPreview(index: number, direccion: number) {
+    const nuevoIndex = index + direccion
+    if (nuevoIndex < 0 || nuevoIndex >= previewsNuevas.length) return
+    setPreviewsNuevas(prev => {
+      const arr = [...prev]
+      const tmp = arr[index]; arr[index] = arr[nuevoIndex]; arr[nuevoIndex] = tmp
+      return arr
+    })
+    setImagenesNuevas(prev => {
+      const arr = [...prev]
+      const tmp = arr[index]; arr[index] = arr[nuevoIndex]; arr[nuevoIndex] = tmp
+      return arr
+    })
+  }
+
+  // Hace que una foto NUEVA sea la principal (la mueve al inicio).
+  function hacerPrincipalPreview(index: number) {
+    if (index === 0) return
+    setPreviewsNuevas(prev => {
+      const arr = [...prev]
+      const [item] = arr.splice(index, 1)
+      arr.unshift(item)
+      return arr
+    })
+    setImagenesNuevas(prev => {
+      const arr = [...prev]
+      const [item] = arr.splice(index, 1)
+      arr.unshift(item)
+      return arr
+    })
+  }
+
   async function quitarImagenExistente(imgId: number) {
     await fetch(`/api/admin/delete-image?id=${imgId}`, { method: 'DELETE' })
     setImagenesExistentes(prev => prev.filter(img => img.id !== imgId))
@@ -468,15 +501,30 @@ function EditarProductoInner() {
               </div>
             </div>
           )}
-          <input type="file" accept="image/*" multiple onChange={handleImagenes} style={{ marginBottom: '12px' }} />
+          <div style={{ marginBottom: '12px' }}>
+            <label htmlFor="input-imagenes-producto" style={{ display: 'inline-block', cursor: 'pointer', padding: '12px 24px', background: 'white', border: '2px solid #C9A961', borderRadius: '6px', color: '#8B7530', fontSize: '14px', fontWeight: 600 }}>
+              📎 Seleccionar imágenes
+            </label>
+            <input id="input-imagenes-producto" type="file" accept="image/*" multiple onChange={handleImagenes} style={{ display: 'none' }} />
+            <span style={{ marginLeft: '12px', fontSize: '12px', color: '#888' }}>Puedes seleccionar varias a la vez</span>
+          </div>
           {previewsNuevas.length > 0 && (
             <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
               {previewsNuevas.map((src, i) => (
-                <div key={i} style={{ position: 'relative' }}>
-                  <img src={src} alt="" style={{ width: '100px', height: '100px', objectFit: 'contain', borderRadius: '8px', border: '1px solid #4A4', background: 'white' }} />
-                  <button onClick={() => quitarImagenNueva(i)} style={{ position: 'absolute', top: '-6px', right: '-6px', width: '22px', height: '22px', borderRadius: '50%', background: '#F33', color: 'white', border: 'none', cursor: 'pointer', fontSize: '12px', fontWeight: 700 }}>✕</button>
-                  <div style={{ position: 'absolute', bottom: '4px', left: '4px', padding: '2px 6px', background: '#4A4', color: 'white', fontSize: '9px', borderRadius: '3px' }}>Nueva</div>
-                </div>
+                <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+                    <div style={{ position: 'relative' }}>
+                      <img src={src} alt="" style={{ width: '100px', height: '100px', objectFit: 'contain', borderRadius: '8px', border: i === 0 ? '2px solid #C9A961' : '1px solid #4A4', background: 'white' }} />
+                      <button type="button" onClick={() => quitarImagenNueva(i)} style={{ position: 'absolute', top: '-6px', right: '-6px', width: '22px', height: '22px', borderRadius: '50%', background: '#F33', color: 'white', border: 'none', cursor: 'pointer', fontSize: '12px', fontWeight: 700 }}>×</button>
+                      <div style={{ position: 'absolute', bottom: '4px', left: '4px', padding: '2px 6px', background: i === 0 ? '#C9A961' : '#4A4', color: 'white', fontSize: '9px', borderRadius: '3px' }}>{i === 0 ? 'Principal' : 'Nueva'}</div>
+                    </div>
+                    <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                      <button type="button" onClick={() => moverPreview(i, -1)} disabled={i === 0} title="Mover a la izquierda" style={{ width: '24px', height: '24px', borderRadius: '4px', border: '1px solid #CCC', background: i === 0 ? '#F5F5F5' : 'white', color: i === 0 ? '#CCC' : '#333', cursor: i === 0 ? 'default' : 'pointer', fontSize: '12px' }}>{'<'}</button>
+                      {i !== 0 && (
+                        <button type="button" onClick={() => hacerPrincipalPreview(i)} title="Hacer principal" style={{ padding: '0 8px', height: '24px', borderRadius: '4px', border: '1px solid #C9A961', background: 'white', color: '#8B7530', cursor: 'pointer', fontSize: '10px', fontWeight: 600 }}>Principal</button>
+                      )}
+                      <button type="button" onClick={() => moverPreview(i, 1)} disabled={i === previewsNuevas.length - 1} title="Mover a la derecha" style={{ width: '24px', height: '24px', borderRadius: '4px', border: '1px solid #CCC', background: i === previewsNuevas.length - 1 ? '#F5F5F5' : 'white', color: i === previewsNuevas.length - 1 ? '#CCC' : '#333', cursor: i === previewsNuevas.length - 1 ? 'default' : 'pointer', fontSize: '12px' }}>{'>'}</button>
+                    </div>
+                  </div>
               ))}
             </div>
           )}
