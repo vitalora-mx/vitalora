@@ -458,7 +458,7 @@ export default function CheckoutPage() {
                 <div style={{ marginBottom: '24px', padding: '16px', background: costoEnvio === 0 ? '#F0F7F0' : 'white', border: `1px solid ${costoEnvio === 0 ? '#A8C5A0' : 'var(--line)'}`, borderRadius: '4px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div>
-                      <div style={{ fontSize: '13px', fontWeight: 500, color: 'var(--black)', marginBottom: '4px' }}>Envío — Mercado Envíos</div>
+                      <div style={{ fontSize: '13px', fontWeight: 500, color: 'var(--black)', marginBottom: '4px' }}>Envío estándar</div>
                       <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Entrega estimada: 2-5 días hábiles</div>
                     </div>
                     <div style={{ fontFamily: 'var(--font-cormorant), serif', fontSize: '20px', fontWeight: 600, color: costoEnvio === 0 ? '#6B8F6B' : 'var(--black)' }}>
@@ -466,6 +466,11 @@ export default function CheckoutPage() {
                     </div>
                   </div>
                 </div>
+                  {/* zonas-extendidas-leyenda */}
+                  <div style={{ marginBottom: '24px', padding: '14px 16px', background: '#FFF9F0', border: '1px solid #E8D5B0', borderRadius: '4px' }}>
+                    <div style={{ fontSize: '12px', fontWeight: 600, color: '#8B6914', marginBottom: '4px' }}>Envíos a zonas extendidas</div>
+                    <div style={{ fontSize: '12px', color: 'var(--text-muted)', lineHeight: 1.6 }}>Algunas localidades de difícil acceso o zonas extendidas pueden tener un costo de envío adicional que no se refleja en el total. Si tu domicilio aplica, nos pondremos en contacto contigo antes de procesar tu pedido.</div>
+                  </div>
 
                 <div style={{ marginBottom: '24px', padding: '20px', border: '1px solid', borderColor: datosConfirmados ? '#A8C5A0' : 'var(--line)', borderRadius: '4px', background: datosConfirmados ? '#F0F7F0' : 'white', transition: 'all 0.2s' }}>
                   <label style={{ display: 'flex', gap: '14px', alignItems: 'flex-start', cursor: 'pointer' }}>
