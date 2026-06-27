@@ -20,11 +20,12 @@ export async function GET(
         nombre, apellido, email, telefono,
         calle, numero, interior, colonia, ciudad, estado_dir, cp, referencia,
         subtotal, costo_envio, total, monto_reembolsado, forma_pago,
-        numero_guia, factura_url,
+        numero_guia, paqueteria, metodo_pago,
+        factura_url,
         factura_rfc:rfc, factura_razon_social:razon_social, factura_uso_cfdi:uso_cfdi, factura_estado,
         user_id,
         pedido_items (
-          nombre, marca, precio, cantidad, variante_nombre
+          producto_id, variante_id, nombre, marca, precio, cantidad, variante_nombre
         )
       `)
       .eq('id', id)

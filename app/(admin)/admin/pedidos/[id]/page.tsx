@@ -35,6 +35,7 @@ interface Pedido {
   monto_reembolsado: number | null
   numero_guia: string | null
   paqueteria: string | null
+  metodo_pago: string | null
   factura_url: string | null
   factura_rfc: string | null
   factura_razon_social: string | null
@@ -98,6 +99,7 @@ export default function PedidoDetallePage() {
   const [mostrarReembolso, setMostrarReembolso] = useState(false)
   const [tipoReembolso, setTipoReembolso] = useState<'total' | 'parcial'>('total')
   const [montoReembolso, setMontoReembolso] = useState('')
+  const [devolverStockTransfer, setDevolverStockTransfer] = useState(false)
 
   const cargar = useCallback(async () => {
     setCargando(true)
@@ -185,20 +187,34 @@ export default function PedidoDetallePage() {
       if (!monto || monto <= 0) { mostrarMsg('Ingresa un monto valido para el reembolso parcial.'); return }
       if (monto > pedido.total) { mostrarMsg('El monto no puede ser mayor al total del pedido.'); return }
     }
-    const texto = esParcial
-      ? `Vas a reembolsar $${monto} al cliente. El inventario NO se ajusta solo en parciales: hazlo tu si aplica. Esta accion es irreversible. Continuar?`
-      : `Vas a reembolsar el TOTAL ($${pedido.total}) al cliente. El inventario se devolvera automaticamente. Esta accion es irreversible. Continuar?`
+    const esTransferencia = pedido.metodo_pago === 'transferencia'
+    let texto
+    if (esTransferencia) {
+      texto = esParcial
+        ? `Vas a REGISTRAR un reembolso parcial de ${monto}. Esto NO mueve dinero: haz la transferencia de devolucion desde tu banco. ${devolverStockTransfer ? 'El stock SE devolvera.' : 'El stock NO se devolvera.'} Continuar?`
+        : `Vas a REGISTRAR el reembolso TOTAL (${pedido.total}). Esto NO mueve dinero: haz la transferencia de devolucion desde tu banco. ${devolverStockTransfer ? 'El stock SE devolvera.' : 'El stock NO se devolvera.'} Continuar?`
+    } else {
+      texto = esParcial
+        ? `Vas a reembolsar ${monto} al cliente. El inventario NO se ajusta solo en parciales: hazlo tu si aplica. Esta accion es irreversible. Continuar?`
+        : `Vas a reembolsar el TOTAL (${pedido.total}) al cliente. El inventario se devolvera automaticamente. Esta accion es irreversible. Continuar?`
+    }
     if (!window.confirm(texto)) return
 
     setReembolsando(true)
     try {
-      const res = await fetch(`/api/admin/pedidos/${params.id}/reembolsar`, {
+      const endpoint = esTransferencia
+        ? `/api/admin/pedidos/${params.id}/reembolsar-transferencia`
+        : `/api/admin/pedidos/${params.id}/reembolsar`
+      const bodyData = esTransferencia
+        ? (esParcial ? { monto, devolverStock: devolverStockTransfer } : { devolverStock: devolverStockTransfer })
+        : (esParcial ? { monto } : {})
+      const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: esParcial ? JSON.stringify({ monto }) : JSON.stringify({}),
+        body: JSON.stringify(bodyData),
       })
       const data = await res.json()
-      if (res.ok && data.success) {
+      if (res.ok && (data.success || data.ok)) {
         mostrarMsg(data.mensaje || 'Reembolso procesado.')
         setMostrarReembolso(false)
         setMontoReembolso('')
@@ -472,6 +488,19 @@ export default function PedidoDetallePage() {
                           <input type="number" placeholder="Ej. 99" value={montoReembolso}
                             onChange={e => setMontoReembolso(e.target.value)}
                             style={{ width: '100%', padding: '8px 10px', border: '1px solid #E8E4DA', borderRadius: '5px', fontSize: '13px', fontFamily: 'inherit', boxSizing: 'border-box' }} />
+                        </div>
+                      )}
+
+                      {/* devolver-stock-checkbox: solo para transferencias */}
+                      {pedido.metodo_pago === 'transferencia' && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px' }}>
+                          <div style={{ padding: '8px 10px', background: 'rgba(201,169,97,0.1)', border: '1px solid rgba(201,169,97,0.4)', borderRadius: '5px' }}>
+                            <p style={{ fontSize: '11px', color: '#8B7530', lineHeight: 1.5, margin: 0 }}>Este registro NO mueve dinero. Haz la transferencia de devolucion al cliente desde tu banco y registra aqui para tu control.</p>
+                          </div>
+                          <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '12px', color: '#2C2C2C' }}>
+                            <input type="checkbox" checked={devolverStockTransfer} onChange={e => setDevolverStockTransfer(e.target.checked)} style={{ width: '16px', height: '16px', cursor: 'pointer' }} />
+                            Devolver productos al inventario
+                          </label>
                         </div>
                       )}
                       <div style={{ display: 'flex', gap: '8px' }}>
