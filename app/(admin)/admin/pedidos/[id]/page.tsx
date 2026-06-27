@@ -34,6 +34,7 @@ interface Pedido {
   total: number
   monto_reembolsado: number | null
   numero_guia: string | null
+  paqueteria: string | null
   factura_url: string | null
   factura_rfc: string | null
   factura_razon_social: string | null
@@ -91,6 +92,7 @@ export default function PedidoDetallePage() {
   const [guardando, setGuardando] = useState(false)
   const [mensaje, setMensaje] = useState('')
   const [guiaInput, setGuiaInput] = useState('')
+  const [paqueteriaInput, setPaqueteriaInput] = useState('')
   const [mostrarGuiaInput, setMostrarGuiaInput] = useState(false)
   const [reembolsando, setReembolsando] = useState(false)
   const [mostrarReembolso, setMostrarReembolso] = useState(false)
@@ -128,26 +130,37 @@ export default function PedidoDetallePage() {
   }
 
   async function guardarGuia() {
-    if (!guiaInput.trim()) return
+    if (!guiaInput.trim() || !paqueteriaInput) return
     setGuardando(true)
     await fetch('/api/admin/pedidos', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: params.id, numero_guia: guiaInput.trim(), estado: 'enviado' }),
+      body: JSON.stringify({ id: params.id, numero_guia: guiaInput.trim(), paqueteria: paqueteriaInput, estado: 'enviado' }),
     })
-    mostrarMsg('Número de guía guardado y estado → Enviado')
+    // Disparar correo de envio al cliente con datos de rastreo
+      try {
+        await fetch('/api/admin/pedidos/notificar-envio', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ pedidoId: params.id }),
+        })
+      } catch (e) { console.error('Error al enviar correo de envio:', e) }
+      mostrarMsg('Número de guía guardado y estado → Enviado')
     setMostrarGuiaInput(false)
     setGuiaInput('')
+    setPaqueteriaInput('')
     await cargar()
     setGuardando(false)
   }
 
   function imprimirGuia() {
-    if (!pedido?.numero_guia) {
-      setMostrarGuiaInput(true)
-      return
+    // Abre el formulario para capturar/editar la paqueteria y el numero de guia.
+    // (Las guias se generan en Skydropx; aqui solo registramos el numero y notificamos al cliente.)
+    if (pedido?.numero_guia) {
+      setGuiaInput(pedido.numero_guia)
+      setPaqueteriaInput(pedido.paqueteria || '')
     }
-    window.open(`https://www.mercadolibre.com.mx/envios/label/print?shipment_id=${pedido.numero_guia}`, '_blank')
+    setMostrarGuiaInput(true)
   }
 
   async function subirFactura(file: File) {
@@ -490,8 +503,16 @@ export default function PedidoDetallePage() {
 
                 {mostrarGuiaInput && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    <p style={{ fontSize: '11px', color: '#6B6B6B' }}>Ingresa el número de guía de Mercado Envíos:</p>
-                    <input type="text" placeholder="Ej. 123456789" value={guiaInput}
+                    <p style={{ fontSize: '11px', color: '#6B6B6B' }}>Selecciona la paquetería e ingresa el número de guía:</p>
+                    {/* paqueteria-selector */}
+                      <select value={paqueteriaInput} onChange={e => setPaqueteriaInput(e.target.value)} className="guia-input" style={{ marginBottom: '4px' }}>
+                        <option value="">— Elige paquetería —</option>
+                        <option value="Estafeta">Estafeta</option>
+                        <option value="DHL">DHL</option>
+                        <option value="FedEx">FedEx</option>
+                        <option value="Paquetexpress">Paquetexpress</option>
+                      </select>
+                      <input type="text" placeholder="Número de guía" value={guiaInput}
                       onChange={e => setGuiaInput(e.target.value)}
                       className="guia-input" />
                     <div style={{ display: 'flex', gap: '8px' }}>
@@ -499,8 +520,8 @@ export default function PedidoDetallePage() {
                         style={{ flex: 1, padding: '8px', border: '1px solid #E8E4DA', borderRadius: '5px', background: '#FAFAF7', fontSize: '12px', cursor: 'pointer', fontFamily: 'inherit', color: '#6B6B6B' }}>
                         Cancelar
                       </button>
-                      <button onClick={guardarGuia} disabled={!guiaInput.trim() || guardando}
-                        style={{ flex: 1, padding: '8px', border: 'none', borderRadius: '5px', background: guiaInput.trim() ? '#0E0E0E' : '#E8E4DA', color: guiaInput.trim() ? '#C9A961' : '#A8A8A8', fontSize: '12px', cursor: guiaInput.trim() ? 'pointer' : 'not-allowed', fontFamily: 'inherit', fontWeight: 600 }}>
+                      <button onClick={guardarGuia} disabled={!guiaInput.trim() || !paqueteriaInput || guardando}
+                        style={{ flex: 1, padding: '8px', border: 'none', borderRadius: '5px', background: (guiaInput.trim() && paqueteriaInput) ? '#0E0E0E' : '#E8E4DA', color: (guiaInput.trim() && paqueteriaInput) ? '#C9A961' : '#A8A8A8', fontSize: '12px', cursor: (guiaInput.trim() && paqueteriaInput) ? 'pointer' : 'not-allowed', fontFamily: 'inherit', fontWeight: 600 }}>
                         Guardar
                       </button>
                     </div>
