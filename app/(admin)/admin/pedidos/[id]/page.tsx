@@ -216,6 +216,19 @@ export default function PedidoDetallePage() {
       const data = await res.json()
       if (res.ok && (data.success || data.ok)) {
         mostrarMsg(data.mensaje || 'Reembolso procesado.')
+          // Disparar correo de confirmacion de reembolso al cliente
+          try {
+            await fetch('/api/admin/pedidos/notificar-reembolso', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                pedidoId: params.id,
+                metodo: esTransferencia ? 'transferencia' : 'mercadopago',
+                monto: esParcial ? monto : (pedido.total || 0),
+                esParcial,
+              }),
+            })
+          } catch (e) { console.error('Error al enviar correo de reembolso:', e) }
         setMostrarReembolso(false)
         setMontoReembolso('')
         // Esperar un momento a que MP dispare el webhook y refrescar
