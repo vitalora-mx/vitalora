@@ -173,7 +173,7 @@ export default function AdminProductosPage() {
 
       {/* Barra de cambios pendientes */}
       {numCambios > 0 && (
-        <div style={{ position: 'sticky', top: '12px', zIndex: 50, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '16px', padding: '14px 20px', background: '#FFF8E0', border: '1px solid #E8D080', borderRadius: '8px', marginBottom: '20px', boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}>
+        <div style={{ position: 'fixed', bottom: '24px', left: '50%', transform: 'translateX(-50%)', width: 'calc(100% - 48px)', maxWidth: '900px', zIndex: 100, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '16px', padding: '16px 24px', background: '#FFF8E0', border: '1px solid #E8D080', borderRadius: '12px', boxShadow: '0 8px 28px rgba(0,0,0,0.18)' }}>
           <span style={{ fontSize: '14px', color: '#876500', fontWeight: 500 }}>⚠️ Tienes cambios sin guardar en {numCambios} producto(s)</span>
           <div style={{ display: 'flex', gap: '10px' }}>
             <button onClick={cancelarTodos} disabled={guardando} style={{ padding: '10px 20px', background: 'white', border: '1px solid #DDD', borderRadius: '8px', fontSize: '13px', color: '#888', cursor: 'pointer', fontFamily: 'inherit' }}>Cancelar</button>
