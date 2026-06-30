@@ -59,6 +59,22 @@ export default function Footer() {
                 }}>{red.label}</a>
               ))}
             </div>
+
+            {/* footer-contacto-google: datos de contacto verificables */}
+            <div style={{ marginTop: '28px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+                <span style={{ fontSize: '14px', flexShrink: 0 }}>📍</span>
+                <span style={{ fontSize: '13px', color: 'rgba(245,240,232,0.6)', lineHeight: 1.6 }}>Lago del Bosque 187, Real del Lago, C.P. 36690, Irapuato, Gto., México</span>
+              </div>
+              <a href="https://wa.me/524622341282" target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '10px', textDecoration: 'none' }}>
+                <span style={{ fontSize: '14px', flexShrink: 0 }}>💬</span>
+                <span style={{ fontSize: '13px', color: 'rgba(245,240,232,0.6)' }}>WhatsApp: 462 234 1282</span>
+              </a>
+              <a href="mailto:hola@vitalora.com.mx" style={{ display: 'flex', alignItems: 'center', gap: '10px', textDecoration: 'none' }}>
+                <span style={{ fontSize: '14px', flexShrink: 0 }}>✉️</span>
+                <span style={{ fontSize: '13px', color: 'rgba(245,240,232,0.6)' }}>hola@vitalora.com.mx</span>
+              </a>
+            </div>
           </div>
 
           {/* Tienda */}
@@ -154,7 +170,7 @@ export default function Footer() {
           flexDirection: isMobile ? 'column' : 'row',
           textAlign: isMobile ? 'center' : 'left',
         }}>
-          <span>© 2026 Vitalora. Todos los derechos reservados.</span>
+          <span>© 2026 Vitalora · VANGUARDIA IMPORTACIONES & LOGÍSTICA DE MÉXICO S.A. DE C.V. · Todos los derechos reservados.</span>
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'center' }}>
             <MetodosPago variante="oscuro" titulo="" />
           </div>
