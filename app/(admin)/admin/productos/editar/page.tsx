@@ -26,7 +26,7 @@ interface KitComponente { producto_id: number; cantidad: number }
 interface VideoItem { youtube_url: string; titulo: string }
 interface ImagenExistente { id: number; url: string }
 
-const categoriasCosmeticos = ['Sérum', 'Crema & Balm', 'Limpiador & Exfoliante', 'Tónico & Mist', 'Protector Solar', 'Cuidado de Ojos', 'Mascarillas & Parche', 'Parches para Acné', 'Labios', 'Make Up', 'Cuidado del Cabello', 'Beauty Dispositivo', 'Kits', 'Cuidado Corporal']
+const categoriasCosmeticos = ['Sérum', 'Crema & Balm', 'Limpiador & Exfoliante', 'Tónico & Mist', 'Protector Solar', 'Cuidado de Ojos', 'Mascarillas & Parche', 'Parches para Acné', 'Labios', 'Make Up', 'Cuidado del Cabello', 'Beauty Dispositivo', 'Kits', 'Mini Kits', 'Cuidado Corporal']
 const categoriasSuplementos = ['Vitaminas', 'Minerales', 'Proteínas', 'Colágeno', 'Probióticos', 'Omega 3', 'Antioxidantes', 'Energía', 'Cabello y Piel', 'Digestión', 'Sueño', 'Kits']
 
 const emptyForm = {

@@ -17,6 +17,7 @@ const CATEGORIAS = [
   { nombre: 'Make Up', img: '/images/categorias/cat-makeup.png' },
   { nombre: 'Cuidado del Cabello', img: '/images/categorias/cat-cabello.png' },
   { nombre: 'Kits', img: '/images/categorias/cat-kits.png' },
+  { nombre: 'Mini Kits', img: '/images/categorias/cat-mini-kits.png' },
   { nombre: 'Cuidado Corporal', img: '/images/categorias/cat-corporal.png' },
 ]
 
