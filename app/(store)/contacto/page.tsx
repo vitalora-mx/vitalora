@@ -76,6 +76,29 @@ export default function ContactoPage() {
           </p>
         </div>
 
+          {/* contacto-datos-google: datos de contacto verificables */}
+          <div style={{ background: 'white', borderRadius: '12px', border: '1px solid var(--line)', padding: isMobile ? '24px 20px' : '32px', marginBottom: isMobile ? '24px' : '32px' }}>
+            <div style={{ fontSize: '11px', letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--gold)', marginBottom: '16px', textAlign: 'center' }}>Datos de contacto</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', maxWidth: '420px', margin: '0 auto' }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+                <span style={{ fontSize: '16px', flexShrink: 0 }}>📍</span>
+                <span style={{ fontSize: '14px', color: 'var(--black)', lineHeight: 1.6 }}>Lago del Bosque 187, Real del Lago, C.P. 36690, Irapuato, Gto., México</span>
+              </div>
+              <a href="https://wa.me/524622341282" target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '12px', textDecoration: 'none' }}>
+                <span style={{ fontSize: '16px', flexShrink: 0 }}>💬</span>
+                <span style={{ fontSize: '14px', color: 'var(--black)' }}>WhatsApp: 462 234 1282</span>
+              </a>
+              <a href="mailto:hola@vitalora.com.mx" style={{ display: 'flex', alignItems: 'center', gap: '12px', textDecoration: 'none' }}>
+                <span style={{ fontSize: '16px', flexShrink: 0 }}>✉️</span>
+                <span style={{ fontSize: '14px', color: 'var(--black)' }}>hola@vitalora.com.mx</span>
+              </a>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <span style={{ fontSize: '16px', flexShrink: 0 }}>🕐</span>
+                <span style={{ fontSize: '14px', color: 'var(--black)' }}>Lunes a Viernes, 9:00 - 18:00 hrs</span>
+              </div>
+            </div>
+          </div>
+
         {enviado ? (
           <div style={{ textAlign: 'center', padding: '48px 24px', background: 'white', borderRadius: '12px', border: '1px solid var(--line)' }}>
             <div style={{ fontFamily: 'var(--font-italiana), serif', fontSize: '40px', color: 'var(--gold)', marginBottom: '16px' }}>✦</div>
