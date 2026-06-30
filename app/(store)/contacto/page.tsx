@@ -82,7 +82,7 @@ export default function ContactoPage() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', maxWidth: '420px', margin: '0 auto' }}>
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
                 <span style={{ fontSize: '16px', flexShrink: 0 }}>📍</span>
-                <span style={{ fontSize: '14px', color: 'var(--black)', lineHeight: 1.6 }}>Lago del Bosque 187, Real del Lago, C.P. 36690, Irapuato, Gto., México</span>
+                <span style={{ fontSize: '14px', color: 'var(--black)', lineHeight: 1.6 }}>Circuito Luna 103, Zirándaro, San Miguel de Allende, Guanajuato, C.P. 37749, México</span>
               </div>
               <a href="https://wa.me/524622341282" target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '12px', textDecoration: 'none' }}>
                 <span style={{ fontSize: '16px', flexShrink: 0 }}>💬</span>

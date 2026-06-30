@@ -64,7 +64,7 @@ export default function Footer() {
             <div style={{ marginTop: '28px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
                 <span style={{ fontSize: '14px', flexShrink: 0 }}>📍</span>
-                <span style={{ fontSize: '13px', color: 'rgba(245,240,232,0.6)', lineHeight: 1.6 }}>Lago del Bosque 187, Real del Lago, C.P. 36690, Irapuato, Gto., México</span>
+                <span style={{ fontSize: '13px', color: 'rgba(245,240,232,0.6)', lineHeight: 1.6 }}>Circuito Luna 103, Zirándaro, San Miguel de Allende, Guanajuato, C.P. 37749, México</span>
               </div>
               <a href="https://wa.me/524622341282" target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '10px', textDecoration: 'none' }}>
                 <span style={{ fontSize: '14px', flexShrink: 0 }}>💬</span>
