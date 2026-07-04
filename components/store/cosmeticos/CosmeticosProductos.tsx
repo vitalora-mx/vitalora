@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { useState, useRef, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { useIsMobile } from '@/hooks/useIsMobile'
 
 interface Producto {
@@ -17,6 +18,8 @@ interface Props {
 }
 
 export default function CosmeticosProductos({ rutinaActiva }: Props) {
+  const router = useRouter()
+  const [busqueda, setBusqueda] = useState('')
   const [productos, setProductos] = useState<Producto[]>([])
   const [marcas, setMarcas] = useState<string[]>([])
   const [marcasSeleccionadas, setMarcasSeleccionadas] = useState<string[]>([])
@@ -105,6 +108,13 @@ export default function CosmeticosProductos({ rutinaActiva }: Props) {
               </div>
             )}
           </div>
+          {/* buscadorGlobal */}
+          <form onSubmit={(e) => { e.preventDefault(); if (busqueda.trim()) router.push(`/buscar?q=${encodeURIComponent(busqueda.trim())}`) }} style={{ flex: 1, maxWidth: isMobile ? '100%' : '420px', order: isMobile ? 3 : 0, width: isMobile ? '100%' : 'auto' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', border: '1px solid #E8E0D5', borderRadius: '100px', padding: isMobile ? '8px 16px' : '9px 18px', background: '#FAFAF7' }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#A8A8A8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+              <input type="text" value={busqueda} onChange={(e) => setBusqueda(e.target.value)} placeholder="Buscar productos..." style={{ flex: 1, border: 'none', background: 'transparent', outline: 'none', fontSize: '13px', fontFamily: 'inherit', color: '#2C2C2C' }} />
+            </div>
+          </form>
           <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '10px' : '16px' }}>
             {!isMobile && <Link href="/suplementos" style={{ padding: '8px 20px', border: '1px solid var(--gold)', borderRadius: '100px', color: 'var(--gold)', textDecoration: 'none', fontSize: '11px', letterSpacing: '0.15em', textTransform: 'uppercase', fontWeight: 500 }}>Suplementos →</Link>}
             {!isMobile && <span style={{ fontSize: '12px', letterSpacing: '0.1em', textTransform: 'uppercase', color: '#6B6B6B' }}>Ordenar:</span>}
