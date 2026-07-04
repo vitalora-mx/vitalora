@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useIsMobile } from '@/hooks/useIsMobile'
 
@@ -15,6 +16,8 @@ interface Props {
 }
 
 export default function SuplementosProductos({ categoriaActiva }: Props) {
+  const router = useRouter()
+  const [busqueda, setBusqueda] = useState('')
   const [productos, setProductos] = useState<Producto[]>([])
   const [marcas, setMarcas] = useState<string[]>([])
   const [categorias, setCategorias] = useState<string[]>([])
@@ -90,6 +93,13 @@ export default function SuplementosProductos({ categoriaActiva }: Props) {
       {/* Filtros */}
       <div style={{ background: '#FFFFFF', borderBottom: '1px solid #EEEEEE', position: 'sticky', top: isMobile ? '61px' : '73px', zIndex: 90, padding: isMobile ? '12px 16px' : '14px 40px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
         <div style={{ maxWidth: '1400px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+          {/* buscadorGlobal */}
+          <form onSubmit={(e) => { e.preventDefault(); if (busqueda.trim()) router.push(`/buscar?q=${encodeURIComponent(busqueda.trim())}`) }} style={{ flex: 1, maxWidth: isMobile ? '100%' : '420px', order: isMobile ? 3 : 0, width: isMobile ? '100%' : 'auto' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', border: '1px solid #E8E0D5', borderRadius: '100px', padding: isMobile ? '8px 16px' : '9px 18px', background: '#FAFAF7' }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#A8A8A8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+              <input type="text" value={busqueda} onChange={(e) => setBusqueda(e.target.value)} placeholder="Buscar productos..." style={{ flex: 1, border: 'none', background: 'transparent', outline: 'none', fontSize: '13px', fontFamily: 'inherit', color: '#2C2C2C' }} />
+            </div>
+          </form>
           <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '8px' : '12px', flexWrap: 'wrap' }}>
             {/* Dropdown Marcas */}
             <div ref={marcasRef} style={{ position: 'relative' }}>
