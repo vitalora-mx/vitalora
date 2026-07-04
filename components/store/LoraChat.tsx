@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { useIsMobile } from '@/hooks/useIsMobile'
 
 type Message = {
   role: 'lora' | 'user'
@@ -23,6 +24,7 @@ const SUGERENCIAS = [
 const LIMITE = 10
 
 export default function LoraChat() {
+  const isMobile = useIsMobile()
   const [open, setOpen] = useState(false)
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
@@ -141,11 +143,13 @@ export default function LoraChat() {
       {open && (
         <div style={{
           position: 'fixed',
-          bottom: '32px',
-          right: '32px',
-          width: '420px',
-          height: '640px',
-          maxHeight: 'calc(100vh - 64px)',
+          bottom: isMobile ? '12px' : '32px',
+          right: isMobile ? '12px' : '32px',
+          left: isMobile ? '12px' : 'auto',
+          top: isMobile ? '76px' : 'auto',
+          width: isMobile ? 'auto' : '420px',
+          height: isMobile ? 'auto' : '640px',
+          maxHeight: isMobile ? 'none' : 'calc(100vh - 64px)',
           background: 'var(--bg-cream)',
           border: '1px solid var(--line)',
           borderRadius: '4px',
