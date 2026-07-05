@@ -18,6 +18,7 @@ interface Props {
 export default function SuplementosProductos({ categoriaActiva }: Props) {
   const router = useRouter()
   const [busqueda, setBusqueda] = useState('')
+  const [paginaActual, setPaginaActual] = useState(1)
   const [productos, setProductos] = useState<Producto[]>([])
   const [marcas, setMarcas] = useState<string[]>([])
   const [categorias, setCategorias] = useState<string[]>([])
@@ -58,6 +59,9 @@ export default function SuplementosProductos({ categoriaActiva }: Props) {
   function toggleCat(c: string) { setCategoriasSeleccionadas(prev => prev.includes(c) ? prev.filter(x => x !== c) : [...prev, c]) }
   function limpiarTodo() { setMarcasSeleccionadas([]); setCategoriasSeleccionadas([]) }
 
+  // Reiniciar a la pagina 1 cuando cambian los filtros
+  useEffect(() => { setPaginaActual(1) }, [categoriaActiva, marcasSeleccionadas, categoriasSeleccionadas, orden])
+
   let productosFiltrados = productos.filter(p => {
     const porMarca = marcasSeleccionadas.length === 0 || marcasSeleccionadas.includes(p.marca)
     const porCat = categoriasSeleccionadas.length === 0 || categoriasSeleccionadas.includes(p.categoria)
@@ -67,6 +71,12 @@ export default function SuplementosProductos({ categoriaActiva }: Props) {
 
   if (orden === 'precio-asc') productosFiltrados.sort((a, b) => a.precio - b.precio)
   if (orden === 'precio-desc') productosFiltrados.sort((a, b) => b.precio - a.precio)
+
+  // Paginacion: 20 productos por pagina
+  const PRODUCTOS_POR_PAGINA = 20
+  const totalPaginas = Math.max(1, Math.ceil(productosFiltrados.length / PRODUCTOS_POR_PAGINA))
+  const paginaSegura = Math.min(paginaActual, totalPaginas)
+  const productosPagina = productosFiltrados.slice((paginaSegura - 1) * PRODUCTOS_POR_PAGINA, paginaSegura * PRODUCTOS_POR_PAGINA)
 
   function getImagen(p: Producto) {
     const imgs = p.producto_imagenes?.sort((a, b) => a.posicion - b.posicion)
@@ -175,7 +185,7 @@ export default function SuplementosProductos({ categoriaActiva }: Props) {
           </div>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: isMobile ? '12px' : '20px' }}>
-            {productosFiltrados.map(producto => (
+            {productosPagina.map(producto => (
               <Link key={producto.id} href={`/suplementos/producto/${producto.slug}`} style={{ textDecoration: 'none' }}>
                 <div style={{ cursor: 'pointer', background: 'white', borderRadius: '12px', overflow: 'hidden', border: '1px solid #EEE', transition: 'transform 0.3s, box-shadow 0.3s' }}
                   onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 12px 40px rgba(0,0,0,0.08)'; const pri = e.currentTarget.querySelector('.prod-img-principal') as HTMLElement | null; const sec = e.currentTarget.querySelector('.prod-img-secundaria') as HTMLElement | null; if (sec) { if (pri) pri.style.opacity = '0'; sec.style.opacity = '1' } }}
@@ -213,6 +223,42 @@ export default function SuplementosProductos({ categoriaActiva }: Props) {
                 </div>
               </Link>
             ))}
+          </div>
+        )}
+
+        {/* paginacion-botones */}
+        {!loading && productosFiltrados.length > 0 && totalPaginas > 1 && (
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', marginTop: isMobile ? '32px' : '48px', flexWrap: 'wrap' }}>
+            <button
+              onClick={() => { if (paginaSegura > 1) { setPaginaActual(paginaSegura - 1); window.scrollTo({ top: 0, behavior: 'smooth' }) } }}
+              disabled={paginaSegura <= 1}
+              style={{ minWidth: '40px', height: '40px', border: '1px solid #E8E0D5', borderRadius: '6px', background: 'white', color: paginaSegura <= 1 ? '#CCC' : '#2C2C2C', cursor: paginaSegura <= 1 ? 'not-allowed' : 'pointer', fontFamily: 'inherit', fontSize: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              ‹
+            </button>
+
+            {Array.from({ length: totalPaginas }, (_, i) => i + 1)
+              .filter(n => n === 1 || n === totalPaginas || Math.abs(n - paginaSegura) <= 1)
+              .map((n, idx, arr) => {
+                const prev = arr[idx - 1]
+                const hayGap = prev && n - prev > 1
+                return (
+                  <span key={n} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    {hayGap && <span style={{ color: '#AAA', fontSize: '14px' }}>…</span>}
+                    <button
+                      onClick={() => { setPaginaActual(n); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
+                      style={{ minWidth: '40px', height: '40px', border: '1px solid', borderColor: n === paginaSegura ? '#6B8F6B' : '#E8E0D5', borderRadius: '6px', background: n === paginaSegura ? '#6B8F6B' : 'white', color: n === paginaSegura ? 'white' : '#2C2C2C', cursor: 'pointer', fontFamily: 'inherit', fontSize: '14px', fontWeight: n === paginaSegura ? 600 : 400 }}>
+                      {n}
+                    </button>
+                  </span>
+                )
+              })}
+
+            <button
+              onClick={() => { if (paginaSegura < totalPaginas) { setPaginaActual(paginaSegura + 1); window.scrollTo({ top: 0, behavior: 'smooth' }) } }}
+              disabled={paginaSegura >= totalPaginas}
+              style={{ minWidth: '40px', height: '40px', border: '1px solid #E8E0D5', borderRadius: '6px', background: 'white', color: paginaSegura >= totalPaginas ? '#CCC' : '#2C2C2C', cursor: paginaSegura >= totalPaginas ? 'not-allowed' : 'pointer', fontFamily: 'inherit', fontSize: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              ›
+            </button>
           </div>
         )}
       </div>
