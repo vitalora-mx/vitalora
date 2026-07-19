@@ -160,6 +160,12 @@ export default function CosmeticosProductos({ rutinaActiva }: Props) {
                   onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 12px 40px rgba(0,0,0,0.1)'; const pri = e.currentTarget.querySelector('.prod-img-principal') as HTMLElement | null; const sec = e.currentTarget.querySelector('.prod-img-secundaria') as HTMLElement | null; if (sec) { if (pri) pri.style.opacity = '0'; sec.style.opacity = '1' } }}
                   onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none'; const pri = e.currentTarget.querySelector('.prod-img-principal') as HTMLElement | null; const sec = e.currentTarget.querySelector('.prod-img-secundaria') as HTMLElement | null; if (sec) { if (pri) pri.style.opacity = producto.stock === 0 ? '0.45' : '1'; sec.style.opacity = '0' } }}>
                   <div style={{ aspectRatio: '1', background: '#F5F0E8', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden' }}>
+                      {producto.precio_original && producto.precio_original > producto.precio && producto.stock !== 0 && (
+                        <div style={{ position: 'absolute', top: isMobile ? '10px' : '12px', right: isMobile ? '10px' : '12px', width: isMobile ? '46px' : '54px', height: isMobile ? '46px' : '54px', borderRadius: '50%', background: 'var(--gold)', color: 'white', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', lineHeight: 1, zIndex: 3, boxShadow: '0 2px 8px rgba(0,0,0,0.12)' }}>
+                          <div style={{ fontSize: isMobile ? '15px' : '17px', fontWeight: 600 }}>-{Math.round(((producto.precio_original - producto.precio) / producto.precio_original) * 100)}%</div>
+                          <div style={{ fontSize: '7px', letterSpacing: '0.14em', marginTop: '3px', fontWeight: 600 }}>DESC</div>
+                        </div>
+                      )}
                     {producto.stock === 0 && <div style={{ position: 'absolute', top: '12px', left: '12px', padding: '5px 12px', background: '#C0392B', color: 'white', fontSize: '10px', letterSpacing: '0.1em', borderRadius: '2px', zIndex: 3, fontWeight: 700, textTransform: 'uppercase' }}>Agotado</div>}
                     {getImagen(producto) ? (
                       <>
@@ -182,6 +188,11 @@ export default function CosmeticosProductos({ rutinaActiva }: Props) {
                           <span style={{ fontSize: '12px', color: '#999', textDecoration: 'line-through', marginRight: '6px' }}>${producto.precio_original.toLocaleString()}</span>
                         )}
                         <span style={{ fontFamily: 'var(--font-cormorant), serif', fontSize: isMobile ? '16px' : '18px', fontWeight: 600, color: '#0E0E0E' }}>${producto.precio.toLocaleString()} MXN</span>
+                          {producto.precio_original && producto.precio_original > producto.precio && (
+                            <span style={{ marginLeft: '8px', padding: '3px 8px', background: 'rgba(201,169,97,0.15)', color: 'var(--gold)', fontSize: '11px', fontWeight: 700, letterSpacing: '0.04em', borderRadius: '2px', whiteSpace: 'nowrap' }}>
+                              -{Math.round(((producto.precio_original - producto.precio) / producto.precio_original) * 100)}%
+                            </span>
+                          )}
                       </div>
                       {!isMobile && <span style={{ padding: '8px 16px', background: '#0E0E0E', color: 'white', fontSize: '11px', letterSpacing: '0.1em', borderRadius: '2px' }}>+ Agregar</span>}
                     </div>

@@ -191,6 +191,12 @@ export default function SuplementosProductos({ categoriaActiva }: Props) {
                   onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 12px 40px rgba(0,0,0,0.08)'; const pri = e.currentTarget.querySelector('.prod-img-principal') as HTMLElement | null; const sec = e.currentTarget.querySelector('.prod-img-secundaria') as HTMLElement | null; if (sec) { if (pri) pri.style.opacity = '0'; sec.style.opacity = '1' } }}
                   onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none'; const pri = e.currentTarget.querySelector('.prod-img-principal') as HTMLElement | null; const sec = e.currentTarget.querySelector('.prod-img-secundaria') as HTMLElement | null; if (sec) { if (pri) pri.style.opacity = producto.stock === 0 ? '0.45' : '1'; sec.style.opacity = '0' } }}>
                   <div style={{ aspectRatio: '1', background: '#F0F7F0', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden' }}>
+                      {producto.precio_original && producto.precio_original > producto.precio && producto.stock !== 0 && (
+                        <div style={{ position: 'absolute', top: isMobile ? '10px' : '12px', right: isMobile ? '10px' : '12px', width: isMobile ? '46px' : '54px', height: isMobile ? '46px' : '54px', borderRadius: '50%', background: '#6B8F6B', color: 'white', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', lineHeight: 1, zIndex: 3, boxShadow: '0 2px 8px rgba(0,0,0,0.12)' }}>
+                          <div style={{ fontSize: isMobile ? '15px' : '17px', fontWeight: 600 }}>-{Math.round(((producto.precio_original - producto.precio) / producto.precio_original) * 100)}%</div>
+                          <div style={{ fontSize: '7px', letterSpacing: '0.14em', marginTop: '3px', fontWeight: 600 }}>DESC</div>
+                        </div>
+                      )}
                     {producto.stock === 0 && <div style={{ position: 'absolute', top: '12px', left: '12px', padding: '5px 12px', background: '#C0392B', color: 'white', fontSize: '10px', letterSpacing: '0.1em', borderRadius: '100px', fontWeight: 700, zIndex: 3, textTransform: 'uppercase' }}>Agotado</div>}
                     {getImagen(producto) ? (
                       <>
@@ -216,6 +222,11 @@ export default function SuplementosProductos({ categoriaActiva }: Props) {
                           <span style={{ fontSize: '12px', color: '#999', textDecoration: 'line-through', marginRight: '6px' }}>${producto.precio_original.toLocaleString()}</span>
                         )}
                         <span style={{ fontFamily: 'var(--font-cormorant), serif', fontSize: isMobile ? '18px' : '20px', fontWeight: 600, color: '#111' }}>${producto.precio.toLocaleString()} MXN</span>
+                          {producto.precio_original && producto.precio_original > producto.precio && (
+                            <span style={{ marginLeft: '8px', padding: '3px 9px', background: 'rgba(107,143,107,0.14)', color: '#4F7A4F', fontSize: '11px', fontWeight: 700, letterSpacing: '0.03em', borderRadius: '100px', whiteSpace: 'nowrap' }}>
+                              -{Math.round(((producto.precio_original - producto.precio) / producto.precio_original) * 100)}%
+                            </span>
+                          )}
                       </div>
                       {!isMobile && <span style={{ padding: '8px 16px', background: '#6B8F6B', color: 'white', fontSize: '12px', borderRadius: '8px', fontWeight: 600 }}>+ Agregar</span>}
                     </div>
