@@ -299,7 +299,7 @@ export default function Hero() {
           width: isMobile ? '84%' : '36%',
           maxWidth: isMobile ? '360px' : '480px',
           textAlign: 'center',
-          zIndex: 10,
+          zIndex: 20,
         }}>
           <img
             src="/images/logo/logo-footer.png"
