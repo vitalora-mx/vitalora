@@ -36,9 +36,7 @@ export const metadata: Metadata = {
   authors: [{ name: 'Vitalora' }],
   creator: 'Vitalora',
   publisher: 'Vitalora',
-  alternates: {
-    canonical: '/',
-  },
+
   openGraph: {
     type: 'website',
     locale: 'es_MX',
