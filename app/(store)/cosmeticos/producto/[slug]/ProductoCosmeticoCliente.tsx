@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import ReactMarkdown from 'react-markdown'
 import CosmeticosHeader from '@/components/store/cosmeticos/CosmeticosHeader'
 import ProductoVideos from '@/components/store/producto/ProductoVideos'
 import Footer from '@/components/store/Footer'
@@ -26,6 +27,11 @@ interface Producto {
   producto_imagenes: { id: number; url: string; posicion: number }[]
   producto_videos: ProductoVideo[]
   producto_variantes: Variante[]
+}
+
+// Quita Markdown para el resumen corto bajo el precio
+function textoPlano(txt: string): string {
+  return (txt || '').replace(/\*\*/g, '').replace(/[*_#`>]/g, '').trim()
 }
 
 export default function ProductoCosmeticoCliente({ producto }: { producto: Producto }) {
@@ -69,6 +75,9 @@ export default function ProductoCosmeticoCliente({ producto }: { producto: Produ
     videosParaMostrar = [{ id: producto.video_url, titulo: 'Video del producto' }]
   }
 
+  // Resumen corto: primera oración sin Markdown
+  const resumenCorto = textoPlano(producto.descripcion).split('.')[0]
+
   function seleccionarVariante(id: number) {
     setVarianteSel(id)
     setSeleccionada(0)
@@ -111,6 +120,8 @@ export default function ProductoCosmeticoCliente({ producto }: { producto: Produ
   }
 
   const tabs = ['Descripción', 'Ingredientes', 'Cómo usar', 'Reseñas']
+
+  const estiloMd: React.CSSProperties = { fontSize: '16px', lineHeight: 1.9, color: 'var(--text-muted)' }
 
   return (
     <main style={{ background: 'white' }}>
@@ -164,8 +175,8 @@ export default function ProductoCosmeticoCliente({ producto }: { producto: Produ
 
             <div style={{ height: '1px', background: 'var(--line)' }} />
 
-            {producto.descripcion && (
-              <p style={{ fontSize: '15px', lineHeight: 1.8, color: 'var(--text-muted)' }}>{producto.descripcion.split('.')[0]}.</p>
+            {resumenCorto && (
+              <p style={{ fontSize: '15px', lineHeight: 1.8, color: 'var(--text-muted)' }}>{resumenCorto}.</p>
             )}
 
             {/* Selector de variantes */}
@@ -245,20 +256,28 @@ export default function ProductoCosmeticoCliente({ producto }: { producto: Produ
             ))}
           </div>
           <div style={{ maxWidth: '800px' }}>
-            {tabActiva === 'Descripción' && <p style={{ fontSize: '16px', lineHeight: 1.9, color: 'var(--text-muted)' }}>{producto.descripcion || 'Sin descripción disponible.'}</p>}
+            {tabActiva === 'Descripción' && (
+              <div style={estiloMd} className="md-contenido">
+                <ReactMarkdown>{producto.descripcion || 'Sin descripción disponible.'}</ReactMarkdown>
+              </div>
+            )}
             {tabActiva === 'Ingredientes' && (
               <div>
                 <h3 style={{ fontFamily: 'var(--font-cormorant), serif', fontSize: '24px', marginBottom: '20px', color: 'var(--black)' }}>Ingredientes</h3>
-                <p style={{ fontSize: '14px', lineHeight: 2, color: 'var(--text-muted)', fontStyle: 'italic' }}>{producto.ingredientes || 'No especificados.'}</p>
+                <div style={{ fontSize: '14px', lineHeight: 2, color: 'var(--text-muted)' }} className="md-contenido">
+                  <ReactMarkdown>{producto.ingredientes || 'No especificados.'}</ReactMarkdown>
+                </div>
               </div>
             )}
             {tabActiva === 'Cómo usar' && producto.como_usar && (
               <div>
                 <h3 style={{ fontFamily: 'var(--font-cormorant), serif', fontSize: '24px', marginBottom: '20px', color: 'var(--black)' }}>Modo de uso</h3>
-                {producto.como_usar.split('\n').map((paso, i) => (
+                {producto.como_usar.split('\n').filter(p => p.trim()).map((paso, i) => (
                   <div key={i} style={{ display: 'flex', gap: '16px', marginBottom: '16px', alignItems: 'flex-start' }}>
                     <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'var(--black)', color: 'var(--bg-cream)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 600, flexShrink: 0 }}>{i + 1}</div>
-                    <p style={{ fontSize: '15px', lineHeight: 1.7, color: 'var(--text-muted)', paddingTop: '4px' }}>{paso.replace(/^\d+\.\s/, '')}</p>
+                    <div style={{ fontSize: '15px', lineHeight: 1.7, color: 'var(--text-muted)', paddingTop: '4px' }} className="md-contenido">
+                      <ReactMarkdown>{paso.replace(/^\d+\.\s/, '')}</ReactMarkdown>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -274,6 +293,14 @@ export default function ProductoCosmeticoCliente({ producto }: { producto: Produ
 
       <Footer />
       <LoraChat />
+
+      <style>{`
+        .md-contenido p { margin: 0 0 16px 0; }
+        .md-contenido p:last-child { margin-bottom: 0; }
+        .md-contenido strong { color: var(--black); font-weight: 600; }
+        .md-contenido ul, .md-contenido ol { padding-left: 20px; margin: 0 0 16px 0; }
+        .md-contenido li { margin-bottom: 8px; }
+      `}</style>
     </main>
   )
 }
