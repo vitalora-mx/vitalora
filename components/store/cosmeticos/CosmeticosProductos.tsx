@@ -15,22 +15,29 @@ interface Props {
   rutinaActiva: string
   marcaActiva: string
   setMarcaActiva: (m: string) => void
+  productosIniciales?: Producto[]
 }
 
-export default function CosmeticosProductos({ rutinaActiva }: Props) {
+export default function CosmeticosProductos({ rutinaActiva, productosIniciales }: Props) {
   const router = useRouter()
   const [busqueda, setBusqueda] = useState('')
   const [paginaActual, setPaginaActual] = useState(1)
-  const [productos, setProductos] = useState<Producto[]>([])
-  const [marcas, setMarcas] = useState<string[]>([])
+  const [productos, setProductos] = useState<Producto[]>(productosIniciales || [])
+  const [marcas, setMarcas] = useState<string[]>(
+    productosIniciales && productosIniciales.length > 0
+      ? ([...new Set(productosIniciales.map(p => p.marca))].sort() as string[])
+      : []
+  )
   const [marcasSeleccionadas, setMarcasSeleccionadas] = useState<string[]>([])
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const [orden, setOrden] = useState('relevancia')
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(!productosIniciales || productosIniciales.length === 0)
   const dropdownRef = useRef<HTMLDivElement>(null)
   const isMobile = useIsMobile()
 
   useEffect(() => {
+    // Si ya llegaron productos desde el servidor, no hace falta pedir de nuevo
+    if (productosIniciales && productosIniciales.length > 0) return
     async function cargar() {
       const res = await fetch('/api/tienda/productos?tipo=cosmetico')
       const data = await res.json()
@@ -42,7 +49,7 @@ export default function CosmeticosProductos({ rutinaActiva }: Props) {
       setLoading(false)
     }
     cargar()
-  }, [])
+  }, [productosIniciales])
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -58,7 +65,6 @@ export default function CosmeticosProductos({ rutinaActiva }: Props) {
 
   function limpiarMarcas() { setMarcasSeleccionadas([]) }
 
-  // Reiniciar a la pagina 1 cuando cambian los filtros
   useEffect(() => { setPaginaActual(1) }, [rutinaActiva, marcasSeleccionadas, orden])
 
   let productosFiltrados = productos.filter(p => {
@@ -70,7 +76,6 @@ export default function CosmeticosProductos({ rutinaActiva }: Props) {
   if (orden === 'precio-asc') productosFiltrados.sort((a, b) => a.precio - b.precio)
   if (orden === 'precio-desc') productosFiltrados.sort((a, b) => b.precio - a.precio)
 
-  // Paginacion: 20 productos por pagina
   const PRODUCTOS_POR_PAGINA = 20
   const totalPaginas = Math.max(1, Math.ceil(productosFiltrados.length / PRODUCTOS_POR_PAGINA))
   const paginaSegura = Math.min(paginaActual, totalPaginas)

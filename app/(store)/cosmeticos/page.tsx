@@ -1,44 +1,48 @@
-'use client'
+import type { Metadata } from 'next'
+import { Suspense } from 'react'
+import { createClient } from '@supabase/supabase-js'
+import CosmeticosCliente from './CosmeticosCliente'
 
-import { useState, useEffect, Suspense } from 'react'
-import { useSearchParams } from 'next/navigation'
-import CosmeticosHeader from '@/components/store/cosmeticos/CosmeticosHeader'
-import CosmeticosBanner from '@/components/store/cosmeticos/CosmeticosBanner'
-import CosmeticosRutinas from '@/components/store/cosmeticos/CosmeticosRutinas'
-import CosmeticosProductos from '@/components/store/cosmeticos/CosmeticosProductos'
-import Footer from '@/components/store/Footer'
-import LoraChat from '@/components/store/LoraChat'
+export const revalidate = 3600
 
-function CosmeticosContenido() {
-  const searchParams = useSearchParams()
-  const categoriaURL = searchParams.get('categoria')
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+)
 
-  const [rutinaActiva, setRutinaActiva] = useState(categoriaURL || 'Todas')
-  const [marcaActiva, setMarcaActiva] = useState('Todas')
-
-  // Si cambia el parámetro de la URL (ej. al venir del carrusel), actualizar el filtro
-  useEffect(() => {
-    if (categoriaURL) {
-      setRutinaActiva(categoriaURL)
-    }
-  }, [categoriaURL])
-
-  return (
-    <main>
-      <CosmeticosHeader />
-      <CosmeticosBanner />
-      <CosmeticosRutinas rutinaActiva={rutinaActiva} setRutinaActiva={setRutinaActiva} />
-      <CosmeticosProductos rutinaActiva={rutinaActiva} marcaActiva={marcaActiva} setMarcaActiva={setMarcaActiva} />
-      <Footer />
-      <LoraChat />
-    </main>
-  )
+export const metadata: Metadata = {
+  title: 'Cosméticos Coreanos | K-Beauty Auténtica',
+  description:
+    'Descubre cosméticos coreanos originales: limpiadores, sérums, protectores solares, mascarillas y más. K-Beauty auténtica con envío a todo México.',
+  alternates: { canonical: 'https://vitalora.com.mx/cosmeticos' },
+  openGraph: {
+    locale: 'es_MX',
+    siteName: 'Vitalora',
+    title: 'Cosméticos Coreanos | K-Beauty Auténtica | Vitalora',
+    description:
+      'Cosméticos coreanos originales con envío a todo México. Limpiadores, sérums, protectores solares y más.',
+    url: 'https://vitalora.com.mx/cosmeticos',
+  },
+  robots: { index: true, follow: true },
 }
 
-export default function CosmeticosPage() {
+async function obtenerProductos() {
+  const { data, error } = await supabase
+    .from('productos')
+    .select('*, producto_imagenes(*), producto_videos(*), producto_variantes(*, variante_imagenes(*))')
+    .eq('activo', true)
+    .eq('tipo', 'cosmetico')
+    .order('created_at', { ascending: false })
+  if (error || !data) return []
+  return data
+}
+
+export default async function CosmeticosPage() {
+  const productos = await obtenerProductos()
+
   return (
     <Suspense fallback={<main style={{ minHeight: '60vh', background: 'var(--bg-cream)' }} />}>
-      <CosmeticosContenido />
+      <CosmeticosCliente productosIniciales={productos} />
     </Suspense>
   )
 }
