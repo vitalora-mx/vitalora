@@ -13,19 +13,28 @@ interface Producto {
 
 interface Props {
   categoriaActiva: string
+  productosIniciales?: Producto[]
 }
 
-export default function SuplementosProductos({ categoriaActiva }: Props) {
+export default function SuplementosProductos({ categoriaActiva, productosIniciales }: Props) {
   const router = useRouter()
   const [busqueda, setBusqueda] = useState('')
   const [paginaActual, setPaginaActual] = useState(1)
-  const [productos, setProductos] = useState<Producto[]>([])
-  const [marcas, setMarcas] = useState<string[]>([])
-  const [categorias, setCategorias] = useState<string[]>([])
+  const [productos, setProductos] = useState<Producto[]>(productosIniciales || [])
+  const [marcas, setMarcas] = useState<string[]>(
+    productosIniciales && productosIniciales.length > 0
+      ? ([...new Set(productosIniciales.map(p => p.marca))].sort() as string[])
+      : []
+  )
+  const [categorias, setCategorias] = useState<string[]>(
+    productosIniciales && productosIniciales.length > 0
+      ? ([...new Set(productosIniciales.map(p => p.categoria))].sort() as string[])
+      : []
+  )
   const [marcasSeleccionadas, setMarcasSeleccionadas] = useState<string[]>([])
   const [categoriasSeleccionadas, setCategoriasSeleccionadas] = useState<string[]>([])
   const [orden, setOrden] = useState('relevancia')
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(!productosIniciales || productosIniciales.length === 0)
   const [marcasOpen, setMarcasOpen] = useState(false)
   const [catsOpen, setCatsOpen] = useState(false)
   const marcasRef = useRef<HTMLDivElement>(null)
@@ -33,6 +42,7 @@ export default function SuplementosProductos({ categoriaActiva }: Props) {
   const isMobile = useIsMobile()
 
   useEffect(() => {
+    if (productosIniciales && productosIniciales.length > 0) return
     async function cargar() {
       const res = await fetch('/api/tienda/productos?tipo=suplemento')
       const data = await res.json()
@@ -44,7 +54,7 @@ export default function SuplementosProductos({ categoriaActiva }: Props) {
       setLoading(false)
     }
     cargar()
-  }, [])
+  }, [productosIniciales])
 
   useEffect(() => {
     function handle(e: MouseEvent) {
@@ -59,7 +69,6 @@ export default function SuplementosProductos({ categoriaActiva }: Props) {
   function toggleCat(c: string) { setCategoriasSeleccionadas(prev => prev.includes(c) ? prev.filter(x => x !== c) : [...prev, c]) }
   function limpiarTodo() { setMarcasSeleccionadas([]); setCategoriasSeleccionadas([]) }
 
-  // Reiniciar a la pagina 1 cuando cambian los filtros
   useEffect(() => { setPaginaActual(1) }, [categoriaActiva, marcasSeleccionadas, categoriasSeleccionadas, orden])
 
   let productosFiltrados = productos.filter(p => {
@@ -72,7 +81,6 @@ export default function SuplementosProductos({ categoriaActiva }: Props) {
   if (orden === 'precio-asc') productosFiltrados.sort((a, b) => a.precio - b.precio)
   if (orden === 'precio-desc') productosFiltrados.sort((a, b) => b.precio - a.precio)
 
-  // Paginacion: 20 productos por pagina
   const PRODUCTOS_POR_PAGINA = 20
   const totalPaginas = Math.max(1, Math.ceil(productosFiltrados.length / PRODUCTOS_POR_PAGINA))
   const paginaSegura = Math.min(paginaActual, totalPaginas)

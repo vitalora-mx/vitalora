@@ -1,24 +1,43 @@
-'use client'
+import type { Metadata } from 'next'
+import { createClient } from '@supabase/supabase-js'
+import SuplementosCliente from './SuplementosCliente'
 
-import { useState } from 'react'
-import SuplementosHeader from '@/components/store/suplementos/SuplementosHeader'
-import SuplementosBanner from '@/components/store/suplementos/SuplementosBanner'
-import SuplementosCategorias from '@/components/store/suplementos/SuplementosCategorias'
-import SuplementosProductos from '@/components/store/suplementos/SuplementosProductos'
-import Footer from '@/components/store/Footer'
-import LoraChat from '@/components/store/LoraChat'
+export const revalidate = 3600
 
-export default function SuplementosPage() {
-  const [categoriaActiva, setCategoriaActiva] = useState('Todas')
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+)
 
-  return (
-    <main>
-      <SuplementosHeader />
-      <SuplementosBanner />
-      <SuplementosCategorias categoriaActiva={categoriaActiva} setCategoriaActiva={setCategoriaActiva} />
-      <SuplementosProductos categoriaActiva={categoriaActiva} />
-      <Footer />
-      <LoraChat />
-    </main>
-  )
+export const metadata: Metadata = {
+  title: 'Suplementos de Alta Pureza | Bienestar',
+  description:
+    'Suplementos alimenticios de alta pureza para tu bienestar diario. Vitaminas, colágeno, antioxidantes y más, con envío a todo México.',
+  alternates: { canonical: 'https://vitalora.com.mx/suplementos' },
+  openGraph: {
+    locale: 'es_MX',
+    siteName: 'Vitalora',
+    title: 'Suplementos de Alta Pureza | Bienestar | Vitalora',
+    description:
+      'Suplementos alimenticios de alta pureza con envío a todo México.',
+    url: 'https://vitalora.com.mx/suplementos',
+  },
+  robots: { index: true, follow: true },
+}
+
+async function obtenerProductos() {
+  const { data, error } = await supabase
+    .from('productos')
+    .select('*, producto_imagenes(*), producto_videos(*), producto_variantes(*, variante_imagenes(*))')
+    .eq('activo', true)
+    .eq('tipo', 'suplemento')
+    .order('created_at', { ascending: false })
+  if (error || !data) return []
+  return data
+}
+
+export default async function SuplementosPage() {
+  const productos = await obtenerProductos()
+
+  return <SuplementosCliente productosIniciales={productos} />
 }
