@@ -26,25 +26,71 @@ export function construirProductSchema(p: ProductoSchema): Record<string, unknow
   const urlProducto = `${baseUrl}/${ruta}/producto/${p.slug}`
   const imagenes = (p.imagenes || []).map(img => img.url).filter(Boolean)
 
+  // Envío gratis desde $1,000; si no, $99
+  const envioGratis = p.precio >= 1000
+  const costoEnvio = envioGratis ? 0 : 99
+
+  const offer: Record<string, unknown> = {
+    '@type': 'Offer',
+    url: urlProducto,
+    priceCurrency: 'MXN',
+    price: p.precio,
+    availability: p.stock > 0
+      ? 'https://schema.org/InStock'
+      : 'https://schema.org/OutOfStock',
+    itemCondition: 'https://schema.org/NewCondition',
+    seller: { '@type': 'Organization', name: 'Vitalora' },
+    shippingDetails: {
+      '@type': 'OfferShippingDetails',
+      shippingRate: {
+        '@type': 'MonetaryAmount',
+        value: costoEnvio,
+        currency: 'MXN',
+      },
+      shippingDestination: {
+        '@type': 'DefinedRegion',
+        addressCountry: 'MX',
+      },
+      deliveryTime: {
+        '@type': 'ShippingDeliveryTime',
+        handlingTime: {
+          '@type': 'QuantitativeValue',
+          minValue: 1,
+          maxValue: 2,
+          unitCode: 'DAY',
+        },
+        transitTime: {
+          '@type': 'QuantitativeValue',
+          minValue: 3,
+          maxValue: 7,
+          unitCode: 'DAY',
+        },
+      },
+    },
+    hasMerchantReturnPolicy: {
+      '@type': 'MerchantReturnPolicy',
+      applicableCountry: 'MX',
+      returnPolicyCategory: 'https://schema.org/MerchantReturnFiniteReturnWindow',
+      merchantReturnDays: 30,
+      returnMethod: 'https://schema.org/ReturnByMail',
+      returnFees: 'https://schema.org/FreeReturn',
+    },
+  }
+
   const schema: Record<string, unknown> = {
     '@context': 'https://schema.org',
     '@type': 'Product',
     name: p.nombre,
     description: p.descripcion || p.nombre,
-    sku: p.sku || undefined,
     brand: { '@type': 'Brand', name: p.marca },
     category: p.categoria,
     url: urlProducto,
-    offers: {
-      '@type': 'Offer',
-      url: urlProducto,
-      priceCurrency: 'MXN',
-      price: p.precio,
-      availability: p.stock > 0
-        ? 'https://schema.org/InStock'
-        : 'https://schema.org/OutOfStock',
-      seller: { '@type': 'Organization', name: 'Vitalora' },
-    },
+    offers: offer,
+  }
+
+  // sku solo si tiene valor real (arregla el aviso de Google)
+  if (p.sku && p.sku.trim().length > 0) {
+    schema.sku = p.sku.trim()
   }
 
   if (imagenes.length > 0) schema.image = imagenes
