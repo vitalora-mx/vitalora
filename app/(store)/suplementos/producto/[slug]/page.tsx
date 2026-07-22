@@ -11,6 +11,21 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
+function limpiarTexto(txt: string): string {
+  return (txt || '')
+    .replace(/\*\*/g, '')
+    .replace(/[*_#`>]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+function recortar(txt: string, max: number): string {
+  if (txt.length <= max) return txt
+  const corte = txt.slice(0, max)
+  const ultimoEspacio = corte.lastIndexOf(' ')
+  return (ultimoEspacio > max * 0.6 ? corte.slice(0, ultimoEspacio) : corte).trim()
+}
+
 async function obtenerProducto(slug: string) {
   const { data, error } = await supabase
     .from('productos')
@@ -52,15 +67,19 @@ export async function generateMetadata(
 
   if (!p) {
     return {
-      title: 'Producto no encontrado',
+      title: { absolute: 'Producto no encontrado | Vitalora' },
       robots: { index: false, follow: false },
     }
   }
 
-  const title = p.seo_title || `${p.nombre} — ${p.marca} | Vitalora Suplementos México`
+  const nombreLimpio = limpiarTexto(p.nombre)
+  const title = p.seo_title || `${recortar(nombreLimpio, 45)} | Vitalora`
+
+  const base = limpiarTexto(p.descripcion) || nombreLimpio
   const description =
     p.seo_description ||
-    `${(p.descripcion || p.nombre).slice(0, 155)}. Envío a todo México. Compra en Vitalora.`
+    `${recortar(base, 120)}. Envío a todo México. Compra en Vitalora.`
+
   const url = `https://vitalora.com.mx/suplementos/producto/${p.slug}`
   const imagenes = (p.producto_imagenes || [])
     .slice()
@@ -69,11 +88,10 @@ export async function generateMetadata(
     .filter(Boolean)
 
   return {
-    title,
+    title: { absolute: title },
     description,
     alternates: { canonical: url },
     openGraph: {
-      type: 'website',
       locale: 'es_MX',
       siteName: 'Vitalora',
       title,
@@ -88,6 +106,12 @@ export async function generateMetadata(
       images: imagenes.length > 0 ? imagenes.slice(0, 1) : undefined,
     },
     robots: { index: true, follow: true },
+    other: {
+      'og:type': 'product',
+      'product:price:amount': String(p.precio),
+      'product:price:currency': 'MXN',
+      'product:availability': p.stock > 0 ? 'in stock' : 'out of stock',
+    },
   }
 }
 
@@ -103,9 +127,9 @@ export default async function ProductoSuplementoPage(
 
   const schema = construirProductSchema({
     slug: producto.slug,
-    nombre: producto.nombre,
+    nombre: limpiarTexto(producto.nombre),
     marca: producto.marca,
-    descripcion: producto.descripcion,
+    descripcion: limpiarTexto(producto.descripcion),
     precio: producto.precio,
     stock: producto.stock,
     categoria: producto.categoria,

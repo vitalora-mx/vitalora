@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import ReactMarkdown from 'react-markdown'
 import SuplementosHeader from '@/components/store/suplementos/SuplementosHeader'
 import ProductoVideos from '@/components/store/producto/ProductoVideos'
 import Footer from '@/components/store/Footer'
@@ -251,7 +252,11 @@ export default function ProductoSuplementoCliente({ producto }: { producto: Prod
             ))}
           </div>
           <div style={{ maxWidth: '800px' }}>
-            {tabActiva === 'Descripción' && <p style={{ fontSize: '16px', lineHeight: 1.9, color: '#666' }}>{producto.descripcion || 'Sin descripción disponible.'}</p>}
+            {tabActiva === 'Descripción' && (
+              <div style={{ fontSize: '16px', lineHeight: 1.9, color: '#666' }} className="md-contenido">
+                <ReactMarkdown>{producto.descripcion || 'Sin descripción disponible.'}</ReactMarkdown>
+              </div>
+            )}
             {tabActiva === 'Beneficios' && producto.beneficios && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 {producto.para_quien && <p style={{ fontSize: '14px', color: '#999', marginBottom: '8px' }}>{producto.para_quien}</p>}
@@ -268,16 +273,20 @@ export default function ProductoSuplementoCliente({ producto }: { producto: Prod
             {tabActiva === 'Ingredientes' && (
               <div>
                 <h3 style={{ fontFamily: 'var(--font-cormorant), serif', fontSize: '24px', marginBottom: '20px', color: '#111' }}>Ingredientes</h3>
-                <p style={{ fontSize: '14px', lineHeight: 2, color: '#666', fontStyle: 'italic' }}>{producto.ingredientes || 'No especificados.'}</p>
+                <div style={{ fontSize: '14px', lineHeight: 2, color: '#666' }} className="md-contenido">
+                  <ReactMarkdown>{producto.ingredientes || 'No especificados.'}</ReactMarkdown>
+                </div>
               </div>
             )}
             {tabActiva === 'Cómo tomar' && producto.como_tomar && (
               <div>
                 <h3 style={{ fontFamily: 'var(--font-cormorant), serif', fontSize: '24px', marginBottom: '24px', color: '#111' }}>Modo de uso</h3>
-                {producto.como_tomar.split('\n').map((paso, i) => (
+                {producto.como_tomar.split('\n').filter(p => p.trim()).map((paso, i) => (
                   <div key={i} style={{ display: 'flex', gap: '16px', marginBottom: '16px', alignItems: 'flex-start' }}>
                     <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: '#6B8F6B', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 600, flexShrink: 0 }}>{i + 1}</div>
-                    <p style={{ fontSize: '15px', lineHeight: 1.7, color: '#666', paddingTop: '4px' }}>{paso.replace(/^\d+\.\s/, '')}</p>
+                    <div style={{ fontSize: '15px', lineHeight: 1.7, color: '#666', paddingTop: '4px' }} className="md-contenido">
+                      <ReactMarkdown>{paso.replace(/^\d+\.\s/, '')}</ReactMarkdown>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -288,7 +297,9 @@ export default function ProductoSuplementoCliente({ producto }: { producto: Prod
                   <span style={{ fontSize: '20px' }}>⚠️</span>
                   <div>
                     <h4 style={{ fontSize: '14px', fontWeight: 600, color: '#333', marginBottom: '12px' }}>ADVERTENCIAS Y PRECAUCIONES</h4>
-                    <p style={{ fontSize: '14px', lineHeight: 1.8, color: '#666' }}>{producto.advertencias}</p>
+                    <div style={{ fontSize: '14px', lineHeight: 1.8, color: '#666' }} className="md-contenido">
+                      <ReactMarkdown>{producto.advertencias}</ReactMarkdown>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -304,6 +315,14 @@ export default function ProductoSuplementoCliente({ producto }: { producto: Prod
 
       <Footer />
       <LoraChat />
+
+      <style>{`
+        .md-contenido p { margin: 0 0 16px 0; }
+        .md-contenido p:last-child { margin-bottom: 0; }
+        .md-contenido strong { color: #111; font-weight: 600; }
+        .md-contenido ul, .md-contenido ol { padding-left: 20px; margin: 0 0 16px 0; }
+        .md-contenido li { margin-bottom: 8px; }
+      `}</style>
     </main>
   )
 }
