@@ -13,18 +13,24 @@ interface Video {
   tema_id: number | null; ritual_temas: { nombre: string } | null
 }
 
-export default function RitualVideos() {
-  const [videos, setVideos] = useState<Video[]>([])
-  const [temas, setTemas] = useState<Tema[]>([])
+interface Props {
+  videosIniciales?: Video[]
+  temasIniciales?: Tema[]
+}
+
+export default function RitualVideos({ videosIniciales, temasIniciales }: Props) {
+  const [videos, setVideos] = useState<Video[]>(videosIniciales || [])
+  const [temas, setTemas] = useState<Tema[]>(temasIniciales || [])
   const [temasSeleccionados, setTemasSeleccionados] = useState<number[]>([])
   const isMobile = useIsMobile()
   const [dropdownOpen, setDropdownOpen] = useState(false)
-  const [orden, setOrden] = useState('relevancia') // relevancia | cosmetico | suplemento
+  const [orden, setOrden] = useState('relevancia')
   const [busqueda, setBusqueda] = useState('')
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(!videosIniciales || videosIniciales.length === 0)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
+    if (videosIniciales && videosIniciales.length > 0) return
     async function cargar() {
       const [resVideos, resTemas] = await Promise.all([
         fetch('/api/tienda/ritual'),
@@ -37,7 +43,7 @@ export default function RitualVideos() {
       setLoading(false)
     }
     cargar()
-  }, [])
+  }, [videosIniciales])
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -131,7 +137,7 @@ export default function RitualVideos() {
       <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '40px' }}>
         <p style={{ fontSize: '13px', color: '#888780', marginBottom: '32px' }}>
           {videosFiltrados.length} videos
-          {q && <span style={{ color: SAGE, marginLeft: '8px' }}>· "{busqueda}"</span>}
+          {q && <span style={{ color: SAGE, marginLeft: '8px' }}>· &quot;{busqueda}&quot;</span>}
         </p>
 
         {loading ? (
