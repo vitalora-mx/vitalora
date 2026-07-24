@@ -4,24 +4,20 @@ import { useRef } from 'react'
 import Link from 'next/link'
 import { useIsMobile } from '@/hooks/useIsMobile'
 
+const SAGE = '#6B8F6B'
+
 const CATEGORIAS = [
-  { nombre: 'Sérum', img: '/images/categorias/cat-serum.png' },
-  { nombre: 'Crema & Balm', img: '/images/categorias/cat-crema.png' },
-  { nombre: 'Limpiador & Exfoliante', img: '/images/categorias/cat-limpiador.png' },
-  { nombre: 'Tónico & Mist', img: '/images/categorias/cat-tonico.png' },
-  { nombre: 'Protector Solar', img: '/images/categorias/cat-protector.png' },
-  { nombre: 'Cuidado de Ojos', img: '/images/categorias/cat-ojos.png' },
-  { nombre: 'Mascarillas & Parche', img: '/images/categorias/cat-mascarillas.png' },
-  { nombre: 'Parches para Acné', img: '/images/categorias/cat-acne.png' },
-  { nombre: 'Labios', img: '/images/categorias/cat-labios.png' },
-  { nombre: 'Make Up', img: '/images/categorias/cat-makeup.png' },
-  { nombre: 'Cuidado del Cabello', img: '/images/categorias/cat-cabello.png' },
-  { nombre: 'Kits', img: '/images/categorias/cat-kits.png' },
-  { nombre: 'Mini Kits', img: '/images/categorias/cat-mini-kits.png' },
-  { nombre: 'Cuidado Corporal', img: '/images/categorias/cat-corporal.png' },
+  { nombre: 'Energía y Rendimiento', img: '/images/categorias/cat-sup-energia.png' },
+  { nombre: 'Músculo y Recuperación', img: '/images/categorias/cat-sup-musculo.png' },
+  { nombre: 'Control de Peso', img: '/images/categorias/cat-sup-peso.png' },
+  { nombre: 'Sueño y Relajación', img: '/images/categorias/cat-sup-sueno.png' },
+  { nombre: 'Defensas e Inmunidad', img: '/images/categorias/cat-sup-inmunidad.png' },
+  { nombre: 'Digestión', img: '/images/categorias/cat-sup-digestion.png' },
+  { nombre: 'Belleza', img: '/images/categorias/cat-sup-belleza.png' },
+  { nombre: 'Vitaminas y Minerales', img: '/images/categorias/cat-sup-vitaminas.png' },
 ]
 
-export default function CategoriasCarrusel() {
+export default function SuplementosCarrusel() {
   const isMobile = useIsMobile()
   const scrollRef = useRef<HTMLDivElement>(null)
 
@@ -37,12 +33,12 @@ export default function CategoriasCarrusel() {
   return (
     <section style={{
       padding: isMobile ? '56px 0' : '90px 0',
-      background: 'var(--bg-cream)',
+      background: '#FFFFFF',
     }}>
       {/* Encabezado */}
       <div style={{ textAlign: 'center', marginBottom: isMobile ? '32px' : '48px', padding: '0 20px' }}>
-        <div style={{ fontSize: '11px', letterSpacing: '0.3em', textTransform: 'uppercase', color: 'var(--gold)', marginBottom: '14px' }}>
-          Cosméticos
+        <div style={{ fontSize: '11px', letterSpacing: '0.3em', textTransform: 'uppercase', color: SAGE, marginBottom: '14px' }}>
+          Suplementos
         </div>
         <h2 style={{
           fontFamily: 'var(--font-italiana), serif',
@@ -52,16 +48,15 @@ export default function CategoriasCarrusel() {
           lineHeight: 1.1,
         }}>
           Compra por{' '}
-          <em style={{ fontFamily: 'var(--font-cormorant), serif', fontStyle: 'italic', color: 'var(--gold)', fontWeight: 400 }}>categoría</em>
+          <em style={{ fontFamily: 'var(--font-cormorant), serif', fontStyle: 'italic', color: SAGE, fontWeight: 400 }}>objetivo</em>
         </h2>
       </div>
 
       {/* Carrusel */}
       <div style={{ position: 'relative', maxWidth: '1400px', margin: '0 auto' }}>
-        {/* Flecha izquierda (solo desktop) */}
         {!isMobile && (
           <button onClick={() => scroll('izq')} aria-label="Anterior" style={flechaStyle('izq')}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--black)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#111" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
           </button>
         )}
 
@@ -76,19 +71,19 @@ export default function CategoriasCarrusel() {
             padding: isMobile ? '0 20px' : '0 50px',
             scrollSnapType: 'x mandatory',
           }}
-          className="cat-scroll"
+          className="cat-sup-scroll"
         >
           {CATEGORIAS.map((cat) => (
             <Link
               key={cat.nombre}
-              href={`/cosmeticos?categoria=${encodeURIComponent(cat.nombre)}`}
+              href={`/suplementos?categoria=${encodeURIComponent(cat.nombre)}`}
               style={{
                 flexShrink: 0,
                 width: cardW,
                 textDecoration: 'none',
                 scrollSnapAlign: 'start',
               }}
-              className="cat-card"
+              className="cat-sup-card"
             >
               <div style={{
                 width: cardW,
@@ -97,12 +92,13 @@ export default function CategoriasCarrusel() {
                 overflow: 'hidden',
                 position: 'relative',
                 marginBottom: '14px',
-                boxShadow: '0 4px 20px rgba(0,0,0,0.06)',
+                boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
               }}>
                 <img
                   src={cat.img}
                   alt={cat.nombre}
-                  className="cat-img"
+                  className="cat-sup-img"
+                  loading="lazy"
                   style={{
                     width: '100%',
                     height: '100%',
@@ -111,13 +107,11 @@ export default function CategoriasCarrusel() {
                     transition: 'transform 0.6s ease',
                   }}
                 />
-                {/* Degradado inferior para legibilidad */}
                 <div style={{
                   position: 'absolute',
                   inset: 0,
-                  background: 'linear-gradient(to top, rgba(0,0,0,0.45) 0%, rgba(0,0,0,0) 50%)',
+                  background: 'linear-gradient(to top, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0) 50%)',
                 }} />
-                {/* Nombre encima */}
                 <div style={{
                   position: 'absolute',
                   bottom: '16px',
@@ -128,7 +122,7 @@ export default function CategoriasCarrusel() {
                   fontSize: isMobile ? '16px' : '19px',
                   fontWeight: 600,
                   lineHeight: 1.2,
-                  textShadow: '0 1px 4px rgba(0,0,0,0.3)',
+                  textShadow: '0 1px 4px rgba(0,0,0,0.35)',
                 }}>
                   {cat.nombre}
                 </div>
@@ -137,17 +131,16 @@ export default function CategoriasCarrusel() {
           ))}
         </div>
 
-        {/* Flecha derecha (solo desktop) */}
         {!isMobile && (
           <button onClick={() => scroll('der')} aria-label="Siguiente" style={flechaStyle('der')}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--black)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#111" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
           </button>
         )}
       </div>
 
       <style>{`
-        .cat-scroll::-webkit-scrollbar { display: none; }
-        .cat-card:hover .cat-img { transform: scale(1.08); }
+        .cat-sup-scroll::-webkit-scrollbar { display: none; }
+        .cat-sup-card:hover .cat-sup-img { transform: scale(1.08); }
       `}</style>
     </section>
   )
@@ -164,8 +157,8 @@ function flechaStyle(lado: 'izq' | 'der'): React.CSSProperties {
     height: '44px',
     borderRadius: '50%',
     background: 'rgba(255,255,255,0.95)',
-    border: '1px solid var(--line)',
-    boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
+    border: '1px solid #E5E5E5',
+    boxShadow: '0 2px 10px rgba(0,0,0,0.12)',
     cursor: 'pointer',
     display: 'flex',
     alignItems: 'center',
