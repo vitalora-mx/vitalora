@@ -11,19 +11,22 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${BASE}/suplementos`, changeFrequency: 'daily', priority: 0.9 },
     { url: `${BASE}/ritual`, changeFrequency: 'weekly', priority: 0.7 },
     { url: `${BASE}/ritual/videos`, changeFrequency: 'weekly', priority: 0.6 },
+    { url: `${BASE}/nosotros`, changeFrequency: 'monthly', priority: 0.5 },
+    { url: `${BASE}/contacto`, changeFrequency: 'monthly', priority: 0.4 },
     { url: `${BASE}/faq`, changeFrequency: 'monthly', priority: 0.4 },
     { url: `${BASE}/terminos`, changeFrequency: 'yearly', priority: 0.3 },
     { url: `${BASE}/privacidad`, changeFrequency: 'yearly', priority: 0.3 },
     { url: `${BASE}/envios-devoluciones`, changeFrequency: 'monthly', priority: 0.4 },
   ]
 
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
+
   // Paginas de productos (leidas de Supabase)
   let paginasProductos: MetadataRoute.Sitemap = []
   try {
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    )
     const { data } = await supabase
       .from('productos')
       .select('slug, tipo, categoria')
@@ -40,9 +43,28 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       })
     }
   } catch (e) {
-    // Si falla la consulta, al menos devolvemos las paginas fijas
     console.error('Error generando sitemap de productos:', e)
   }
 
-  return [...paginasFijas, ...paginasProductos]
+  // Paginas de videos de Ritual
+  let paginasVideos: MetadataRoute.Sitemap = []
+  try {
+    const { data } = await supabase
+      .from('ritual_videos')
+      .select('slug, created_at')
+      .eq('activo', true)
+
+    if (data) {
+      paginasVideos = data.map((v) => ({
+        url: `${BASE}/ritual/${v.slug}`,
+        lastModified: v.created_at ? new Date(v.created_at) : undefined,
+        changeFrequency: 'monthly' as const,
+        priority: 0.6,
+      }))
+    }
+  } catch (e) {
+    console.error('Error generando sitemap de videos:', e)
+  }
+
+  return [...paginasFijas, ...paginasProductos, ...paginasVideos]
 }
