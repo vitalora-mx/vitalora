@@ -3,9 +3,14 @@
 import { useIsMobile } from '@/hooks/useIsMobile'
 
 const categorias = [
-  'Antioxidantes', 'Cabello y Piel', 'Colágeno', 'Digestión',
-  'Energía', 'Kits', 'Minerales', 'Omega 3',
-  'Probióticos', 'Proteínas', 'Sueño', 'Vitaminas',
+  'Energía y Rendimiento',
+  'Músculo y Recuperación',
+  'Control de Peso',
+  'Sueño y Relajación',
+  'Defensas e Inmunidad',
+  'Digestión',
+  'Belleza',
+  'Vitaminas y Minerales',
 ]
 
 interface Props {
