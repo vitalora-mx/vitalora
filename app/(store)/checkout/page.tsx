@@ -490,7 +490,7 @@ export default function CheckoutPage() {
                       <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Entrega estimada: 2-5 días hábiles</div>
                     </div>
                     <div style={{ fontFamily: 'var(--font-cormorant), serif', fontSize: '20px', fontWeight: 600, color: costoEnvio === 0 ? '#6B8F6B' : 'var(--black)' }}>
-                      {costoEnvio === 0 ? 'GRATIS' : '$99 MXN'}
+                      {costoEnvio === 0 ? 'GRATIS' : `${costoEnvio} MXN`}
                     </div>
                   </div>
                 </div>
@@ -588,7 +588,7 @@ export default function CheckoutPage() {
                 )}
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: costoEnvio === 0 ? '#6B8F6B' : 'var(--text-muted)' }}>
                   <span>Envío</span>
-                  <span>{costoEnvio === 0 ? 'Gratis' : '$99 MXN'}</span>
+                  <span>{costoEnvio === 0 ? 'Gratis' : `${costoEnvio} MXN`}</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '10px', borderTop: '1px solid var(--line)' }}>
                   <span style={{ fontFamily: 'var(--font-cormorant), serif', fontSize: '20px', fontWeight: 600, color: 'var(--black)' }}>Total</span>
