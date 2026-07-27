@@ -14,6 +14,11 @@ interface Direccion {
   colonia: string; ciudad: string; estado: string; cp: string; referencia: string; es_principal: boolean
 }
 
+
+function normalizarCiudadCheckout(txt: string): string {
+  return (txt || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim()
+}
+
 export default function CheckoutPage() {
   const { items, total } = useCartStore()
   const { user, isLoggedIn } = useAuthStore()
@@ -31,7 +36,7 @@ export default function CheckoutPage() {
   const [perfilCargado, setPerfilCargado] = useState(false)
   const [descuentoPrimeraCompra, setDescuentoPrimeraCompra] = useState(false)
   const [codigoInput, setCodigoInput] = useState('')
-  const [codigoAplicado, setCodigoAplicado] = useState<{ codigo: string; tipo: string; valor: number; montoDescuento: number; descripcion: string } | null>(null)
+  const [codigoAplicado, setCodigoAplicado] = useState<{ codigo: string; tipo: string; valor: number; montoDescuento: number; descripcion: string; descuentoEnvio?: string; envioPrecioFijo?: number; ciudadRestringida?: string | null; ciudadCoincide?: boolean } | null>(null)
   const [codigoError, setCodigoError] = useState('')
   const [validandoCodigo, setValidandoCodigo] = useState(false)
 
@@ -112,7 +117,7 @@ export default function CheckoutPage() {
     try {
       const res = await fetch('/api/validar-codigo', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ codigo: codigoInput, subtotal: total(), email: form.email }),
+        body: JSON.stringify({ codigo: codigoInput, subtotal: total(), email: form.email, ciudad: form.ciudad }),
       })
       const data = await res.json()
       if (data.error) { setCodigoError(data.error) }
@@ -134,9 +139,24 @@ export default function CheckoutPage() {
   if (!mounted) return null
 
   const subtotal = total()
-  const costoEnvio = subtotal >= ENVIO_GRATIS ? 0 : COSTO_ENVIO
+  // Regla sagrada: compra >= 1000 => envio gratis siempre, sin importar codigo ni ciudad
+  let costoEnvio = subtotal >= ENVIO_GRATIS ? 0 : COSTO_ENVIO
+  // Descuento de envio por codigo (solo si NO aplica ya el gratis por monto)
+  let envioBloqueadoPorCiudad = false
+  if (costoEnvio > 0 && codigoAplicado && codigoAplicado.descuentoEnvio && codigoAplicado.descuentoEnvio !== 'ninguno') {
+    const ciudadOk = !codigoAplicado.ciudadRestringida ||
+      normalizarCiudadCheckout(form.ciudad) === normalizarCiudadCheckout(codigoAplicado.ciudadRestringida)
+    if (ciudadOk) {
+      if (codigoAplicado.descuentoEnvio === 'gratis') costoEnvio = 0
+      else if (codigoAplicado.descuentoEnvio === 'fijo') costoEnvio = codigoAplicado.envioPrecioFijo || 0
+    } else if (form.ciudad.trim() !== '') {
+      // El codigo tiene envio pero la ciudad no coincide: envio normal + aviso
+      envioBloqueadoPorCiudad = true
+    }
+  }
   const montoDescuento = codigoAplicado ? codigoAplicado.montoDescuento : (descuentoPrimeraCompra ? Math.round(subtotal * 0.05) : 0)
   const totalFinal = subtotal - montoDescuento + costoEnvio
+  // (helper definido abajo del archivo)
   const logueado = isLoggedIn()
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) {
@@ -451,6 +471,14 @@ export default function CheckoutPage() {
                         <div style={{ fontFamily: 'var(--font-cormorant), serif', fontSize: '20px', fontWeight: 600, color: '#3A5A3A' }}>-${codigoAplicado.montoDescuento.toLocaleString()}</div>
                         <button onClick={quitarCodigo} style={{ background: 'none', border: 'none', fontSize: '14px', color: '#A33', cursor: 'pointer' }}>✕</button>
                       </div>
+                    </div>
+                  </div>
+                )}
+                {envioBloqueadoPorCiudad && codigoAplicado && (
+                  <div style={{ marginBottom: '24px', padding: '14px 16px', background: '#FFF7E6', border: '1px solid #F0D9A0', borderRadius: '4px', display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
+                    <span style={{ fontSize: '16px' }}>⚠️</span>
+                    <div style={{ fontSize: '12px', lineHeight: 1.5, color: '#7A5A1A' }}>
+                      El envío gratis de este código solo aplica para <strong>{codigoAplicado.ciudadRestringida}</strong>. Como tu dirección es de otra ciudad, el envío se cobra normal. El descuento del producto sí se mantiene.
                     </div>
                   </div>
                 )}

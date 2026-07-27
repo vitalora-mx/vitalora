@@ -1,22 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-
 const supabaseAdmin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 
-export async function POST(req: NextRequest) {
-  const { codigo, subtotal, email } = await req.json()
-  if (!codigo) return NextResponse.json({ error: 'Código requerido' }, { status: 400 })
+// Normaliza texto de ciudad: minúsculas, sin acentos, sin espacios extra
+function normalizarCiudad(txt: string): string {
+  return (txt || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
 
+export async function POST(req: NextRequest) {
+  const { codigo, subtotal, email, ciudad } = await req.json()
+  if (!codigo) return NextResponse.json({ error: 'Código requerido' }, { status: 400 })
   const codigoLimpio = codigo.toUpperCase().trim()
   const emailLimpio = email ? email.toLowerCase().trim() : null
-
   const { data, error } = await supabaseAdmin
     .from('codigos_descuento')
     .select('*')
     .eq('codigo', codigoLimpio)
     .eq('activo', true)
     .single()
-
   if (error || !data) return NextResponse.json({ error: 'Código no válido' }, { status: 400 })
 
   // Verificar usos totales (solo si tiene límite)
@@ -26,17 +32,13 @@ export async function POST(req: NextRequest) {
 
   // ─── Verificación de usos por email ───
   if (emailLimpio) {
-    // Contar cuántas veces este email ya usó este código
     const { data: usos } = await supabaseAdmin
       .from('codigos_usados')
       .select('id')
       .eq('codigo', codigoLimpio)
       .eq('email', emailLimpio)
-
     const vecesUsado = usos?.length ?? 0
-
     if (data.es_influencer) {
-      // Código de influencer: máximo 3 usos por email (o el valor de max_usos_por_email)
       const limitePorEmail = data.max_usos_por_email ?? 3
       if (vecesUsado >= limitePorEmail) {
         return NextResponse.json({
@@ -44,7 +46,6 @@ export async function POST(req: NextRequest) {
         }, { status: 400 })
       }
     } else {
-      // Código normal: una sola vez por email (comportamiento original)
       if (vecesUsado >= 1) {
         return NextResponse.json({ error: 'Ya utilizaste este código anteriormente' }, { status: 400 })
       }
@@ -65,13 +66,21 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: `Compra mínima de $${data.minimo_compra.toLocaleString()} MXN para este código` }, { status: 400 })
   }
 
-  // Calcular descuento
+  // Calcular descuento de producto
   let montoDescuento = 0
   if (data.tipo === 'porcentaje') {
     montoDescuento = Math.round(subtotal * (data.valor / 100))
   } else {
     montoDescuento = Math.min(data.valor, subtotal)
   }
+
+  // ─── Info de envío (Fase 2) ───
+  const descuentoEnvio = data.descuento_envio || 'ninguno'
+  const ciudadRestringida = data.ciudad_restringida || null
+  // ¿La ciudad del cliente coincide con la restringida? (si no hay restricción, siempre true)
+  const ciudadCoincide = !ciudadRestringida
+    ? true
+    : normalizarCiudad(ciudad || '') === normalizarCiudad(ciudadRestringida)
 
   return NextResponse.json({
     valido: true,
@@ -81,5 +90,10 @@ export async function POST(req: NextRequest) {
     montoDescuento,
     esInfluencer: data.es_influencer ?? false,
     descripcion: data.tipo === 'porcentaje' ? `${data.valor}% de descuento` : `$${data.valor} de descuento`,
+    // Campos de envío
+    descuentoEnvio,                          // 'ninguno' | 'gratis' | 'fijo'
+    envioPrecioFijo: data.envio_precio_fijo || 0,
+    ciudadRestringida,                       // nombre de la ciudad o null
+    ciudadCoincide,                          // true/false según la dirección del cliente
   })
 }
