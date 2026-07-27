@@ -15,7 +15,7 @@ export default function AdminCodigosPage() {
   const [saving, setSaving] = useState(false)
   const [mensaje, setMensaje] = useState('')
   const [form, setForm] = useState({
-    codigo: '', tipo: 'porcentaje', valor: '', minimo_compra: '', max_usos: '', fecha_fin: '',
+    codigo: '', tipo: 'porcentaje', valor: '', minimo_compra: '', max_usos: '', fecha_fin: '', descuento_envio: 'ninguno', envio_precio_fijo: '', ciudad_restringida: '',
   })
 
   useEffect(() => { cargar() }, [])
@@ -39,11 +39,14 @@ export default function AdminCodigosPage() {
         minimo_compra: form.minimo_compra ? parseFloat(form.minimo_compra) : 0,
         max_usos: form.max_usos ? parseInt(form.max_usos) : null,
         fecha_fin: form.fecha_fin || null,
+        descuento_envio: form.descuento_envio || 'ninguno',
+        envio_precio_fijo: form.descuento_envio === 'fijo' && form.envio_precio_fijo ? parseFloat(form.envio_precio_fijo) : 0,
+        ciudad_restringida: form.ciudad_restringida ? form.ciudad_restringida.trim() : null,
       }),
     })
     const data = await res.json()
     if (data.error) setMensaje('Error: ' + data.error)
-    else { setMensaje('Código creado'); setShowForm(false); setForm({ codigo: '', tipo: 'porcentaje', valor: '', minimo_compra: '', max_usos: '', fecha_fin: '' }); cargar() }
+    else { setMensaje('Código creado'); setShowForm(false); setForm({ codigo: '', tipo: 'porcentaje', valor: '', minimo_compra: '', max_usos: '', fecha_fin: '', descuento_envio: 'ninguno', envio_precio_fijo: '', ciudad_restringida: '' }); cargar() }
     setSaving(false); setTimeout(() => setMensaje(''), 3000)
   }
 
@@ -97,6 +100,24 @@ export default function AdminCodigosPage() {
             <div>
               <label style={L}>Compra mínima (MXN)</label>
               <input type="number" value={form.minimo_compra} onChange={e => setForm({ ...form, minimo_compra: e.target.value })} placeholder="0 = sin mínimo" style={S} />
+            </div>
+            <div>
+              <label style={L}>Descuento de envío</label>
+              <select value={form.descuento_envio} onChange={e => setForm({ ...form, descuento_envio: e.target.value })} style={S}>
+                <option value="ninguno">Ninguno (envío normal)</option>
+                <option value="gratis">Envío gratis</option>
+                <option value="fijo">Precio fijo</option>
+              </select>
+            </div>
+            {form.descuento_envio === 'fijo' && (
+              <div>
+                <label style={L}>Precio fijo de envío (MXN)</label>
+                <input type="number" value={form.envio_precio_fijo} onChange={e => setForm({ ...form, envio_precio_fijo: e.target.value })} placeholder="Ej: 49" style={S} />
+              </div>
+            )}
+            <div>
+              <label style={L}>Restringir a ciudad (opcional)</label>
+              <input type="text" value={form.ciudad_restringida} onChange={e => setForm({ ...form, ciudad_restringida: e.target.value })} placeholder="Ej: Irapuato — vacío = todo México" style={S} />
             </div>
             <div>
               <label style={L}>Máximo de usos</label>
