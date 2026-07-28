@@ -26,6 +26,8 @@ interface Influencer {
   clabe_cambio_revisado: boolean | null
   titular_cuenta: string | null
   estado: string
+  tipo_comision?: string
+  comision_valor?: number
   notas_admin: string | null
   created_at: string
   aprobado_at: string | null
@@ -205,6 +207,18 @@ function ModalDetalle({ inf, onClose, onAccion }: {
             {redes && <p style={{ fontSize: '12px', color: '#6B6B6B', marginTop: '10px', lineHeight: 1.6 }}>{redes}</p>}
           </div>
 
+          {/* Comisión actual */}
+          <div style={{ paddingTop: '16px', borderTop: '1px solid #F0EDE5' }}>
+            <p style={{ fontSize: '10px', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#A8B5A0', marginBottom: '12px', fontWeight: 600 }}>Comisión actual</p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <span style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '24px', fontWeight: 600, color: '#0E0E0E' }}>
+                {inf.tipo_comision === 'monto_fijo' ? '$' + (inf.comision_valor ?? 0) + ' por pieza' : (inf.comision_valor ?? 5) + '%'}
+              </span>
+              {(inf.tipo_comision === 'monto_fijo' || (inf.comision_valor ?? 5) !== 5) && (
+                <span style={{ fontSize: '10px', letterSpacing: '0.1em', textTransform: 'uppercase', padding: '3px 10px', borderRadius: '100px', background: 'rgba(201,169,97,0.15)', color: '#8B7530', fontWeight: 700 }}>VIP</span>
+              )}
+            </div>
+          </div>
           {/* Datos fiscales */}
           <div style={{ paddingTop: '16px', borderTop: '1px solid #F0EDE5' }}>
             <p style={{ fontSize: '10px', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#A8B5A0', marginBottom: '12px', fontWeight: 600 }}>Datos fiscales</p>
