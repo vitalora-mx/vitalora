@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { generarCorreoInfluencer } from '@/lib/correoInfluencer'
 import { createClient } from '@supabase/supabase-js'
 import { MercadoPagoConfig, Payment } from 'mercadopago'
 import { Resend } from 'resend'
@@ -202,6 +203,50 @@ async function procesarComisionInfluencer(pedido: any) {
         monto_comision: montoComision,
         estado: 'pendiente',
       })
+
+    try {
+      const { data: inf } = await supabaseAdmin
+        .from('influencers')
+        .select('nombre, email')
+        .eq('id', codigo.influencer_id)
+        .maybeSingle()
+
+      if (inf && inf.email) {
+        const { data: itemsCorreo } = await supabaseAdmin
+          .from('pedido_items')
+          .select('nombre, marca, precio, cantidad, variante_nombre')
+          .eq('pedido_id', pedido.id)
+
+        const listaItems = itemsCorreo || []
+        const totalPiezas = listaItems.reduce((s, it) => s + (it.cantidad || 0), 0)
+        const costoEnvioPedido = pedido.costo_envio != null ? Number(pedido.costo_envio) : 0
+        const totalPedido = pedido.total != null ? Number(pedido.total) : (subtotalVenta + costoEnvioPedido)
+
+        const correo = generarCorreoInfluencer({
+          nombreInfluencer: inf.nombre || 'Embajadora',
+          codigo: pedido.codigo_descuento,
+          numeroPedido: formatearNumeroPedido(pedido.id),
+          items: listaItems,
+          totalPiezas,
+          subtotal: subtotalVenta,
+          costoEnvio: costoEnvioPedido,
+          total: totalPedido,
+          ciudad: pedido.ciudad || '',
+          montoComision,
+          tipoComision,
+          comisionValor,
+        })
+
+        await resend.emails.send({
+          from: 'Vitalora <hola@vitalora.com.mx>',
+          to: inf.email,
+          subject: correo.asunto,
+          html: correo.html,
+        })
+      }
+    } catch (correoInfError) {
+      console.error('Error enviando correo al influencer:', correoInfError)
+    }
 
   } catch (e) {
     console.error('Error al procesar comisión de influencer:', e)
