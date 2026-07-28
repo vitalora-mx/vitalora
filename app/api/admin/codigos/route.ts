@@ -34,6 +34,8 @@ export async function POST(req: NextRequest) {
       descuento_envio: descEnvio,
       envio_precio_fijo: descEnvio === 'fijo' ? (body.envio_precio_fijo || 0) : 0,
       ciudad_restringida: ciudadLimpia,
+      influencer_id: body.influencer_id ? Number(body.influencer_id) : null,
+      es_influencer: body.influencer_id ? true : false,
     })
     .select().single()
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })

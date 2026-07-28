@@ -10,15 +10,25 @@ interface Codigo {
 
 export default function AdminCodigosPage() {
   const [codigos, setCodigos] = useState<Codigo[]>([])
+  const [influencersLista, setInfluencersLista] = useState<{ id: number; nombre: string; codigo: string }[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [saving, setSaving] = useState(false)
   const [mensaje, setMensaje] = useState('')
   const [form, setForm] = useState({
-    codigo: '', tipo: 'porcentaje', valor: '', minimo_compra: '', max_usos: '', fecha_fin: '', descuento_envio: 'ninguno', envio_precio_fijo: '', ciudad_restringida: '',
+    codigo: '', tipo: 'porcentaje', valor: '', minimo_compra: '', max_usos: '', fecha_fin: '', descuento_envio: 'ninguno', envio_precio_fijo: '', ciudad_restringida: '', influencer_id: '',
   })
 
-  useEffect(() => { cargar() }, [])
+  useEffect(() => { cargar(); cargarInfluencers() }, [])
+
+  async function cargarInfluencers() {
+    try {
+      const res = await fetch('/api/admin/influencers')
+      const data = await res.json()
+      const lista = (data.influencers || []).filter((i: any) => i.estado === 'aprobado')
+      setInfluencersLista(lista.map((i: any) => ({ id: i.id, nombre: i.nombre, codigo: i.codigo })))
+    } catch {}
+  }
 
   async function cargar() {
     setLoading(true)
@@ -42,11 +52,13 @@ export default function AdminCodigosPage() {
         descuento_envio: form.descuento_envio || 'ninguno',
         envio_precio_fijo: form.descuento_envio === 'fijo' && form.envio_precio_fijo ? parseFloat(form.envio_precio_fijo) : 0,
         ciudad_restringida: form.ciudad_restringida ? form.ciudad_restringida.trim() : null,
+        influencer_id: form.influencer_id ? parseInt(form.influencer_id) : null,
+        es_influencer: form.influencer_id ? true : false,
       }),
     })
     const data = await res.json()
     if (data.error) setMensaje('Error: ' + data.error)
-    else { setMensaje('Código creado'); setShowForm(false); setForm({ codigo: '', tipo: 'porcentaje', valor: '', minimo_compra: '', max_usos: '', fecha_fin: '', descuento_envio: 'ninguno', envio_precio_fijo: '', ciudad_restringida: '' }); cargar() }
+    else { setMensaje('Código creado'); setShowForm(false); setForm({ codigo: '', tipo: 'porcentaje', valor: '', minimo_compra: '', max_usos: '', fecha_fin: '', descuento_envio: 'ninguno', envio_precio_fijo: '', ciudad_restringida: '', influencer_id: '' }); cargar() }
     setSaving(false); setTimeout(() => setMensaje(''), 3000)
   }
 
@@ -118,6 +130,15 @@ export default function AdminCodigosPage() {
             <div>
               <label style={L}>Restringir a ciudad (opcional)</label>
               <input type="text" value={form.ciudad_restringida} onChange={e => setForm({ ...form, ciudad_restringida: e.target.value })} placeholder="Ej: Irapuato — vacío = todo México" style={S} />
+            </div>
+            <div>
+              <label style={L}>Asignar a influencer (opcional)</label>
+              <select value={form.influencer_id} onChange={e => setForm({ ...form, influencer_id: e.target.value })} style={S}>
+                <option value="">Ninguno (código general)</option>
+                {influencersLista.map(inf => (
+                  <option key={inf.id} value={inf.id}>{inf.nombre}{inf.codigo ? ' — ' + inf.codigo : ''}</option>
+                ))}
+              </select>
             </div>
             <div>
               <label style={L}>Máximo de usos</label>
