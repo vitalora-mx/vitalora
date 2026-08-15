@@ -35,9 +35,9 @@ async function obtenerDatos() {
       .from('ritual_videos')
       .select('*, ritual_temas(nombre)')
       .eq('activo', true)
-      .not('posicion', 'is', null)
-      .order('posicion', { ascending: true })
-      .limit(20),
+      .order('posicion', { ascending: true, nullsFirst: false })
+      .order('created_at', { ascending: false })
+      .limit(12),
     supabase
       .from('ritual_temas')
       .select('*')
