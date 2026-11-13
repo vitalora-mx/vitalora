@@ -92,7 +92,6 @@ export default function Footer() {
               {[
                 { label: 'Cosméticos', href: '/cosmeticos' },
                 { label: 'Suplementos', href: '/suplementos' },
-                { label: 'Programa de embajadoras', href: '/programa-embajadoras' },
                 { label: 'Nosotros', href: '/nosotros' },
               ].map((item) => (
                 <li key={item.label}>

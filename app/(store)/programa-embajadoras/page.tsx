@@ -23,9 +23,12 @@ export default function ProgramaEmbajadorasPage() {
             <p style={{ fontSize: '16px', color: 'rgba(245,240,232,0.75)', lineHeight: 1.8, maxWidth: '520px', margin: '0 auto 36px' }}>
               Comparte el ritual coreano de belleza y bienestar que amas. Acompaña a tu comunidad en su camino y construye, junto a nosotras, algo que perdura.
             </p>
-            <a href="/influencer/registro" className="emb-cta" style={{ display: 'inline-block', background: '#C9A961', color: '#0E0E0E', textDecoration: 'none', padding: '16px 40px', borderRadius: '4px', fontSize: '13px', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase' }}>
-              Quiero ser embajadora
-            </a>
+            <div style={{ display: 'inline-block', border: '1.5px solid #C9A961', color: '#C9A961', padding: '16px 32px', borderRadius: '4px', fontSize: '13px', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase' }}>
+              Inscripciones suspendidas temporalmente
+            </div>
+            <p style={{ fontSize: '12px', color: 'rgba(245,240,232,0.6)', marginTop: '14px', lineHeight: 1.6 }}>
+              Si ya eres embajadora, tu código y tu portal siguen activos.
+            </p>
           </div>
         </section>
 
@@ -119,12 +122,9 @@ export default function ProgramaEmbajadorasPage() {
             Tu lugar en Vitalora<br /><em style={{ fontFamily: "'Cormorant Garamond', serif", fontStyle: 'italic', color: '#C9A961' }}>te espera</em>
           </h2>
           <p style={{ fontSize: '15px', color: '#6B6B6B', lineHeight: 1.8, marginBottom: '36px' }}>
-            Da el primer paso hoy. Si ya eres parte de nuestra comunidad de embajadoras, entra a tu portal para seguir tus ventas y comisiones.
+            Por ahora las inscripciones están en pausa. Si ya eres parte de nuestra comunidad de embajadoras, entra a tu portal para seguir tus ventas y comisiones.
           </p>
           <div style={{ display: 'flex', gap: '14px', justifyContent: 'center', flexWrap: 'wrap' }}>
-            <a href="/influencer/registro" className="emb-cta" style={{ display: 'inline-block', background: '#0E0E0E', color: '#C9A961', textDecoration: 'none', padding: '16px 36px', borderRadius: '4px', fontSize: '13px', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase' }}>
-              Registrarme
-            </a>
             <a href="/influencer/portal" className="emb-cta" style={{ display: 'inline-block', background: '#fff', color: '#8B7530', textDecoration: 'none', padding: '16px 36px', borderRadius: '4px', fontSize: '13px', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', border: '1.5px solid #C9A961' }}>
               Ya soy embajadora
             </a>
