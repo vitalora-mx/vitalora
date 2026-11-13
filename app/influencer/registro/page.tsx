@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { INSCRIPCIONES_ABIERTAS } from '@/lib/inscripciones'
 
 const REGIMENES = [
   { codigo: '605', desc: 'Sueldos y Salarios e Ingresos Asimilados' },
@@ -15,6 +16,34 @@ const REGIMENES = [
 ]
 
 export default function RegistroInfluencerPage() {
+  if (!INSCRIPCIONES_ABIERTAS) return <InscripcionesSuspendidas />
+  return <FormularioRegistro />
+}
+
+function InscripcionesSuspendidas() {
+  return (
+    <div style={{ minHeight: '100vh', background: '#F5F0E8', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px', fontFamily: 'system-ui, sans-serif' }}>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Italiana&display=swap');`}</style>
+      <div style={{ background: 'white', maxWidth: '480px', width: '100%', padding: '48px 40px', borderRadius: '4px', border: '1px solid #E8E4DA', textAlign: 'center' }}>
+        <p style={{ fontSize: '11px', letterSpacing: '0.25em', textTransform: 'uppercase', color: '#C9A961', marginBottom: '12px' }}>Programa de Embajadoras</p>
+        <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '28px', fontWeight: 600, color: '#0E0E0E', marginBottom: '12px' }}>Inscripciones suspendidas temporalmente</h1>
+        <p style={{ fontSize: '14px', color: '#6B6B6B', lineHeight: 1.7 }}>
+          Por ahora no estamos recibiendo nuevas solicitudes. Si ya eres embajadora, tu código y tu portal siguen activos.
+        </p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '28px' }}>
+          <a href="/influencer/portal" style={{ display: 'block', padding: '15px', background: '#0E0E0E', color: '#C9A961', textDecoration: 'none', borderRadius: '3px', fontSize: '13px', fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+            Ir a mi portal
+          </a>
+          <a href="/" style={{ display: 'block', padding: '15px', background: 'white', color: '#8B7530', textDecoration: 'none', borderRadius: '3px', fontSize: '13px', fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', border: '1.5px solid #C9A961' }}>
+            Volver a la tienda
+          </a>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function FormularioRegistro() {
   const [form, setForm] = useState({
     nombre: '', email: '', telefono: '',
     instagram: '', tiktok: '', youtube: '', facebook: '', otra_red: '', seguidores: '',
