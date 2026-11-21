@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { requireAdmin } from '@/lib/admin-auth'
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -7,7 +8,10 @@ const supabaseAdmin = createClient(
 )
 
 // GET -> todos los temas
-export async function GET() {
+export async function GET(req: Request) {
+  const adminAuth = await requireAdmin(req, "/admin/ritual")
+  if (!adminAuth.ok) return adminAuth.response
+
   const { data, error } = await supabaseAdmin
     .from('ritual_temas')
     .select('*')
@@ -19,6 +23,9 @@ export async function GET() {
 
 // POST -> crear tema nuevo
 export async function POST(req: NextRequest) {
+  const adminAuth = await requireAdmin(req, "/admin/ritual")
+  if (!adminAuth.ok) return adminAuth.response
+
   const { nombre } = await req.json()
   if (!nombre || !nombre.trim()) {
     return NextResponse.json({ error: 'El nombre del tema no puede estar vacio' }, { status: 400 })
@@ -41,6 +48,9 @@ export async function POST(req: NextRequest) {
 
 // DELETE -> borrar tema
 export async function DELETE(req: NextRequest) {
+  const adminAuth = await requireAdmin(req, "/admin/ritual")
+  if (!adminAuth.ok) return adminAuth.response
+
   const { searchParams } = new URL(req.url)
   const id = searchParams.get('id')
   if (!id) return NextResponse.json({ error: 'Falta id' }, { status: 400 })

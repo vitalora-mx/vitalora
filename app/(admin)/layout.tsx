@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { puedeVer, ROL_LABEL, type RolAdmin } from '@/lib/admin-permisos'
@@ -157,26 +157,40 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [checking, setChecking] = useState(true)
   const [entrando, setEntrando] = useState(false)
   const [menuAbierto, setMenuAbierto] = useState(false)
+  const haySesionRef = useRef(false)
 
-  // Al cargar, revalidar la sesion guardada contra el servidor
+  // La sesión vive en cookies httpOnly; el servidor dice quién es el usuario.
+  // Se revisa al cargar, al cambiar de sección y cada 5 minutos.
   useEffect(() => {
-    const guardado = localStorage.getItem('vitalora-admin-user')
-    if (!guardado) { setChecking(false); return }
-    try {
-      const u = JSON.parse(guardado) as AdminUser
-      fetch(`/api/admin/auth?id=${u.id}`)
-        .then(r => r.json())
-        .then(d => {
-          if (d.valido) setUsuario(d.usuario)
-          else localStorage.removeItem('vitalora-admin-user')
-        })
-        .catch(() => {})
-        .finally(() => setChecking(false))
-    } catch {
-      localStorage.removeItem('vitalora-admin-user')
-      setChecking(false)
+    // Limpiar la sesión antigua (uuid en localStorage) si quedó guardada
+    try { localStorage.removeItem('vitalora-admin-user') } catch {}
+
+    let cancelado = false
+    async function revisarSesion() {
+      try {
+        const res = await fetch('/api/admin/auth', { cache: 'no-store' })
+        const d = await res.json().catch(() => ({}))
+        if (cancelado) return
+        if (res.ok && d.valido) {
+          haySesionRef.current = true
+          setUsuario(d.usuario)
+        } else {
+          // Si había sesión y ya no, avisar en la pantalla de login
+          if (haySesionRef.current) setError(d.error || 'Tu sesión expiró. Inicia sesión de nuevo.')
+          haySesionRef.current = false
+          setUsuario(null)
+        }
+      } catch {
+        // Error de red: no cerrar la sesión por eso
+      } finally {
+        if (!cancelado) setChecking(false)
+      }
     }
-  }, [])
+
+    revisarSesion()
+    const intervalo = setInterval(revisarSesion, 5 * 60 * 1000)
+    return () => { cancelado = true; clearInterval(intervalo) }
+  }, [pathname])
 
   async function handleLogin() {
     setEntrando(true)
@@ -191,7 +205,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       if (data.error) {
         setError(data.error)
       } else {
-        localStorage.setItem('vitalora-admin-user', JSON.stringify(data.usuario))
+        // La sesión quedó en cookies httpOnly; aquí solo guardamos los datos para pintar el panel
+        haySesionRef.current = true
         setUsuario(data.usuario)
         setPassword('')
       }
@@ -201,9 +216,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     setEntrando(false)
   }
 
-  function handleLogout() {
-    localStorage.removeItem('vitalora-admin-user')
+  async function handleLogout() {
+    try {
+      await fetch('/api/admin/auth', { method: 'DELETE' })
+    } catch {
+      // Aunque falle la red, se sale del panel en este navegador
+    }
+    haySesionRef.current = false
     setUsuario(null)
+    setError('')
+    setMenuAbierto(false)
   }
 
   function handleKeyDown(e: React.KeyboardEvent) {

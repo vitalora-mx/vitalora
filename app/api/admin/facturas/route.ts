@@ -1,12 +1,16 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { requireAdmin } from '@/lib/admin-auth'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
-export async function GET() {
+export async function GET(req: Request) {
+  const adminAuth = await requireAdmin(req, "/admin/facturas")
+  if (!adminAuth.ok) return adminAuth.response
+
   try {
     // Pedidos que tienen solicitud de factura (tienen RFC guardado)
     const { data: pedidos, error } = await supabase
@@ -60,6 +64,9 @@ export async function GET() {
 }
 
 export async function PATCH(request: Request) {
+  const adminAuth = await requireAdmin(request, "/admin/facturas")
+  if (!adminAuth.ok) return adminAuth.response
+
   try {
     const body = await request.json()
     const { pedidoId, estado } = body

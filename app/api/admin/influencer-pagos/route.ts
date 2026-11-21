@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
+import { requireAdmin } from '@/lib/admin-auth'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -9,7 +10,10 @@ const supabase = createClient(
 const TOPE_ALERTA = 5000
 
 // GET: lista de solicitudes de pago + resumen de saldos por influencer
-export async function GET() {
+export async function GET(req: Request) {
+  const adminAuth = await requireAdmin(req, "/admin/influencer-pagos")
+  if (!adminAuth.ok) return adminAuth.response
+
   try {
     // Solicitudes de pago con datos del influencer
     const { data: solicitudes, error: errSol } = await supabase
@@ -85,6 +89,9 @@ export async function GET() {
 
 // PATCH: marcar una solicitud como pagada o rechazada
 export async function PATCH(request: Request) {
+  const adminAuth = await requireAdmin(request, "/admin/influencer-pagos")
+  if (!adminAuth.ok) return adminAuth.response
+
   try {
     const body = await request.json()
     const { pagoId, accion, referencia, notas } = body
@@ -155,6 +162,9 @@ export async function PATCH(request: Request) {
 
 // POST: generar URL firmada para ver la factura del influencer
 export async function POST(request: Request) {
+  const adminAuth = await requireAdmin(request, "/admin/influencer-pagos")
+  if (!adminAuth.ok) return adminAuth.response
+
   try {
     const { path } = await request.json()
     if (!path) return NextResponse.json({ error: 'Path requerido' }, { status: 400 })

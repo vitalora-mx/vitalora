@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { requireAdmin } from '@/lib/admin-auth'
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -17,6 +18,9 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const adminAuth = await requireAdmin(request, "/admin/pedidos", { roles: ['dueno', 'gerente'] })
+  if (!adminAuth.ok) return adminAuth.response
+
   try {
     const { id } = await params
 

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { requireAdmin } from '@/lib/admin-auth'
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -8,6 +9,9 @@ const supabaseAdmin = createClient(
 
 // GET — listar marcas ordenadas A-Z
 export async function GET(req: NextRequest) {
+  const adminAuth = await requireAdmin(req, "/admin/productos")
+  if (!adminAuth.ok) return adminAuth.response
+
   const { searchParams } = new URL(req.url)
   const tipo = searchParams.get('tipo')
 
@@ -28,6 +32,9 @@ export async function GET(req: NextRequest) {
 
 // POST — crear marca
 export async function POST(req: NextRequest) {
+  const adminAuth = await requireAdmin(req, "/admin/productos")
+  if (!adminAuth.ok) return adminAuth.response
+
   const body = await req.json()
 
   if (!body.nombre || !body.tipo) {
@@ -46,6 +53,9 @@ export async function POST(req: NextRequest) {
 
 // DELETE — eliminar marca
 export async function DELETE(req: NextRequest) {
+  const adminAuth = await requireAdmin(req, "/admin/productos")
+  if (!adminAuth.ok) return adminAuth.response
+
   const { searchParams } = new URL(req.url)
   const id = searchParams.get('id')
 

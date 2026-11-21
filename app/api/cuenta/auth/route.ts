@@ -1,10 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { createServiceClient, createLoginClient } from '@/lib/supabase/service'
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+// Service role: solo para crear el usuario y actualizar su perfil. Nunca inicia sesión.
+const supabaseAdmin = createServiceClient()
 
 // POST — registro o login
 export async function POST(req: NextRequest) {
@@ -24,15 +22,15 @@ export async function POST(req: NextRequest) {
       await supabaseAdmin.from('perfiles').update({ nombre, apellido }).eq('id', data.user.id)
     }
 
-    // Generar sesión
-    const { data: session, error: loginError } = await supabaseAdmin.auth.signInWithPassword({ email, password })
+    // Generar sesión con un cliente aparte, creado para esta petición
+    const { data: session, error: loginError } = await createLoginClient().auth.signInWithPassword({ email, password })
     if (loginError) return NextResponse.json({ error: loginError.message }, { status: 400 })
 
     return NextResponse.json({ user: session.user, session: session.session })
   }
 
   if (action === 'login') {
-    const { data, error } = await supabaseAdmin.auth.signInWithPassword({ email, password })
+    const { data, error } = await createLoginClient().auth.signInWithPassword({ email, password })
     if (error) return NextResponse.json({ error: error.message }, { status: 400 })
     return NextResponse.json({ user: data.user, session: data.session })
   }

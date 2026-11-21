@@ -1,12 +1,16 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { requireAdmin } from '@/lib/admin-auth'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
-export async function GET() {
+export async function GET(req: Request) {
+  const adminAuth = await requireAdmin(req, "/admin/inventario")
+  if (!adminAuth.ok) return adminAuth.response
+
   try {
     // Obtener productos con sus variantes
     const { data: productos, error } = await supabase
@@ -75,6 +79,9 @@ export async function GET() {
 }
 
 export async function PATCH(request: Request) {
+  const adminAuth = await requireAdmin(request, "/admin/inventario")
+  if (!adminAuth.ok) return adminAuth.response
+
   try {
     const body = await request.json()
     const { tipo, id, stock } = body

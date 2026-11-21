@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js'
 import { Resend } from 'resend'
 import crypto from 'crypto'
 import { NextResponse } from 'next/server'
+import { requireAdmin } from '@/lib/admin-auth'
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -12,27 +13,14 @@ const resend = new Resend(process.env.RESEND_API_KEY)
 const BASE_URL = 'https://vitalora.com.mx'
 const ROLES_VALIDOS = ['dueno', 'gerente', 'editor', 'ventas']
 
-// Helper: verificar que quien hace la peticion es Dueño
-async function esDueno(solicitanteId: string): Promise<boolean> {
-  if (!solicitanteId) return false
-  const { data } = await supabaseAdmin
-    .from('admin_usuarios')
-    .select('rol, activo')
-    .eq('id', solicitanteId)
-    .maybeSingle()
-  return !!data && data.activo && data.rol === 'dueno'
-}
+// Solo el Dueño gestiona usuarios. El solicitante sale de la sesión (cookie), no del navegador.
 
 // GET: listar todos los usuarios admin (solo dueño)
 export async function GET(request: Request) {
+  const adminAuth = await requireAdmin(request, '/admin/usuarios', { roles: ['dueno'] })
+  if (!adminAuth.ok) return adminAuth.response
+
   try {
-    const { searchParams } = new URL(request.url)
-    const solicitanteId = searchParams.get('solicitanteId') || ''
-
-    if (!(await esDueno(solicitanteId))) {
-      return NextResponse.json({ error: 'Solo el Dueño puede gestionar usuarios.' }, { status: 403 })
-    }
-
     const { data: usuarios } = await supabaseAdmin
       .from('admin_usuarios')
       .select('id, email, nombre, rol, activo, created_at')
@@ -47,12 +35,12 @@ export async function GET(request: Request) {
 
 // POST: invitar a un nuevo usuario admin (solo dueño)
 export async function POST(request: Request) {
-  try {
-    const { solicitanteId, email, nombre, rol } = await request.json()
+  const adminAuth = await requireAdmin(request, '/admin/usuarios', { roles: ['dueno'] })
+  if (!adminAuth.ok) return adminAuth.response
+  const solicitanteId = adminAuth.admin.id
 
-    if (!(await esDueno(solicitanteId))) {
-      return NextResponse.json({ error: 'Solo el Dueño puede invitar usuarios.' }, { status: 403 })
-    }
+  try {
+    const { email, nombre, rol } = await request.json()
 
     if (!email || !nombre || !rol) {
       return NextResponse.json({ error: 'Faltan datos (email, nombre o rol).' }, { status: 400 })
@@ -175,14 +163,13 @@ export async function POST(request: Request) {
 
 // DELETE: eliminar por completo a un usuario admin (solo dueño)
 export async function DELETE(request: Request) {
+  const adminAuth = await requireAdmin(request, '/admin/usuarios', { roles: ['dueno'] })
+  if (!adminAuth.ok) return adminAuth.response
+  const solicitanteId = adminAuth.admin.id
+
   try {
     const { searchParams } = new URL(request.url)
-    const solicitanteId = searchParams.get('solicitanteId') || ''
     const id = searchParams.get('id') || ''
-
-    if (!(await esDueno(solicitanteId))) {
-      return NextResponse.json({ error: 'Solo el Dueño puede eliminar usuarios.' }, { status: 403 })
-    }
 
     if (!id) {
       return NextResponse.json({ error: 'Falta el id del usuario.' }, { status: 400 })
@@ -232,12 +219,12 @@ export async function DELETE(request: Request) {
 
 // PATCH: cambiar rol o activar/desactivar (solo dueño)
 export async function PATCH(request: Request) {
-  try {
-    const { solicitanteId, id, rol, activo } = await request.json()
+  const adminAuth = await requireAdmin(request, '/admin/usuarios', { roles: ['dueno'] })
+  if (!adminAuth.ok) return adminAuth.response
+  const solicitanteId = adminAuth.admin.id
 
-    if (!(await esDueno(solicitanteId))) {
-      return NextResponse.json({ error: 'Solo el Dueño puede modificar usuarios.' }, { status: 403 })
-    }
+  try {
+    const { id, rol, activo } = await request.json()
 
     if (!id) {
       return NextResponse.json({ error: 'Falta el id del usuario.' }, { status: 400 })

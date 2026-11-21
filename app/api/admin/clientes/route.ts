@@ -1,12 +1,16 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { requireAdmin } from '@/lib/admin-auth'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
-export async function GET() {
+export async function GET(req: Request) {
+  const adminAuth = await requireAdmin(req, "/admin/clientes")
+  if (!adminAuth.ok) return adminAuth.response
+
   try {
     // Obtener perfiles de usuarios registrados
     const { data: perfiles, error: perfilesError } = await supabase

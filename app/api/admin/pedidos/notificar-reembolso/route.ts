@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { Resend } from 'resend'
 import { formatearNumeroPedido } from '@/lib/utils'
+import { requireAdmin } from '@/lib/admin-auth'
 
 const supabaseAdmin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 const resend = new Resend(process.env.RESEND_API_KEY)
@@ -10,6 +11,9 @@ const resend = new Resend(process.env.RESEND_API_KEY)
 // Body: { pedidoId, metodo: 'mercadopago' | 'transferencia', monto, esParcial }
 // Envía un correo de confirmación de reembolso al cliente, con texto según el método.
 export async function POST(req: NextRequest) {
+  const adminAuth = await requireAdmin(req, "/admin/pedidos")
+  if (!adminAuth.ok) return adminAuth.response
+
   try {
     const { pedidoId, metodo, monto, esParcial } = await req.json()
     if (!pedidoId) {

@@ -1,35 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { Resend } from 'resend'
+import { requireAdmin } from '@/lib/admin-auth'
 
 const supabaseAdmin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 const resend = new Resend(process.env.RESEND_API_KEY)
-
-// Verificar que quien hace la petición es admin activo (cualquier rol con acceso a pedidos)
-async function esAdminValido(solicitanteId: string): Promise<{ ok: boolean; rol?: string }> {
-  if (!solicitanteId) return { ok: false }
-  const { data } = await supabaseAdmin
-    .from('admin_usuarios')
-    .select('rol, activo')
-    .eq('id', solicitanteId)
-    .maybeSingle()
-  if (!data || !data.activo) return { ok: false }
-  return { ok: true, rol: data.rol }
-}
 
 // ============================================================
 // GET: listar pedidos por transferencia que requieren revisión
 // ============================================================
 export async function GET(req: NextRequest) {
+  const adminAuth = await requireAdmin(req, '/admin/transferencias')
+  if (!adminAuth.ok) return adminAuth.response
+
   try {
     const { searchParams } = new URL(req.url)
-    const solicitanteId = searchParams.get('solicitanteId') || ''
     const filtro = searchParams.get('filtro') || 'comprobante_en_revision'
-
-    const auth = await esAdminValido(solicitanteId)
-    if (!auth.ok) {
-      return NextResponse.json({ error: 'No autorizado.' }, { status: 403 })
-    }
 
     let query = supabaseAdmin
       .from('pedidos')
@@ -52,16 +38,14 @@ export async function GET(req: NextRequest) {
 
 // ============================================================
 // POST: aprobar o rechazar un comprobante
-// body: { solicitanteId, pedidoId, accion: 'aprobar' | 'rechazar' }
+// body: { pedidoId, accion: 'aprobar' | 'rechazar' }
 // ============================================================
 export async function POST(req: NextRequest) {
-  try {
-    const { solicitanteId, pedidoId, accion } = await req.json()
+  const adminAuth = await requireAdmin(req, '/admin/transferencias')
+  if (!adminAuth.ok) return adminAuth.response
 
-    const auth = await esAdminValido(solicitanteId)
-    if (!auth.ok) {
-      return NextResponse.json({ error: 'No autorizado.' }, { status: 403 })
-    }
+  try {
+    const { pedidoId, accion } = await req.json()
 
     if (!pedidoId || !accion) {
       return NextResponse.json({ error: 'Faltan datos.' }, { status: 400 })
@@ -150,16 +134,14 @@ export async function POST(req: NextRequest) {
 
 // ============================================================
 // PATCH: generar URL firmada para ver el comprobante (bucket privado)
-// body: { solicitanteId, pedidoId }
+// body: { pedidoId }
 // ============================================================
 export async function PATCH(req: NextRequest) {
-  try {
-    const { solicitanteId, pedidoId } = await req.json()
+  const adminAuth = await requireAdmin(req, '/admin/transferencias')
+  if (!adminAuth.ok) return adminAuth.response
 
-    const auth = await esAdminValido(solicitanteId)
-    if (!auth.ok) {
-      return NextResponse.json({ error: 'No autorizado.' }, { status: 403 })
-    }
+  try {
+    const { pedidoId } = await req.json()
 
     const { data: pedido } = await supabaseAdmin
       .from('pedidos')

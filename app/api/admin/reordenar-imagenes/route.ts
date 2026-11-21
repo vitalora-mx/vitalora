@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
+import { requireAdmin } from '@/lib/admin-auth'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -9,6 +10,9 @@ const supabase = createClient(
 // Recibe un arreglo de IDs en el nuevo orden deseado.
 // La posicion 0 sera la imagen principal.
 export async function POST(request: Request) {
+  const adminAuth = await requireAdmin(request, "/admin/productos")
+  if (!adminAuth.ok) return adminAuth.response
+
   try {
     const { orden } = await request.json() // orden: number[] (ids de producto_imagenes en orden)
 

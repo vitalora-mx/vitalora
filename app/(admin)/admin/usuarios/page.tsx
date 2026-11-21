@@ -34,14 +34,12 @@ export default function AdminUsuariosPage() {
   const [nuevoRol, setNuevoRol] = useState('ventas')
   const [invitando, setInvitando] = useState(false)
 
+  // Usuario actual desde la sesión (cookie httpOnly)
   useEffect(() => {
-    const guardado = localStorage.getItem('vitalora-admin-user')
-    if (guardado) {
-      try {
-        const u = JSON.parse(guardado)
-        setYo({ id: u.id, rol: u.rol })
-      } catch {}
-    }
+    fetch('/api/admin/auth')
+      .then(r => r.json())
+      .then(d => { if (d.valido) setYo({ id: d.usuario.id, rol: d.usuario.rol }) })
+      .catch(() => {})
   }, [])
 
   useEffect(() => {
@@ -52,7 +50,7 @@ export default function AdminUsuariosPage() {
     if (!yo) return
     setLoading(true)
     try {
-      const res = await fetch(`/api/admin/usuarios?solicitanteId=${yo.id}`)
+      const res = await fetch('/api/admin/usuarios')
       const data = await res.json()
       if (data.error) setMensaje('Error: ' + data.error)
       else setUsuarios(data.usuarios || [])
@@ -74,7 +72,7 @@ export default function AdminUsuariosPage() {
       const res = await fetch('/api/admin/usuarios', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ solicitanteId: yo.id, email: nuevoEmail, nombre: nuevoNombre, rol: nuevoRol }),
+        body: JSON.stringify({ email: nuevoEmail, nombre: nuevoNombre, rol: nuevoRol }),
       })
       const data = await res.json()
       if (data.error) {
@@ -98,7 +96,7 @@ export default function AdminUsuariosPage() {
       const res = await fetch('/api/admin/usuarios', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ solicitanteId: yo.id, id, rol }),
+        body: JSON.stringify({ id, rol }),
       })
       const data = await res.json()
       if (data.error) setMensaje('Error: ' + data.error)
@@ -115,7 +113,7 @@ export default function AdminUsuariosPage() {
       const res = await fetch('/api/admin/usuarios', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ solicitanteId: yo.id, id, activo: !activo }),
+        body: JSON.stringify({ id, activo: !activo }),
       })
       const data = await res.json()
       if (data.error) setMensaje('Error: ' + data.error)
@@ -130,7 +128,7 @@ export default function AdminUsuariosPage() {
     if (!yo) return
     if (!confirm(`¿Eliminar a ${nombre} por completo? Esta acción no se puede deshacer. Si quieres darle acceso de nuevo, tendrás que enviarle una nueva invitación.`)) return
     try {
-      const res = await fetch(`/api/admin/usuarios?solicitanteId=${yo.id}&id=${id}`, {
+      const res = await fetch(`/api/admin/usuarios?id=${encodeURIComponent(id)}`, {
         method: 'DELETE',
       })
       const data = await res.json()

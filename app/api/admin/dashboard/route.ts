@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { requireAdmin } from '@/lib/admin-auth'
 
 const supabaseAdmin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 
@@ -12,7 +13,10 @@ function inicioDelDia(fecha: Date) {
   return d
 }
 
-export async function GET() {
+export async function GET(req: Request) {
+  const adminAuth = await requireAdmin(req, "/admin")
+  if (!adminAuth.ok) return adminAuth.response
+
   try {
     // Traer todos los pedidos con sus items
     const { data: pedidos, error } = await supabaseAdmin

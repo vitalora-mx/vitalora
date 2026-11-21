@@ -37,18 +37,19 @@ export default function AdminTransferenciasPage() {
   const [comprobanteUrl, setComprobanteUrl] = useState<string | null>(null)
   const [procesando, setProcesando] = useState<number | null>(null)
 
+  // Usuario actual desde la sesión (cookie httpOnly)
   useEffect(() => {
-    const guardado = localStorage.getItem('vitalora-admin-user')
-    if (guardado) {
-      try { setYo({ id: JSON.parse(guardado).id }) } catch {}
-    }
+    fetch('/api/admin/auth')
+      .then(r => r.json())
+      .then(d => { if (d.valido) setYo({ id: d.usuario.id }) })
+      .catch(() => {})
   }, [])
 
   const cargar = useCallback(async () => {
     if (!yo) return
     setLoading(true)
     try {
-      const res = await fetch(`/api/admin/transferencias?solicitanteId=${yo.id}&filtro=${filtro}`)
+      const res = await fetch(`/api/admin/transferencias?filtro=${filtro}`)
       const data = await res.json()
       if (data.error) setMensaje('Error: ' + data.error)
       else setPedidos(data.pedidos || [])
@@ -66,7 +67,7 @@ export default function AdminTransferenciasPage() {
       const res = await fetch('/api/admin/transferencias', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ solicitanteId: yo.id, pedidoId }),
+        body: JSON.stringify({ pedidoId }),
       })
       const data = await res.json()
       if (data.url) setComprobanteUrl(data.url)
@@ -88,7 +89,7 @@ export default function AdminTransferenciasPage() {
       const res = await fetch('/api/admin/transferencias', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ solicitanteId: yo.id, pedidoId, accion }),
+        body: JSON.stringify({ pedidoId, accion }),
       })
       const data = await res.json()
       if (data.error) setMensaje('Error: ' + data.error)

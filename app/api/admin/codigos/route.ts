@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { requireAdmin } from '@/lib/admin-auth'
 const supabaseAdmin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 
-export async function GET() {
+export async function GET(req: Request) {
+  const adminAuth = await requireAdmin(req, "/admin/codigos")
+  if (!adminAuth.ok) return adminAuth.response
+
   const { data, error } = await supabaseAdmin
     .from('codigos_descuento')
     .select('*')
@@ -12,6 +16,9 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
+  const adminAuth = await requireAdmin(req, "/admin/codigos")
+  if (!adminAuth.ok) return adminAuth.response
+
   const body = await req.json()
 
   // Normaliza campos de envío/ciudad (Fase 1: códigos de envío)
@@ -43,6 +50,9 @@ export async function POST(req: NextRequest) {
 }
 
 export async function PUT(req: NextRequest) {
+  const adminAuth = await requireAdmin(req, "/admin/codigos")
+  if (!adminAuth.ok) return adminAuth.response
+
   const body = await req.json()
   const { id, ...campos } = body
   if (!id) return NextResponse.json({ error: 'ID requerido' }, { status: 400 })
@@ -53,6 +63,9 @@ export async function PUT(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
+  const adminAuth = await requireAdmin(req, "/admin/codigos")
+  if (!adminAuth.ok) return adminAuth.response
+
   const { searchParams } = new URL(req.url)
   const id = searchParams.get('id')
   if (!id) return NextResponse.json({ error: 'ID requerido' }, { status: 400 })

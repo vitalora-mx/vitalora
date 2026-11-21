@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { requireAdmin } from '@/lib/admin-auth'
 
 const supabaseAdmin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 
 // GET /api/admin/resenas?estado=pendiente  (o aprobada / rechazada / todas)
 // Lista reseñas con el nombre del producto, para moderar.
 export async function GET(req: NextRequest) {
+  const adminAuth = await requireAdmin(req, "/admin/resenas")
+  if (!adminAuth.ok) return adminAuth.response
+
   const { searchParams } = new URL(req.url)
   const estado = searchParams.get('estado') || 'pendiente'
 
@@ -26,6 +30,9 @@ export async function GET(req: NextRequest) {
 // PUT /api/admin/resenas  { id, estado }
 // Cambia el estado de una reseña (aprobada / rechazada / pendiente).
 export async function PUT(req: NextRequest) {
+  const adminAuth = await requireAdmin(req, "/admin/resenas")
+  if (!adminAuth.ok) return adminAuth.response
+
   const body = await req.json()
   const { id, estado } = body
   if (!id || !estado) return NextResponse.json({ error: 'ID y estado requeridos' }, { status: 400 })
@@ -40,6 +47,9 @@ export async function PUT(req: NextRequest) {
 
 // DELETE /api/admin/resenas?id=X  (borrar una reseña definitivamente)
 export async function DELETE(req: NextRequest) {
+  const adminAuth = await requireAdmin(req, "/admin/resenas")
+  if (!adminAuth.ok) return adminAuth.response
+
   const { searchParams } = new URL(req.url)
   const id = searchParams.get('id')
   if (!id) return NextResponse.json({ error: 'ID requerido' }, { status: 400 })

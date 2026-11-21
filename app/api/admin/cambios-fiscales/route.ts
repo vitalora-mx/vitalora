@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
+import { requireAdmin } from '@/lib/admin-auth'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -7,7 +8,10 @@ const supabase = createClient(
 )
 
 // GET: lista de solicitudes de cambio fiscal pendientes (con datos del influencer)
-export async function GET() {
+export async function GET(req: Request) {
+  const adminAuth = await requireAdmin(req, "/admin/cambios-fiscales")
+  if (!adminAuth.ok) return adminAuth.response
+
   try {
     const { data: solicitudes, error } = await supabase
       .from('influencer_cambios_fiscales')
@@ -33,6 +37,9 @@ export async function GET() {
 
 // PATCH: aprobar o rechazar una solicitud
 export async function PATCH(request: Request) {
+  const adminAuth = await requireAdmin(request, "/admin/cambios-fiscales")
+  if (!adminAuth.ok) return adminAuth.response
+
   try {
     const { id, accion, notas } = await request.json()
     if (!id || !accion) return NextResponse.json({ error: 'Datos incompletos' }, { status: 400 })
@@ -85,6 +92,9 @@ export async function PATCH(request: Request) {
 
 // POST: generar URL firmada para ver la constancia nueva
 export async function POST(request: Request) {
+  const adminAuth = await requireAdmin(request, "/admin/cambios-fiscales")
+  if (!adminAuth.ok) return adminAuth.response
+
   try {
     const { path } = await request.json()
     if (!path) return NextResponse.json({ error: 'Path requerido' }, { status: 400 })

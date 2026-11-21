@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { requireAdmin } from '@/lib/admin-auth'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -7,6 +8,9 @@ const supabase = createClient(
 )
 
 export async function GET(request: Request) {
+  const adminAuth = await requireAdmin(request, "/admin/reportes")
+  if (!adminAuth.ok) return adminAuth.response
+
   const { searchParams } = new URL(request.url)
   const desde = searchParams.get('desde')
   const hasta = searchParams.get('hasta')

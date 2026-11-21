@@ -1,14 +1,12 @@
-import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
+import { createServiceClient } from '@/lib/supabase/service'
+import { crearClienteAuthAdmin, requireAdmin, ADMIN_COOKIE } from '@/lib/admin-auth'
+import { cookies } from 'next/headers'
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
-
-// POST: login de administrador
-// Verifica email + password contra Supabase Auth,
-// y confirma que la persona este en admin_usuarios y activa.
+// POST: login de administrador.
+// Inicia sesión con un cliente creado en esta petición (llave anon) que guarda
+// la sesión en cookies httpOnly. La verificación en admin_usuarios se hace con
+// el cliente de service role, que nunca inicia sesión.
 export async function POST(request: Request) {
   try {
     const { email, password } = await request.json()
@@ -17,10 +15,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Email y contraseña requeridos.' }, { status: 400 })
     }
 
-    const emailLimpio = email.toLowerCase().trim()
+    const emailLimpio = String(email).toLowerCase().trim()
+    const supabase = await crearClienteAuthAdmin()
 
     // 1) Verificar credenciales con Supabase Auth
-    const { data: loginData, error: loginError } = await supabaseAdmin.auth.signInWithPassword({
+    const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({
       email: emailLimpio,
       password,
     })
@@ -30,21 +29,21 @@ export async function POST(request: Request) {
     }
 
     // 2) Verificar que sea un usuario admin activo
-    const { data: adminUser } = await supabaseAdmin
+    const { data: adminUser } = await createServiceClient()
       .from('admin_usuarios')
       .select('id, email, nombre, rol, activo')
       .eq('id', loginData.user.id)
       .maybeSingle()
 
-    if (!adminUser) {
-      return NextResponse.json({ error: 'Esta cuenta no tiene acceso al panel de administración.' }, { status: 403 })
+    if (!adminUser || !adminUser.activo) {
+      // No dejar una sesión abierta para alguien sin acceso al panel
+      await supabase.auth.signOut({ scope: 'local' }).catch(() => {})
+      const error = !adminUser
+        ? 'Esta cuenta no tiene acceso al panel de administración.'
+        : 'Tu acceso ha sido desactivado. Contacta al administrador.'
+      return NextResponse.json({ error }, { status: 403 })
     }
 
-    if (!adminUser.activo) {
-      return NextResponse.json({ error: 'Tu acceso ha sido desactivado. Contacta al administrador.' }, { status: 403 })
-    }
-
-    // 3) Devolver datos del admin (sin la sesion de Supabase, usamos un token simple)
     return NextResponse.json({
       ok: true,
       usuario: {
@@ -60,38 +59,27 @@ export async function POST(request: Request) {
   }
 }
 
-// GET: verificar que un usuario (por id) sigue siendo admin activo
-// Se usa para revalidar la sesion guardada en el navegador.
+// GET: devuelve el admin de la sesión actual (cookie). 401 si no hay sesión válida.
 export async function GET(request: Request) {
+  const adminAuth = await requireAdmin(request)
+  if (!adminAuth.ok) return adminAuth.response
+  return NextResponse.json({ valido: true, usuario: adminAuth.admin })
+}
+
+// DELETE: cerrar sesión.
+export async function DELETE() {
   try {
-    const { searchParams } = new URL(request.url)
-    const id = searchParams.get('id')
-
-    if (!id) {
-      return NextResponse.json({ valido: false }, { status: 400 })
-    }
-
-    const { data: adminUser } = await supabaseAdmin
-      .from('admin_usuarios')
-      .select('id, email, nombre, rol, activo')
-      .eq('id', id)
-      .maybeSingle()
-
-    if (!adminUser || !adminUser.activo) {
-      return NextResponse.json({ valido: false })
-    }
-
-    return NextResponse.json({
-      valido: true,
-      usuario: {
-        id: adminUser.id,
-        email: adminUser.email,
-        nombre: adminUser.nombre,
-        rol: adminUser.rol,
-      },
-    })
+    const supabase = await crearClienteAuthAdmin()
+    await supabase.auth.signOut({ scope: 'local' })
   } catch (err) {
-    console.error('Error al verificar admin:', err)
-    return NextResponse.json({ valido: false }, { status: 500 })
+    console.error('Error al cerrar sesión admin:', err)
   }
+  // Borrar cualquier cookie de sesión que haya quedado
+  const cookieStore = await cookies()
+  for (const c of cookieStore.getAll()) {
+    if (c.name === ADMIN_COOKIE || c.name.startsWith(`${ADMIN_COOKIE}.`) || c.name.startsWith(`${ADMIN_COOKIE}-`)) {
+      cookieStore.delete(c.name)
+    }
+  }
+  return NextResponse.json({ ok: true })
 }

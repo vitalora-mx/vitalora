@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
+import { requireAdmin } from '@/lib/admin-auth'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -7,7 +8,10 @@ const supabase = createClient(
 )
 
 // GET: obtener la personalidad actual de LORA
-export async function GET() {
+export async function GET(req: Request) {
+  const adminAuth = await requireAdmin(req, "/admin/lora")
+  if (!adminAuth.ok) return adminAuth.response
+
   try {
     const { data, error } = await supabase
       .from('lora_config')
@@ -31,6 +35,9 @@ export async function GET() {
 
 // POST: guardar la nueva personalidad de LORA
 export async function POST(request: Request) {
+  const adminAuth = await requireAdmin(request, "/admin/lora")
+  if (!adminAuth.ok) return adminAuth.response
+
   try {
     const { personalidad } = await request.json()
 

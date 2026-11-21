@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { requireAdmin } from '@/lib/admin-auth'
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -36,7 +37,10 @@ function generarSlug(titulo: string): string {
 }
 
 // GET -> todos los videos (admin) con su tema y productos relacionados
-export async function GET() {
+export async function GET(req: Request) {
+  const adminAuth = await requireAdmin(req, "/admin/ritual")
+  if (!adminAuth.ok) return adminAuth.response
+
   const { data, error } = await supabaseAdmin
     .from('ritual_videos')
     .select('*, ritual_temas(nombre), ritual_video_productos(producto_id, posicion)')
@@ -48,6 +52,9 @@ export async function GET() {
 
 // POST -> crear o actualizar video
 export async function POST(req: NextRequest) {
+  const adminAuth = await requireAdmin(req, "/admin/ritual")
+  if (!adminAuth.ok) return adminAuth.response
+
   const body = await req.json()
   const {
     id, titulo, descripcion, youtube_url, tema_id, tipo, posicion, productos,
@@ -126,6 +133,9 @@ export async function POST(req: NextRequest) {
 
 // DELETE -> borrar video
 export async function DELETE(req: NextRequest) {
+  const adminAuth = await requireAdmin(req, "/admin/ritual")
+  if (!adminAuth.ok) return adminAuth.response
+
   const { searchParams } = new URL(req.url)
   const id = searchParams.get('id')
   if (!id) return NextResponse.json({ error: 'Falta id' }, { status: 400 })

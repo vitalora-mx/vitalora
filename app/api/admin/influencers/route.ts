@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js'
 import { Resend } from 'resend'
 import crypto from 'crypto'
 import { NextResponse } from 'next/server'
+import { requireAdmin } from '@/lib/admin-auth'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -22,7 +23,10 @@ function generarCodigo(nombre: string): string {
   return `${base}${num}`
 }
 
-export async function GET() {
+export async function GET(req: Request) {
+  const adminAuth = await requireAdmin(req, ['/admin/influencers', '/admin/codigos'])
+  if (!adminAuth.ok) return adminAuth.response
+
   try {
     const { data: influencers, error } = await supabase
       .from('influencers')
@@ -45,6 +49,9 @@ export async function GET() {
 }
 
 export async function PATCH(request: Request) {
+  const adminAuth = await requireAdmin(request, "/admin/influencers")
+  if (!adminAuth.ok) return adminAuth.response
+
   try {
     const body = await request.json()
     const { id, accion, notas } = body
@@ -340,6 +347,9 @@ export async function PATCH(request: Request) {
 
 // Generar URL firmada para ver la constancia (bucket privado)
 export async function POST(request: Request) {
+  const adminAuth = await requireAdmin(request, "/admin/influencers")
+  if (!adminAuth.ok) return adminAuth.response
+
   try {
     const { path } = await request.json()
     if (!path) return NextResponse.json({ error: 'Path requerido' }, { status: 400 })

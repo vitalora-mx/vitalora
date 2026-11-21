@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { requireAdmin } from '@/lib/admin-auth'
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -7,6 +8,9 @@ const supabaseAdmin = createClient(
 )
 
 export async function POST(req: NextRequest) {
+  const adminAuth = await requireAdmin(req, "/admin/productos")
+  if (!adminAuth.ok) return adminAuth.response
+
   try {
     const formData = await req.formData()
     const file = formData.get('file') as File
@@ -54,6 +58,9 @@ export async function POST(req: NextRequest) {
 
 // DELETE ?id=123 -> borra una imagen de variante (del storage y la BD)
 export async function DELETE(req: NextRequest) {
+  const adminAuth = await requireAdmin(req, "/admin/productos")
+  if (!adminAuth.ok) return adminAuth.response
+
   const { searchParams } = new URL(req.url)
   const id = searchParams.get('id')
   if (!id) return NextResponse.json({ error: 'ID requerido' }, { status: 400 })
