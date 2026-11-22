@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { requireAdmin } from '@/lib/admin-auth'
+import { restaurarPrimeraCompraSiAplica } from '@/lib/descuentos'
 
 const supabaseAdmin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 
@@ -26,7 +27,7 @@ export async function POST(
 
     const { data: pedido } = await supabaseAdmin
       .from('pedidos')
-      .select('id, estado, metodo_pago, total, monto_reembolsado, pedido_items(*)')
+      .select('id, estado, metodo_pago, total, monto_reembolsado, user_id, descuento_tipo, pedido_items(*)')
       .eq('id', id)
       .single()
 
@@ -59,6 +60,11 @@ export async function POST(
       .from('pedidos')
       .update({ estado: nuevoEstado, monto_reembolsado: nuevoMontoReembolsado })
       .eq('id', id)
+
+    // Reembolso TOTAL: si usó primera compra, la cuenta recupera el descuento
+    if (nuevoEstado === 'reembolsado') {
+      await restaurarPrimeraCompraSiAplica(pedido)
+    }
 
     // Devolver stock si se pidió
     let stockDevuelto = false

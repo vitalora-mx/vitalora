@@ -12,7 +12,7 @@ export async function GET(req: Request) {
   if (!adminAuth.ok) return adminAuth.response
 
   try {
-    // Pedidos que tienen solicitud de factura (tienen RFC guardado)
+    // Pedidos cuyo cliente pidió factura (los guarda /api/facturacion)
     const { data: pedidos, error } = await supabase
       .from('pedidos')
       .select(`
@@ -20,18 +20,20 @@ export async function GET(req: Request) {
         created_at,
         total,
         estado,
+        nombre,
+        apellido,
+        email,
         factura_estado,
-        factura_rfc,
-        factura_razon_social,
-        factura_uso_cfdi,
-        factura_regimen,
-        factura_cp,
-        email_invitado,
-        user_id,
-        perfiles:user_id (nombre, apellido, email)
+        factura_solicitada_at,
+        rfc,
+        razon_social,
+        regimen_fiscal,
+        cp_fiscal,
+        uso_cfdi,
+        email_facturacion
       `)
-      .not('factura_rfc', 'is', null)
-      .order('created_at', { ascending: false })
+      .eq('requiere_factura', true)
+      .order('factura_solicitada_at', { ascending: false, nullsFirst: false })
 
     if (error) throw error
 
@@ -74,13 +76,21 @@ export async function PATCH(request: Request) {
     if (!pedidoId || !estado) {
       return NextResponse.json({ error: 'Datos incompletos' }, { status: 400 })
     }
+    if (!['pendiente', 'emitida'].includes(estado)) {
+      return NextResponse.json({ error: 'Estado de factura no válido' }, { status: 400 })
+    }
 
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('pedidos')
       .update({ factura_estado: estado })
       .eq('id', pedidoId)
+      .eq('requiere_factura', true)
+      .select('id')
 
     if (error) throw error
+    if (!data || data.length === 0) {
+      return NextResponse.json({ error: 'Ese pedido no tiene solicitud de factura' }, { status: 404 })
+    }
 
     return NextResponse.json({ ok: true })
   } catch (err) {

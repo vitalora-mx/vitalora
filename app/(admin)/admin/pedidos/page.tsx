@@ -15,7 +15,7 @@ interface Pedido {
   subtotal: number
   costo_envio: number
   numero_guia: string | null
-  factura_rfc: string | null
+  requiere_factura: boolean | null
   factura_estado: string | null
   created_at: string
   pedido_items: { nombre: string; marca: string; precio: number; cantidad: number; variante_nombre?: string }[]
@@ -265,7 +265,7 @@ export default function PedidosPage() {
                       {/* Total */}
                       <td style={{ padding: '14px 16px', verticalAlign: 'middle' }}>
                         <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '16px', fontWeight: 600, color: '#0E0E0E' }}>{fmt(p.total)}</p>
-                        {p.factura_rfc && (
+                        {p.requiere_factura && (
                           <span style={{ fontSize: '10px', padding: '2px 6px', borderRadius: '3px', background: p.factura_estado === 'emitida' ? 'rgba(168,181,160,0.2)' : 'rgba(245,158,11,0.1)', color: p.factura_estado === 'emitida' ? '#6A8A62' : '#D97706', fontWeight: 500 }}>
                             {p.factura_estado === 'emitida' ? '✓ Facturado' : '⏳ Factura pend.'}
                           </span>

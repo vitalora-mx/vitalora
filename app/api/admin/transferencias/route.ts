@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { Resend } from 'resend'
 import { requireAdmin } from '@/lib/admin-auth'
+import { formatearNumeroPedido } from '@/lib/utils'
+import { filaDescuentoHTML, resumenInternoHTML } from '@/lib/correoPedido'
 
 const supabaseAdmin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 const resend = new Resend(process.env.RESEND_API_KEY)
@@ -272,13 +274,14 @@ async function enviarEmails(pedido: any) {
   </div>
   <div style="padding:40px 32px;text-align:center;border-bottom:1px solid #E8E0D5;">
     <h1 style="font-size:24px;color:#0E0E0E;margin:0 0 8px;font-weight:400;">¡Pago confirmado!</h1>
-    <p style="font-size:14px;color:#666;line-height:1.6;margin:0;">Hola ${pedido.nombre}, confirmamos tu transferencia. Tu pedido <strong>#${pedido.id}</strong> ya está en proceso.</p>
+    <p style="font-size:14px;color:#666;line-height:1.6;margin:0;">Hola ${pedido.nombre}, confirmamos tu transferencia. Tu pedido <strong>${formatearNumeroPedido(pedido.id)}</strong> ya está en proceso.</p>
   </div>
   <div style="padding:32px;">
     <table style="width:100%;border-collapse:collapse;">${productosHTML}</table>
     <div style="margin-top:24px;padding-top:16px;border-top:2px solid #0E0E0E;">
       <table style="width:100%;font-size:14px;color:#555;">
         <tr><td style="padding:4px 0;">Subtotal</td><td style="padding:4px 0;text-align:right;">$${subtotal.toLocaleString()} MXN</td></tr>
+        ${filaDescuentoHTML(pedido, 'padding:4px 0;', 'padding:4px 0;text-align:right;')}
         <tr><td style="padding:4px 0;">Envío</td><td style="padding:4px 0;text-align:right;">${costoEnvio === 0 ? 'Gratis' : '$' + costoEnvio.toLocaleString() + ' MXN'}</td></tr>
         <tr><td style="padding:8px 0;font-size:16px;font-weight:700;color:#0E0E0E;">Total</td><td style="padding:8px 0;text-align:right;font-size:16px;font-weight:700;color:#0E0E0E;">$${total.toLocaleString()} MXN</td></tr>
       </table>
@@ -293,7 +296,7 @@ async function enviarEmails(pedido: any) {
     await resend.emails.send({
       from: 'Vitalora <hola@vitalora.com.mx>',
       to: pedido.email,
-      subject: `Pago confirmado — Pedido #${pedido.id}`,
+      subject: `Pago confirmado — Pedido ${formatearNumeroPedido(pedido.id)}`,
       html: emailCliente,
     })
   } catch (e) {
@@ -305,8 +308,11 @@ async function enviarEmails(pedido: any) {
     await resend.emails.send({
       from: 'Vitalora <hola@vitalora.com.mx>',
       to: 'gabomaciel7@gmail.com',
-      subject: `Transferencia confirmada — Pedido #${pedido.id}`,
-      html: `<p>El pedido #${pedido.id} de ${pedido.nombre} (${pedido.email}) por transferencia fue confirmado. Total: $${total.toLocaleString()} MXN.</p>`,
+      subject: `Transferencia confirmada — Pedido ${formatearNumeroPedido(pedido.id)} - $${total.toLocaleString()} MXN`,
+      html: `<html><body style="margin:0;padding:0;background:#F5F0E8;font-family:Arial,sans-serif;"><div style="max-width:600px;margin:0 auto;background:white;padding:32px;">`
+        + `<p style="font-size:14px;color:#333;line-height:1.6;margin:0 0 20px;">El pedido <strong>${formatearNumeroPedido(pedido.id)}</strong> de ${pedido.nombre} ${pedido.apellido || ''} (${pedido.email}) por transferencia fue confirmado.</p>`
+        + resumenInternoHTML(pedido)
+        + `</div></body></html>`,
     })
   } catch (e) {
     console.error('Error email admin:', e)

@@ -5,7 +5,7 @@ import { requireAdmin } from '@/lib/admin-auth'
 const supabaseAdmin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 
 // Estados que cuentan como "venta confirmada" (ya pagada)
-const ESTADOS_VENTA = ['pagado', 'preparando', 'enviado']
+const ESTADOS_VENTA = ['pagado', 'preparando', 'enviado', 'entregado']
 
 function inicioDelDia(fecha: Date) {
   const d = new Date(fecha)
@@ -102,9 +102,8 @@ export async function GET(req: Request) {
       .select('id', { count: 'exact', head: true })
       .eq('estado', 'pendiente')
 
-    // --- Facturas pendientes (pedidos pagados sin factura_url, con datos de facturación) ---
-    // Simplificado: pedidos de venta sin factura_url
-    const facturasPendientes = ventas.filter(p => !p.factura_url).length
+    // --- Facturas pendientes: ventas cuyo cliente pidió factura y aún no se emite ---
+    const facturasPendientes = ventas.filter(p => p.requiere_factura && p.factura_estado !== 'emitida').length
 
     // --- Solicitudes de cambio fiscal pendientes ---
     const { count: cambiosFiscalesPendientes } = await supabaseAdmin

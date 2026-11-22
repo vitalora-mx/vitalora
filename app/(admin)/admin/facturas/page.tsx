@@ -1,22 +1,26 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { formatearNumeroPedido } from '@/lib/utils'
 
 interface Factura {
-  id: string
+  id: number
   created_at: string
   total: number
   estado: string
   factura_estado: string | null
-  factura_rfc: string | null
-  factura_razon_social: string | null
-  factura_uso_cfdi: string | null
-  factura_regimen: string | null
-  factura_cp: string | null
-  email_invitado: string | null
+  nombre: string | null
+  apellido: string | null
+  email: string | null
+  factura_solicitada_at: string | null
+  rfc: string | null
+  razon_social: string | null
+  regimen_fiscal: string | null
+  cp_fiscal: string | null
+  uso_cfdi: string | null
+  email_facturacion: string | null
   vence: string
   diasRestantes: number
-  perfiles: { nombre: string | null; apellido: string | null; email: string | null } | null
 }
 
 interface Stats {
@@ -56,13 +60,11 @@ function iniciales(nombre: string): string {
 function ModalDetalle({ factura, onClose, onCambiarEstado }: {
   factura: Factura
   onClose: () => void
-  onCambiarEstado: (id: string, estado: string) => Promise<void>
+  onCambiarEstado: (id: number, estado: string) => Promise<void>
 }) {
   const [guardando, setGuardando] = useState(false)
-  const nombreCliente = factura.perfiles?.nombre
-    ? [factura.perfiles.nombre, factura.perfiles.apellido].filter(Boolean).join(' ')
-    : factura.email_invitado ?? 'Invitado'
-  const emailCliente = factura.perfiles?.email ?? factura.email_invitado ?? '—'
+  const nombreCliente = [factura.nombre, factura.apellido].filter(Boolean).join(' ') || 'Cliente'
+  const emailCliente = factura.email_facturacion ?? factura.email ?? '—'
   const esPendiente = !factura.factura_estado || factura.factura_estado === 'pendiente'
   const fmt = (n: number) => new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', minimumFractionDigits: 0 }).format(n)
 
@@ -90,7 +92,7 @@ function ModalDetalle({ factura, onClose, onCambiarEstado }: {
             <div>
               <p style={{ fontSize: '10px', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#6B6B6B', marginBottom: '4px' }}>Solicitud de factura</p>
               <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '22px', fontWeight: 600, color: '#0E0E0E' }}>
-                Pedido #{factura.id.slice(-6).toUpperCase()}
+                Pedido {formatearNumeroPedido(factura.id)}
               </h2>
               <p style={{ fontSize: '12px', color: '#A8A8A8', marginTop: '4px' }}>{fechaRelativa(factura.created_at)}</p>
             </div>
@@ -105,11 +107,11 @@ function ModalDetalle({ factura, onClose, onCambiarEstado }: {
           {[
             { label: 'Cliente', valor: nombreCliente },
             { label: 'Email', valor: emailCliente },
-            { label: 'RFC', valor: factura.factura_rfc ?? '—', mono: true },
-            { label: 'Razón social', valor: factura.factura_razon_social ?? '—' },
-            { label: 'Uso CFDI', valor: factura.factura_uso_cfdi ?? '—' },
-            { label: 'Régimen fiscal', valor: factura.factura_regimen ?? '—' },
-            { label: 'Código postal', valor: factura.factura_cp ?? '—' },
+            { label: 'RFC', valor: factura.rfc ?? '—', mono: true },
+            { label: 'Razón social', valor: factura.razon_social ?? '—' },
+            { label: 'Uso CFDI', valor: factura.uso_cfdi ?? '—' },
+            { label: 'Régimen fiscal', valor: factura.regimen_fiscal ?? '—' },
+            { label: 'Código postal', valor: factura.cp_fiscal ?? '—' },
             { label: 'Total a facturar', valor: new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(factura.total), destacado: true },
           ].map((f, i) => (
             <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 0', borderBottom: i < 7 ? '1px solid #F0EDE5' : 'none' }}>
@@ -178,7 +180,7 @@ export default function FacturasPage() {
 
   useEffect(() => { cargar() }, [cargar])
 
-  const cambiarEstado = async (pedidoId: string, estado: string) => {
+  const cambiarEstado = async (pedidoId: number, estado: string) => {
     await fetch('/api/admin/facturas', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -193,12 +195,12 @@ export default function FacturasPage() {
     if (filtro === 'emitidas' && f.factura_estado !== 'emitida') return false
     if (busqueda) {
       const q = busqueda.toLowerCase()
-      const nombre = f.perfiles?.nombre ?? f.email_invitado ?? ''
+      const nombre = [f.nombre, f.apellido, f.email].filter(Boolean).join(' ')
       return (
         nombre.toLowerCase().includes(q) ||
-        (f.factura_rfc ?? '').toLowerCase().includes(q) ||
-        (f.factura_razon_social ?? '').toLowerCase().includes(q) ||
-        f.id.toLowerCase().includes(q)
+        (f.rfc ?? '').toLowerCase().includes(q) ||
+        (f.razon_social ?? '').toLowerCase().includes(q) ||
+        formatearNumeroPedido(f.id).toLowerCase().includes(q)
       )
     }
     return true
@@ -302,9 +304,7 @@ export default function FacturasPage() {
               <tbody>
                 {lista.map(f => {
                   const esPendiente = !f.factura_estado || f.factura_estado === 'pendiente'
-                  const nombreCliente = f.perfiles?.nombre
-                    ? [f.perfiles.nombre, f.perfiles.apellido].filter(Boolean).join(' ')
-                    : f.email_invitado ?? 'Invitado'
+                  const nombreCliente = [f.nombre, f.apellido].filter(Boolean).join(' ') || 'Cliente'
                   const venc = etiquetaVencimiento(f.diasRestantes, f.factura_estado)
                   const init = iniciales(nombreCliente)
 
@@ -319,7 +319,7 @@ export default function FacturasPage() {
                             <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: f.diasRestantes <= 1 ? '#EF4444' : '#F59E0B', flexShrink: 0, display: 'inline-block' }} />
                           )}
                           <span style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: '15px', color: '#0E0E0E' }}>
-                            #{f.id.slice(-6).toUpperCase()}
+                            {formatearNumeroPedido(f.id)}
                           </span>
                         </div>
                       </td>
@@ -332,7 +332,7 @@ export default function FacturasPage() {
                           </div>
                           <div>
                             <p style={{ fontWeight: 500, color: '#0E0E0E', fontSize: '13px', lineHeight: 1.2 }}>{nombreCliente}</p>
-                            <p style={{ fontSize: '11px', color: '#6B6B6B', marginTop: '1px' }}>{f.perfiles?.email ?? f.email_invitado ?? '—'}</p>
+                            <p style={{ fontSize: '11px', color: '#6B6B6B', marginTop: '1px' }}>{f.email_facturacion ?? f.email ?? '—'}</p>
                           </div>
                         </div>
                       </td>
@@ -340,7 +340,7 @@ export default function FacturasPage() {
                       {/* RFC */}
                       <td style={{ padding: '14px 16px', verticalAlign: 'middle' }}>
                         <span style={{ fontFamily: 'monospace', fontSize: '12px', color: '#2C2C2C', background: '#F0EDE5', padding: '3px 7px', borderRadius: '4px' }}>
-                          {f.factura_rfc}
+                          {f.rfc}
                         </span>
                       </td>
 

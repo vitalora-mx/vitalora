@@ -4,6 +4,8 @@ import { createClient } from '@supabase/supabase-js'
 import { MercadoPagoConfig, Payment } from 'mercadopago'
 import { Resend } from 'resend'
 import { formatearNumeroPedido } from '@/lib/utils'
+import { filaDescuentoHTML, resumenInternoHTML } from '@/lib/correoPedido'
+import { restaurarPrimeraCompraSiAplica } from '@/lib/descuentos'
 
 const supabaseAdmin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 const mpClient = new MercadoPagoConfig({ accessToken: process.env.MP_ACCESS_TOKEN! })
@@ -57,6 +59,10 @@ export async function POST(req: NextRequest) {
         // Si fue reembolsado y antes estaba pagado: devolver stock al inventario
         if (status === 'refunded' && estadoAnterior === 'pagado') {
           await devolverStock(pedido.pedido_items || [])
+        }
+        // Reembolso TOTAL: si usó primera compra, la cuenta recupera el descuento
+        if (nuevoEstado === 'reembolsado' && estadoAnterior !== 'reembolsado') {
+          await restaurarPrimeraCompraSiAplica(pedido)
         }
         return NextResponse.json({ ok: true })
       }
@@ -567,6 +573,7 @@ async function enviarEmails(pedido: any) {
     </table>
     <table style="width:100%;margin-top:20px;padding-top:16px;border-top:1px solid #E8E0D5;">
       <tr><td style="font-size:13px;color:#888;padding:4px 0;">Subtotal</td><td style="font-size:13px;color:#333;text-align:right;padding:4px 0;">$${subtotal.toLocaleString()} MXN</td></tr>
+      ${filaDescuentoHTML(pedido, 'font-size:13px;padding:4px 0;', 'font-size:13px;text-align:right;padding:4px 0;')}
       <tr><td style="font-size:13px;color:${costoEnvio === 0 ? '#6B8F6B' : '#888'};padding:4px 0;">Envio</td><td style="font-size:13px;color:${costoEnvio === 0 ? '#6B8F6B' : '#333'};text-align:right;padding:4px 0;">${costoEnvio === 0 ? 'Gratis' : '$' + costoEnvio + ' MXN'}</td></tr>
       <tr><td colspan="2" style="padding-top:12px;border-top:2px solid #0E0E0E;"></td></tr>
       <tr><td style="font-size:18px;font-weight:600;color:#0E0E0E;padding:4px 0;">Total</td><td style="font-size:18px;font-weight:600;color:#0E0E0E;text-align:right;padding:4px 0;">$${total.toLocaleString()} MXN</td></tr>
@@ -600,7 +607,7 @@ async function enviarEmails(pedido: any) {
       from: 'Vitalora Ventas <hola@vitalora.com.mx>',
       to: 'gabomaciel7@gmail.com',
       subject: `Pago confirmado - Pedido ${formatearNumeroPedido(pedido.id)} - $${total.toLocaleString()} MXN`,
-      html: `<html><body style="margin:0;padding:0;background:#F5F0E8;font-family:Arial,sans-serif;"><div style="max-width:600px;margin:0 auto;background:white;"><div style="background:#0E0E0E;padding:24px;text-align:center;"><img src="https://vitalora.com.mx/images/logo/logo-footer.png" alt="Vitalora" width="140" style="display:block;margin:0 auto;max-width:140px;height:auto;" /><div style="font-size:10px;letter-spacing:0.3em;color:#C9A961;margin-top:4px;">PAGO CONFIRMADO</div></div><div style="padding:32px;"><h2 style="font-size:20px;color:#0E0E0E;margin:0 0 24px;">Pedido ${formatearNumeroPedido(pedido.id)}</h2><div style="background:#F0F7F0;border:1px solid #A8C5A0;border-radius:4px;padding:16px;margin-bottom:24px;text-align:center;"><div style="font-size:28px;font-weight:700;color:#333;">$${total.toLocaleString()} MXN</div></div><h3 style="font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#C9A961;margin:0 0 12px;">Cliente</h3><p style="font-size:14px;color:#333;line-height:1.7;margin:0 0 20px;">${pedido.nombre} ${pedido.apellido}<br>${pedido.email}<br>${pedido.telefono}</p><h3 style="font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#C9A961;margin:0 0 12px;">Direccion</h3><p style="font-size:14px;color:#333;line-height:1.7;margin:0 0 20px;">${pedido.calle} ${pedido.numero}<br>${pedido.colonia || ''}<br>${pedido.ciudad || ''}, ${pedido.estado_dir || ''} CP ${pedido.cp}</p><h3 style="font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#C9A961;margin:0 0 12px;">Productos</h3><pre style="font-size:13px;color:#333;line-height:1.8;white-space:pre-wrap;margin:0;background:#FAFAF5;padding:16px;border-radius:4px;">${productosTexto}</pre></div></div></body></html>`,
+      html: `<html><body style="margin:0;padding:0;background:#F5F0E8;font-family:Arial,sans-serif;"><div style="max-width:600px;margin:0 auto;background:white;"><div style="background:#0E0E0E;padding:24px;text-align:center;"><img src="https://vitalora.com.mx/images/logo/logo-footer.png" alt="Vitalora" width="140" style="display:block;margin:0 auto;max-width:140px;height:auto;" /><div style="font-size:10px;letter-spacing:0.3em;color:#C9A961;margin-top:4px;">PAGO CONFIRMADO</div></div><div style="padding:32px;"><h2 style="font-size:20px;color:#0E0E0E;margin:0 0 24px;">Pedido ${formatearNumeroPedido(pedido.id)}</h2><div style="background:#F0F7F0;border:1px solid #A8C5A0;border-radius:4px;padding:16px;margin-bottom:24px;text-align:center;"><div style="font-size:28px;font-weight:700;color:#333;">$${total.toLocaleString()} MXN</div></div><h3 style="font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#C9A961;margin:0 0 12px;">Cliente</h3><p style="font-size:14px;color:#333;line-height:1.7;margin:0 0 20px;">${pedido.nombre} ${pedido.apellido}<br>${pedido.email}<br>${pedido.telefono}</p><h3 style="font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#C9A961;margin:0 0 12px;">Direccion</h3><p style="font-size:14px;color:#333;line-height:1.7;margin:0 0 20px;">${pedido.calle} ${pedido.numero}<br>${pedido.colonia || ''}<br>${pedido.ciudad || ''}, ${pedido.estado_dir || ''} CP ${pedido.cp}</p>${resumenInternoHTML(pedido)}<h3 style="font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#C9A961;margin:0 0 12px;">Productos</h3><pre style="font-size:13px;color:#333;line-height:1.8;white-space:pre-wrap;margin:0;background:#FAFAF5;padding:16px;border-radius:4px;">${productosTexto}</pre></div></div></body></html>`,
     })
   } catch (emailError) {
     console.error('Error enviando emails desde webhook:', emailError)

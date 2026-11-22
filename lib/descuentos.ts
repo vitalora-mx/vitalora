@@ -96,8 +96,26 @@ export async function validarCodigo(params: {
   }
 }
 
+// Nombre del descuento de un pedido, para correos y para el renglón de Mercado Pago.
+export function etiquetaDescuento(p: { codigo_descuento?: string | null; descuento_tipo?: string | null }): string {
+  if (p.codigo_descuento) return `Código ${p.codigo_descuento}`
+  if (p.descuento_tipo === 'primera_compra') return `Descuento ${PORCENTAJE_PRIMERA_COMPRA}% primera compra`
+  return 'Descuento'
+}
+
 export function montoPrimeraCompra(subtotal: number): number {
   return Math.round(subtotal * (PORCENTAJE_PRIMERA_COMPRA / 100))
+}
+
+// Reembolso TOTAL de un pedido que usó el descuento de primera compra:
+// la cuenta recupera el descuento. No se usa en reembolsos parciales.
+export async function restaurarPrimeraCompraSiAplica(pedido: { user_id?: string | null; descuento_tipo?: string | null }): Promise<void> {
+  if (!pedido.user_id || pedido.descuento_tipo !== 'primera_compra') return
+  const { error } = await createServiceClient()
+    .from('perfiles')
+    .update({ primera_compra_usada: false })
+    .eq('id', pedido.user_id)
+  if (error) console.error('Error restaurando primera_compra_usada:', error)
 }
 
 // ¿El usuario (ya verificado) puede usar el descuento de primera compra?

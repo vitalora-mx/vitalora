@@ -37,9 +37,12 @@ interface Pedido {
   paqueteria: string | null
   metodo_pago: string | null
   factura_url: string | null
+  requiere_factura: boolean | null
   factura_rfc: string | null
   factura_razon_social: string | null
   factura_uso_cfdi: string | null
+  factura_regimen: string | null
+  factura_cp: string | null
   factura_estado: string | null
   forma_pago: string | null
   created_at: string
@@ -418,7 +421,7 @@ export default function PedidoDetallePage() {
             </div>
 
             {/* Bloque: Facturación */}
-            {pedido.factura_rfc && (
+            {pedido.requiere_factura && (
               <div style={{ background: '#fff', border: '1px solid #E8E4DA', borderRadius: '8px', overflow: 'hidden' }}>
                 <div style={{ padding: '16px 20px', borderBottom: '1px solid #E8E4DA', background: '#FAFAF7', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <p style={{ fontSize: '10px', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#6B6B6B', fontWeight: 600 }}>Solicitud de factura CFDI</p>
@@ -431,6 +434,8 @@ export default function PedidoDetallePage() {
                     { label: 'RFC', valor: pedido.factura_rfc, mono: true },
                     { label: 'Razón social', valor: pedido.factura_razon_social ?? '—', mono: false },
                     { label: 'Uso CFDI', valor: pedido.factura_uso_cfdi ?? '—', mono: false },
+                    { label: 'Régimen fiscal', valor: pedido.factura_regimen ?? '—', mono: false },
+                    { label: 'CP fiscal', valor: pedido.factura_cp ?? '—', mono: true },
                   ].map((f, i) => (
                     <div key={i}>
                       <p style={{ fontSize: '10px', letterSpacing: '0.1em', textTransform: 'uppercase', color: '#A8A8A8', marginBottom: '3px' }}>{f.label}</p>

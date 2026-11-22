@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { requireAdmin } from '@/lib/admin-auth'
+import { restaurarPrimeraCompraSiAplica } from '@/lib/descuentos'
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -27,7 +28,7 @@ export async function POST(
     // 1. Buscar el pedido y su mp_payment_id
     const { data: pedido, error: pedidoError } = await supabaseAdmin
       .from('pedidos')
-      .select('id, estado, mp_payment_id, total, monto_reembolsado')
+      .select('id, estado, mp_payment_id, total, monto_reembolsado, user_id, descuento_tipo')
       .eq('id', id)
       .single()
 
@@ -99,7 +100,12 @@ export async function POST(
         .from('pedidos')
         .update({ monto_reembolsado: nuevoAcumulado, estado: nuevoEstado })
         .eq('id', pedido.id)
+      // Los parciales ya cubren el total: la cuenta recupera el descuento de primera compra
+      if (nuevoEstado === 'reembolsado' && pedido.estado !== 'reembolsado') {
+        await restaurarPrimeraCompraSiAplica(pedido)
+      }
     } else {
+      // (La restauración de primera compra la hace el webhook al recibir 'refunded')
       // Reembolso TOTAL: el webhook de MP marcara 'reembolsado' y devolvera stock.
       // Aqui solo registramos el monto acumulado para el reporte.
       await supabaseAdmin

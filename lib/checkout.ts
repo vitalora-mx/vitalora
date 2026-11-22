@@ -7,7 +7,7 @@
 import { NextRequest } from 'next/server'
 import { createServiceClient, createLoginClient } from '@/lib/supabase/service'
 import { calcularEnvio } from '@/lib/envio'
-import { validarCodigo, montoPrimeraCompra, puedeUsarPrimeraCompra, PORCENTAJE_PRIMERA_COMPRA } from '@/lib/descuentos'
+import { validarCodigo, montoPrimeraCompra, puedeUsarPrimeraCompra, etiquetaDescuento } from '@/lib/descuentos'
 
 const MAX_LINEAS = 50
 const MAX_CANTIDAD = 99
@@ -207,13 +207,13 @@ export async function calcularPedido(req: NextRequest, body: any): Promise<Resul
     if (!r.ok) return error(400, `Código ${codigoBody.toUpperCase()}: ${r.error}`, { codigoInvalido: true })
     descuento = r.datos.montoDescuento
     descuentoTipo = 'codigo'
-    descuentoTitulo = `Código ${r.datos.codigo}`
+    descuentoTitulo = etiquetaDescuento({ codigo_descuento: r.datos.codigo })
     codigo = r.datos.codigo
     reglaEnvio = r.datos
   } else if (userId && await puedeUsarPrimeraCompra(userId)) {
     descuento = montoPrimeraCompra(subtotal)
     descuentoTipo = descuento > 0 ? 'primera_compra' : null
-    descuentoTitulo = `Descuento ${PORCENTAJE_PRIMERA_COMPRA}% primera compra`
+    descuentoTitulo = etiquetaDescuento({ descuento_tipo: 'primera_compra' })
   }
   descuento = redondear(Math.min(descuento, subtotal))
 

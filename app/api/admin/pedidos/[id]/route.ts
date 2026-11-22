@@ -26,7 +26,8 @@ export async function GET(
         subtotal, costo_envio, total, monto_reembolsado, forma_pago,
         numero_guia, paqueteria, metodo_pago,
         factura_url,
-        factura_rfc:rfc, factura_razon_social:razon_social, factura_uso_cfdi:uso_cfdi, factura_estado,
+        requiere_factura, factura_rfc:rfc, factura_razon_social:razon_social, factura_uso_cfdi:uso_cfdi,
+        factura_regimen:regimen_fiscal, factura_cp:cp_fiscal, factura_solicitada_at, factura_estado,
         user_id,
         pedido_items (
           producto_id, variante_id, nombre, marca, precio, cantidad, variante_nombre
