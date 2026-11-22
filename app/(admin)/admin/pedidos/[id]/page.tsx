@@ -54,6 +54,7 @@ interface ClienteStats {
 const ESTADOS = [
   { value: 'pendiente',   label: 'Pendiente',   color: '#F59E0B' },
   { value: 'pagado',      label: 'Pagado',       color: '#5B7C99' },
+  { value: 'revision_monto', label: 'Revisar monto', color: '#B91C1C' },
   { value: 'preparando',  label: 'Preparando',   color: '#8060C0' },
   { value: 'enviado',     label: 'Enviado',      color: '#6A8A62' },
   { value: 'entregado',   label: 'Entregado',    color: '#3A8A3A' },

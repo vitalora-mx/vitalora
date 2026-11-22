@@ -21,7 +21,7 @@ function normalizarCiudadCheckout(txt: string): string {
 
 export default function CheckoutPage() {
   const { items, total } = useCartStore()
-  const { user, isLoggedIn } = useAuthStore()
+  const { user, session, isLoggedIn, logout } = useAuthStore()
   const isMobile = useIsMobile()
   const [intentoPaso1, setIntentoPaso1] = useState(false)
   const [intentoPaso2, setIntentoPaso2] = useState(false)
@@ -39,6 +39,11 @@ export default function CheckoutPage() {
   const [codigoAplicado, setCodigoAplicado] = useState<{ codigo: string; tipo: string; valor: number; montoDescuento: number; descripcion: string; descuentoEnvio?: string; envioPrecioFijo?: number; ciudadRestringida?: string | null; ciudadCoincide?: boolean } | null>(null)
   const [codigoError, setCodigoError] = useState('')
   const [validandoCodigo, setValidandoCodigo] = useState(false)
+  // Respuestas del servidor al pagar
+  const [avisoTotal, setAvisoTotal] = useState<{ subtotal: number; descuento: number; descuentoTipo: string | null; codigo: string | null; costoEnvio: number; total: number } | null>(null)
+  const [errorPago, setErrorPago] = useState('')
+  const [sesionExpirada, setSesionExpirada] = useState(false)
+  const [compraComoInvitado, setCompraComoInvitado] = useState(false)
 
   const [form, setForm] = useState({
     nombre: '', apellido: '', email: '', telefono: '',
@@ -47,6 +52,9 @@ export default function CheckoutPage() {
   })
 
   useEffect(() => { setMounted(true) }, [])
+
+  // Si cambia algo que afecta el total, el aviso anterior del servidor ya no aplica
+  useEffect(() => { setAvisoTotal(null); setErrorPago('') }, [items, codigoAplicado, form.ciudad, metodoPago, descuentoPrimeraCompra])
 
   useEffect(() => {
     if (mounted && isLoggedIn() && user && !perfilCargado) {
@@ -172,70 +180,76 @@ export default function CheckoutPage() {
   function validarPaso2() { return form.calle && form.numero && form.colonia && form.ciudad && form.estado && form.cp.length === 5 }
   function validarPaso3() { return datosConfirmados }
 
-  async function handlePagar() {
+  // El servidor recalcula todo: aquí solo se manda {productoId, varianteId, cantidad},
+  // los datos del cliente, el código y el total que vio el cliente.
+  async function handlePagar(opciones: { sinToken?: boolean; totalEsperado?: number } = {}) {
     setEnviando(true)
+    setErrorPago('')
+    setSesionExpirada(false)
 
-      // Si el metodo es transferencia, crear pedido por transferencia y redirigir
-      if (metodoPago === 'transferencia') {
-        try {
-          const resT = await fetch('/api/transferencia/crear', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              items,
-              comprador: { nombre: form.nombre, apellido: form.apellido, email: form.email, telefono: form.telefono },
-              direccion: { cp: form.cp, calle: form.calle, numero: form.numero, interior: form.interior, colonia: form.colonia, ciudad: form.ciudad, estado: form.estado, referencia: form.referencia },
-              costoEnvio,
-              userId: user?.id || null,
-              descuento: montoDescuento,
-              descuentoTipo: codigoAplicado ? 'codigo' : (descuentoPrimeraCompra ? 'primera_compra' : null),
-              codigoDescuento: codigoAplicado ? codigoAplicado.codigo : null,
-            }),
-          })
-          const dataT = await resT.json()
-          if (dataT.pedidoId) {
-            // Limpiar carrito antes de redirigir
-            window.location.href = '/transferencia/' + dataT.pedidoId
-            return
-          } else {
-            alert('Error al crear el pedido. Intenta de nuevo.')
-            setEnviando(false)
-            return
-          }
-        } catch (e) {
-          console.error(e)
-          alert('Error al procesar. Intenta de nuevo.')
-          setEnviando(false)
-          return
-        }
-      }
+    const sinToken = opciones.sinToken || compraComoInvitado
+    const token = !sinToken && logueado ? session?.access_token : null
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+    if (token) headers['Authorization'] = `Bearer ${token}`
+
+    const totalEsperado = opciones.totalEsperado ?? (avisoTotal ? avisoTotal.total : totalFinal)
+    const esTransferencia = metodoPago === 'transferencia'
+
     try {
-      const res = await fetch('/api/crear-preferencia', {
+      const res = await fetch(esTransferencia ? '/api/transferencia/crear' : '/api/crear-preferencia', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({
-          items,
+          items: items.map(i => ({ productoId: i.id, varianteId: i.varianteId ?? null, cantidad: i.cantidad })),
           comprador: { nombre: form.nombre, apellido: form.apellido, email: form.email, telefono: form.telefono },
           direccion: { cp: form.cp, calle: form.calle, numero: form.numero, interior: form.interior, colonia: form.colonia, ciudad: form.ciudad, estado: form.estado, referencia: form.referencia },
-          costoEnvio,
-          userId: user?.id || null,
-          descuento: montoDescuento,
-          descuentoTipo: codigoAplicado ? 'codigo' : (descuentoPrimeraCompra ? 'primera_compra' : null),
           codigoDescuento: codigoAplicado?.codigo || null,
+          totalEsperado,
         }),
       })
-      const data = await res.json()
-      if (data.init_point) {
-        window.location.href = data.init_point
-      } else {
-        alert('Error al conectar con Mercado Pago. Intenta de nuevo.')
+      const data = await res.json().catch(() => ({}))
+
+      // Sesión vencida: no se creó el pedido, el cliente elige qué hacer
+      if (res.status === 401 && data.sesionExpirada) {
+        setSesionExpirada(true)
         setEnviando(false)
+        return
       }
+      // El total del servidor es distinto al que vio el cliente: mostrar el correcto
+      if (res.status === 409 && data.totalCambio) {
+        setAvisoTotal(data.desglose)
+        setEnviando(false)
+        return
+      }
+      if (esTransferencia && data.pedidoId) {
+        window.location.href = '/transferencia/' + data.pedidoId
+        return
+      }
+      if (!esTransferencia && data.init_point) {
+        window.location.href = data.init_point
+        return
+      }
+      setErrorPago(data.error || (esTransferencia ? 'Error al crear el pedido. Intenta de nuevo.' : 'Error al conectar con Mercado Pago. Intenta de nuevo.'))
+      setEnviando(false)
     } catch (error) {
       console.error(error)
-      alert('Error al procesar el pago. Intenta de nuevo.')
+      setErrorPago('Error al procesar. Intenta de nuevo.')
       setEnviando(false)
     }
+  }
+
+  // Sesión vencida → iniciar sesión de nuevo
+  function iniciarSesionDeNuevo() {
+    logout()
+    window.location.href = '/cuenta'
+  }
+
+  // Sesión vencida → seguir como invitado (sin token y sin descuento de primera compra)
+  function continuarComoInvitado() {
+    setCompraComoInvitado(true)
+    setDescuentoPrimeraCompra(false)
+    const descuentoInvitado = codigoAplicado ? codigoAplicado.montoDescuento : 0
+    handlePagar({ sinToken: true, totalEsperado: subtotal - descuentoInvitado + costoEnvio })
   }
 
   const inputStyle = { width: '100%', padding: '12px 16px', border: '1px solid var(--line)', borderRadius: '2px', fontSize: '14px', color: 'var(--text)', fontFamily: 'inherit', outline: 'none', background: 'white', boxSizing: 'border-box' as const }
@@ -548,10 +562,46 @@ export default function CheckoutPage() {
                     </div>
                   </div>
                 </div>
+                {sesionExpirada && (
+                  <div style={{ padding: '16px', background: '#FFF8E7', border: '1px solid #F0D080', borderRadius: '4px', marginBottom: '16px' }}>
+                    <p style={{ fontSize: '13px', color: '#7A6000', lineHeight: 1.6, margin: '0 0 12px' }}>
+                      <strong>Tu sesión expiró.</strong> Inicia sesión para aplicar tu descuento de primera compra y guardar el pedido en tu cuenta, o continúa como invitado.
+                    </p>
+                    <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                      <button onClick={iniciarSesionDeNuevo} disabled={enviando} style={{ flex: 1, minWidth: '160px', padding: '12px', background: 'var(--black)', color: 'var(--bg-cream)', border: 'none', fontSize: '12px', letterSpacing: '0.15em', textTransform: 'uppercase', cursor: 'pointer', fontFamily: 'inherit', borderRadius: '2px' }}>Iniciar sesión</button>
+                      <button onClick={continuarComoInvitado} disabled={enviando} style={{ flex: 1, minWidth: '160px', padding: '12px', background: 'white', color: 'var(--black)', border: '1px solid var(--black)', fontSize: '12px', letterSpacing: '0.15em', textTransform: 'uppercase', cursor: 'pointer', fontFamily: 'inherit', borderRadius: '2px' }}>Continuar como invitado</button>
+                    </div>
+                  </div>
+                )}
+
+                {avisoTotal && (
+                  <div style={{ padding: '16px', background: '#FFF8E7', border: '1px solid #F0D080', borderRadius: '4px', marginBottom: '16px' }}>
+                    <p style={{ fontSize: '13px', color: '#7A6000', lineHeight: 1.6, margin: '0 0 10px' }}>
+                      <strong>El total de tu pedido cambió.</strong> Verificamos precios, existencias, descuentos y envío. Este es el total correcto:
+                    </p>
+                    <div style={{ fontSize: '13px', color: 'var(--text)', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Subtotal</span><span>${avisoTotal.subtotal.toLocaleString()} MXN</span></div>
+                      {avisoTotal.descuento > 0 && (
+                        <div style={{ display: 'flex', justifyContent: 'space-between', color: '#3A5A3A' }}><span>{avisoTotal.codigo ? 'Código ' + avisoTotal.codigo : 'Descuento 5% primera compra'}</span><span>-${avisoTotal.descuento.toLocaleString()} MXN</span></div>
+                      )}
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Envío</span><span>{avisoTotal.costoEnvio === 0 ? 'Gratis' : `$${avisoTotal.costoEnvio.toLocaleString()} MXN`}</span></div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, borderTop: '1px solid #F0D080', paddingTop: '6px', marginTop: '4px' }}><span>Total</span><span>${avisoTotal.total.toLocaleString()} MXN</span></div>
+                    </div>
+                  </div>
+                )}
+
+                {errorPago && (
+                  <div style={{ padding: '12px 16px', background: '#FFF5F5', border: '1px solid #E8B4B4', borderRadius: '4px', marginBottom: '16px', fontSize: '13px', color: '#A33', lineHeight: 1.6 }}>
+                    {errorPago}
+                  </div>
+                )}
+
                 <div style={{ display: 'flex', gap: '16px' }}>
                   <button onClick={() => setPaso(2)} style={{ flex: 1, padding: '18px', background: 'none', border: '1px solid var(--line)', fontSize: '13px', letterSpacing: '0.2em', textTransform: 'uppercase', cursor: 'pointer', fontFamily: 'inherit', borderRadius: '2px', color: 'var(--text-muted)' }}>← Regresar</button>
-                  <button onClick={handlePagar} disabled={!validarPaso3() || enviando} style={{ flex: 2, padding: '18px', background: validarPaso3() ? 'var(--gold)' : 'var(--line)', color: validarPaso3() ? 'var(--black)' : 'var(--text-muted)', border: 'none', fontSize: '13px', letterSpacing: '0.2em', textTransform: 'uppercase', fontWeight: 700, cursor: validarPaso3() ? 'pointer' : 'not-allowed', fontFamily: 'inherit', borderRadius: '2px', opacity: enviando ? 0.7 : 1 }}>
-                    {enviando ? 'Procesando...' : (metodoPago === 'transferencia' ? 'Continuar con transferencia' : 'Pagar con Mercado Pago')}
+                  <button onClick={() => handlePagar()} disabled={!validarPaso3() || enviando || sesionExpirada} style={{ flex: 2, padding: '18px', background: validarPaso3() ? 'var(--gold)' : 'var(--line)', color: validarPaso3() ? 'var(--black)' : 'var(--text-muted)', border: 'none', fontSize: '13px', letterSpacing: '0.2em', textTransform: 'uppercase', fontWeight: 700, cursor: validarPaso3() ? 'pointer' : 'not-allowed', fontFamily: 'inherit', borderRadius: '2px', opacity: enviando ? 0.7 : 1 }}>
+                    {enviando ? 'Procesando...' : avisoTotal
+                      ? `${metodoPago === 'transferencia' ? 'Continuar' : 'Pagar'} $${avisoTotal.total.toLocaleString()} MXN`
+                      : (metodoPago === 'transferencia' ? 'Continuar con transferencia' : 'Pagar con Mercado Pago')}
                   </button>
                 </div>
               </div>

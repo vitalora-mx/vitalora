@@ -1,106 +1,68 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { MercadoPagoConfig, Preference } from 'mercadopago'
-import { createClient } from '@supabase/supabase-js'
+import { createServiceClient } from '@/lib/supabase/service'
+import { calcularPedido, desglose, guardarPedido, totalCambio } from '@/lib/checkout'
 
 const client = new MercadoPagoConfig({ accessToken: process.env.MP_ACCESS_TOKEN! })
-const supabaseAdmin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 
+// Body: { items:[{productoId,varianteId,cantidad}], comprador, direccion, codigoDescuento, totalEsperado }
+// Header opcional: Authorization: Bearer <access_token del cliente>
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const { items, comprador, direccion, costoEnvio, userId, descuento, descuentoTipo, codigoDescuento } = body
 
-    const subtotal = items.reduce((sum: number, item: any) => sum + item.precio * item.cantidad, 0)
-    const montoDescuento = descuento || 0
-    const total = subtotal - montoDescuento + costoEnvio
+    // 1. Calcular todo en el servidor
+    const calculo = await calcularPedido(req, body)
+    if (!calculo.ok) return NextResponse.json(calculo.body, { status: calculo.status })
+    const p = calculo.pedido
 
-    // 1. Guardar pedido en Supabase
-    const { data: pedido, error: pedidoError } = await supabaseAdmin
-      .from('pedidos')
-      .insert({
-        estado: 'pendiente',
-        nombre: comprador.nombre,
-        apellido: comprador.apellido,
-        email: comprador.email,
-        telefono: comprador.telefono,
-        calle: direccion.calle,
-        numero: direccion.numero,
-        interior: direccion.interior || null,
-        colonia: direccion.colonia || null,
-        ciudad: direccion.ciudad || null,
-        estado_dir: direccion.estado || null,
-        cp: direccion.cp,
-        referencia: direccion.referencia || null,
-        subtotal,
-        descuento: montoDescuento,
-        descuento_tipo: descuentoTipo || null,
-        costo_envio: costoEnvio,
-        total,
-        user_id: userId || null,
-        codigo_descuento: codigoDescuento || null,
-      })
-      .select()
-      .single()
-
-    if (pedidoError) {
-      console.error('Error guardando pedido:', pedidoError)
-      return NextResponse.json({ error: 'Error guardando pedido' }, { status: 500 })
+    // 2. Si el total cambió respecto al que vio el cliente, no crear el pedido
+    if (totalCambio(p, body?.totalEsperado)) {
+      return NextResponse.json({ totalCambio: true, desglose: desglose(p) }, { status: 409 })
     }
 
-    // 2. Guardar items (incluyendo variante si la tiene)
-    const pedidoItems = items.map((item: any) => ({
-      pedido_id: pedido.id,
-      producto_id: item.id,
-      nombre: item.nombre,
-      marca: item.marca,
-      precio: item.precio,
-      cantidad: item.cantidad,
-      variante_id: item.varianteId ?? null,
-      variante_nombre: item.varianteNombre ?? null,
-    }))
-    await supabaseAdmin.from('pedido_items').insert(pedidoItems)
+    // 3. Guardar pedido + items
+    const pedido = await guardarPedido(p, { estado: 'pendiente' })
+    if (!pedido) return NextResponse.json({ error: 'Error guardando pedido' }, { status: 500 })
 
-    // 3. Crear items para MP (con descuento aplicado como item negativo)
-    const mpItems = items.map((item: any) => ({
-      id: String(item.id),
-      title: item.varianteNombre ? `${item.nombre} (${item.varianteNombre})` : item.nombre,
-      quantity: item.cantidad,
-      unit_price: item.precio,
+    // 4. Items para MP (descuento como item negativo)
+    const mpItems = p.lineas.map(l => ({
+      id: String(l.productoId),
+      title: l.varianteNombre ? `${l.nombre} (${l.varianteNombre})` : l.nombre,
+      quantity: l.cantidad,
+      unit_price: l.precio,
       currency_id: 'MXN',
     }))
-
-    // Agregar descuento como item negativo si aplica
-    if (montoDescuento > 0) {
+    if (p.descuento > 0) {
       mpItems.push({
         id: 'descuento',
-        title: 'Descuento 5% primera compra',
+        title: p.descuentoTitulo || 'Descuento',
         quantity: 1,
-        unit_price: -montoDescuento,
+        unit_price: -p.descuento,
         currency_id: 'MXN',
       })
     }
 
-    // 4. Crear preferencia en MP
+    // 5. Crear preferencia en MP
     const preference = new Preference(client)
-
     const result = await preference.create({
       body: {
         items: mpItems,
         payer: {
-          name: comprador.nombre,
-          surname: comprador.apellido,
-          email: comprador.email,
-          phone: { number: comprador.telefono },
+          name: p.comprador.nombre,
+          surname: p.comprador.apellido,
+          email: p.comprador.email,
+          phone: { number: p.comprador.telefono },
         },
         shipments: {
           mode: 'not_specified',
-          cost: costoEnvio,
+          cost: p.costoEnvio,
           receiver_address: {
-            zip_code: direccion.cp,
-            street_name: direccion.calle.normalize('NFD').replace(/[\u0300-\u036f]/g, ''),
-            street_number: direccion.numero,
-            floor: direccion.interior || '',
-            apartment: direccion.referencia || '',
+            zip_code: p.direccion.cp,
+            street_name: p.direccion.calle.normalize('NFD').replace(/[̀-ͯ]/g, ''),
+            street_number: p.direccion.numero,
+            floor: p.direccion.interior || '',
+            apartment: p.direccion.referencia || '',
           },
         },
         back_urls: {
@@ -122,8 +84,8 @@ export async function POST(req: NextRequest) {
       },
     })
 
-    // 5. Guardar preference_id
-    await supabaseAdmin
+    // 6. Guardar preference_id
+    await createServiceClient()
       .from('pedidos')
       .update({ mp_preference_id: result.id })
       .eq('id', pedido.id)

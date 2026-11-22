@@ -44,39 +44,74 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ ok: true })
       }
 
-      // Mapear estado de MP a nuestro estado.
-      // IMPORTANTE: un pedido que ya esta en 'reembolso_parcial' o 'reembolsado'
-      // NO debe regresar a 'pagado' por una notificacion 'approved' tardia
-      // (MP deja el pago en 'approved' tras un reembolso parcial).
-      const yaReembolsadoEstado = pedido.estado === 'reembolso_parcial' || pedido.estado === 'reembolsado'
-      let nuevoEstado = pedido.estado
-      if (status === 'refunded') {
-        nuevoEstado = 'reembolsado'
-      } else if (statusDetail === 'partially_refunded' || (mpRefunded > 0 && status === 'approved')) {
-        // Reembolso parcial: total si ya cubre el monto, parcial si no
-        nuevoEstado = (mpRefunded >= (pedido.total || 0)) ? 'reembolsado' : 'reembolso_parcial'
-      } else if (status === 'approved') {
-        // Solo marcar 'pagado' si NO esta ya en un estado de reembolso
-        nuevoEstado = yaReembolsadoEstado ? pedido.estado : 'pagado'
-      } else if (status === 'rejected' || status === 'cancelled') {
-        nuevoEstado = 'cancelado'
-      } else if (status === 'pending' || status === 'in_process') {
-        nuevoEstado = 'pendiente'
+      const datosPago = { mp_payment_id: String(paymentId), forma_pago: formaPagoTexto }
+      const estadoAnterior: string = pedido.estado
+
+      // ── Reembolsos (sin cambios de comportamiento) ──
+      if (status === 'refunded' || statusDetail === 'partially_refunded' || (mpRefunded > 0 && status === 'approved')) {
+        const nuevoEstado = status === 'refunded'
+          ? 'reembolsado'
+          // Reembolso parcial: total si ya cubre el monto, parcial si no
+          : (mpRefunded >= (pedido.total || 0)) ? 'reembolsado' : 'reembolso_parcial'
+        await supabaseAdmin.from('pedidos').update({ estado: nuevoEstado, ...datosPago }).eq('id', pedido.id)
+        // Si fue reembolsado y antes estaba pagado: devolver stock al inventario
+        if (status === 'refunded' && estadoAnterior === 'pagado') {
+          await devolverStock(pedido.pedido_items || [])
+        }
+        return NextResponse.json({ ok: true })
       }
 
-      // Actualizar pedido
-      await supabaseAdmin
-        .from('pedidos')
-        .update({ estado: nuevoEstado, mp_payment_id: String(paymentId), forma_pago: formaPagoTexto })
-        .eq('id', pedido.id)
-
-      // Si fue reembolsado y antes estaba pagado: devolver stock al inventario
-      if (status === 'refunded' && pedido.estado === 'pagado') {
-        await devolverStock(pedido.pedido_items || [])
+      // ── Rechazado / cancelado: solo si el pedido aún no se pagó ──
+      // (un 'rejected' tardío de un intento anterior no debe pisar un pedido pagado)
+      if (status === 'rejected' || status === 'cancelled') {
+        await cambiarEstadoSi(pedido.id, ['pendiente'], 'cancelado', datosPago)
+        return NextResponse.json({ ok: true })
       }
 
-      // Si fue aprobado y antes no estaba pagado: descontar stock, enviar emails, marcar primera compra
-      if (status === 'approved' && pedido.estado !== 'pagado') {
+      // ── Pendiente / en proceso (p. ej. ficha OXXO generada tras un rechazo) ──
+      if (status === 'pending' || status === 'in_process') {
+        await cambiarEstadoSi(pedido.id, ESTADOS_ANTES_DEL_PAGO, 'pendiente', datosPago)
+        return NextResponse.json({ ok: true })
+      }
+
+      if (status !== 'approved') return NextResponse.json({ ok: true })
+
+      // ── Aprobado: los efectos ocurren UNA sola vez ──
+      // Verificación de monto: lo cobrado por MP (productos - descuento + envío)
+      // debe coincidir con pedido.total. MP reporta el envío aparte en shipping_amount.
+      const montoCobrado = Number(paymentData.transaction_amount ?? 0) + Number((paymentData as any).shipping_amount ?? 0)
+      const montoEsperado = Number(pedido.total ?? 0)
+      const montoCoincide = Math.round(montoCobrado * 100) === Math.round(montoEsperado * 100)
+      const destino = montoCoincide ? 'pagado' : 'revision_monto'
+
+      // Cambio atómico: solo la notificación que logra mover el pedido desde
+      // 'pendiente'/'cancelado' ejecuta los efectos. Si ya está pagado, preparando,
+      // enviado, entregado, revision_monto o reembolsado, no cambia ni repite nada.
+      const gano = await cambiarEstadoSi(pedido.id, ESTADOS_ANTES_DEL_PAGO, destino, datosPago)
+      if (!gano) return NextResponse.json({ ok: true })
+
+      // Monto distinto: no descontar stock, no confirmar al cliente, no contar el código.
+      // Solo avisar al admin para revisarlo a mano.
+      if (destino === 'revision_monto') {
+        await avisarRevisionMonto(pedido, {
+          paymentId: String(paymentId),
+          transactionAmount: Number(paymentData.transaction_amount ?? 0),
+          shippingAmount: Number((paymentData as any).shipping_amount ?? 0),
+          totalPaidAmount: (paymentData as any).transaction_details?.total_paid_amount ?? null,
+          montoCobrado,
+          montoEsperado,
+          estadoAnterior,
+        })
+        return NextResponse.json({ ok: true })
+      }
+
+      // Pago aprobado en un pedido que estaba cancelado: efectos normales + aviso al admin
+      if (estadoAnterior === 'cancelado') {
+        await avisarPagoEnCancelado(pedido, { paymentId: String(paymentId), montoCobrado })
+      }
+
+      // Efectos del pago aprobado (solo llega aquí la notificación que hizo el cambio)
+      {
         // Descontar stock (variante / kit / producto normal)
         await descontarStock(pedido.pedido_items || [])
 
@@ -124,6 +159,94 @@ export async function POST(req: NextRequest) {
 // GET para verificacion de MP
 export async function GET() {
   return NextResponse.json({ ok: true })
+}
+
+// Estados desde los que un pago aprobado se procesa (una sola vez).
+// 'cancelado' cubre el reintento con otra tarjeta tras un rechazo en la misma preferencia.
+const ESTADOS_ANTES_DEL_PAGO = ['pendiente', 'cancelado']
+
+// Cambia el estado solo si el pedido sigue en uno de `desde` (update condicional, atómico).
+// Devuelve true si ESTA notificación hizo el cambio.
+async function cambiarEstadoSi(pedidoId: number, desde: string[], a: string, extra: Record<string, unknown> = {}): Promise<boolean> {
+  const { data, error } = await supabaseAdmin
+    .from('pedidos')
+    .update({ estado: a, ...extra })
+    .eq('id', pedidoId)
+    .in('estado', desde)
+    .select('id')
+  if (error) {
+    console.error('Error cambiando estado del pedido', pedidoId, error)
+    return false
+  }
+  return (data?.length ?? 0) > 0
+}
+
+// ============================================================
+// Aviso al admin: pago aprobado en un pedido que estaba cancelado
+// ============================================================
+async function avisarPagoEnCancelado(pedido: any, info: { paymentId: string; montoCobrado: number }) {
+  const numero = formatearNumeroPedido(pedido.id)
+  const monto = `$${Number(info.montoCobrado).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} MXN`
+  try {
+    await resend.emails.send({
+      from: 'Vitalora Ventas <hola@vitalora.com.mx>',
+      to: 'gabomaciel7@gmail.com',
+      subject: `Pago aprobado en un pedido que estaba cancelado - revisar - Pedido ${numero}`,
+      html: `<html><body style="margin:0;padding:0;background:#F5F0E8;font-family:Arial,sans-serif;"><div style="max-width:600px;margin:0 auto;background:white;padding:32px;">
+<h2 style="font-size:20px;color:#B45309;margin:0 0 8px;">Pago aprobado en un pedido que estaba cancelado</h2>
+<p style="font-size:14px;color:#333;line-height:1.6;margin:0 0 20px;">El pedido <strong>${numero}</strong> estaba en <strong>cancelado</strong> y Mercado Pago aprobó un pago. Se marcó como <strong>pagado</strong> y se aplicaron los efectos normales (stock, correo al cliente, código, comisión). Decide si lo envías o lo reembolsas.</p>
+<table style="width:100%;border-collapse:collapse;background:#FAFAF5;">
+<tr><td style="padding:6px 12px;color:#666;font-size:13px;">Pedido</td><td style="padding:6px 12px;font-size:13px;text-align:right;"><strong>${numero}</strong></td></tr>
+<tr><td style="padding:6px 12px;color:#666;font-size:13px;">Monto cobrado</td><td style="padding:6px 12px;font-size:13px;text-align:right;"><strong>${monto}</strong></td></tr>
+<tr><td style="padding:6px 12px;color:#666;font-size:13px;">ID de pago MP</td><td style="padding:6px 12px;font-size:13px;text-align:right;"><strong>${info.paymentId}</strong></td></tr>
+</table>
+<p style="font-size:13px;color:#666;line-height:1.6;margin:20px 0 0;">Cliente: ${pedido.nombre} ${pedido.apellido} · ${pedido.email}</p>
+</div></body></html>`,
+    })
+  } catch (e) {
+    console.error('Error enviando aviso de pago en pedido cancelado:', e)
+  }
+}
+
+// ============================================================
+// Aviso al admin: el monto cobrado por MP no coincide con pedido.total
+// ============================================================
+async function avisarRevisionMonto(pedido: any, info: {
+  paymentId: string
+  transactionAmount: number
+  shippingAmount: number
+  totalPaidAmount: number | null
+  montoCobrado: number
+  montoEsperado: number
+  estadoAnterior: string
+}) {
+  const fmt = (n: number | null) => n == null ? '—' : `$${Number(n).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} MXN`
+  const numero = formatearNumeroPedido(pedido.id)
+  const fila = (k: string, v: string) => `<tr><td style="padding:6px 12px;color:#666;font-size:13px;">${k}</td><td style="padding:6px 12px;font-size:13px;color:#222;text-align:right;"><strong>${v}</strong></td></tr>`
+  try {
+    await resend.emails.send({
+      from: 'Vitalora Ventas <hola@vitalora.com.mx>',
+      to: 'gabomaciel7@gmail.com',
+      subject: `⚠️ Revisar monto - Pedido ${numero} - cobrado ${fmt(info.montoCobrado)} vs esperado ${fmt(info.montoEsperado)}`,
+      html: `<html><body style="margin:0;padding:0;background:#F5F0E8;font-family:Arial,sans-serif;"><div style="max-width:600px;margin:0 auto;background:white;padding:32px;">
+<h2 style="font-size:20px;color:#B33;margin:0 0 8px;">Pago con monto distinto al pedido</h2>
+<p style="font-size:14px;color:#333;line-height:1.6;margin:0 0 20px;">El pedido <strong>${numero}</strong> quedó en estado <strong>revision_monto</strong>. No se descontó stock, no se envió confirmación al cliente y no se contó el uso del código. Revísalo en Mercado Pago antes de enviarlo.</p>
+<table style="width:100%;border-collapse:collapse;background:#FAFAF5;">
+${fila('Total del pedido (esperado)', fmt(info.montoEsperado))}
+${fila('Cobrado: transaction_amount + shipping_amount', fmt(info.montoCobrado))}
+${fila('transaction_amount', fmt(info.transactionAmount))}
+${fila('shipping_amount', fmt(info.shippingAmount))}
+${fila('total_paid_amount', fmt(info.totalPaidAmount))}
+${fila('Diferencia', fmt(Math.round((info.montoCobrado - info.montoEsperado) * 100) / 100))}
+${fila('ID de pago MP', info.paymentId)}
+${fila('Estado anterior del pedido', info.estadoAnterior)}
+</table>
+<p style="font-size:13px;color:#666;line-height:1.6;margin:20px 0 0;">Cliente: ${pedido.nombre} ${pedido.apellido} · ${pedido.email}<br>Subtotal ${fmt(pedido.subtotal)} · Descuento ${fmt(pedido.descuento || 0)} · Envío ${fmt(pedido.costo_envio || 0)}${pedido.codigo_descuento ? ` · Código ${pedido.codigo_descuento}` : ''}</p>
+</div></body></html>`,
+    })
+  } catch (e) {
+    console.error('Error enviando aviso de revision_monto:', e)
+  }
 }
 
 // ============================================================

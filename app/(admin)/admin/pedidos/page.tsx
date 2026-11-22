@@ -24,6 +24,7 @@ interface Pedido {
 const ESTADOS = [
   { value: 'pendiente',    label: 'Pendiente',    color: '#F59E0B', bg: 'rgba(245,158,11,0.1)' },
   { value: 'pagado',       label: 'Pagado',       color: '#5B7C99', bg: 'rgba(91,124,153,0.1)' },
+  { value: 'revision_monto', label: 'Revisar monto', color: '#B91C1C', bg: 'rgba(185,28,28,0.1)' },
   { value: 'preparando',   label: 'Preparando',   color: '#8060C0', bg: 'rgba(128,96,192,0.1)' },
   { value: 'enviado',      label: 'Enviado',      color: '#6A8A62', bg: 'rgba(106,138,98,0.1)' },
   { value: 'entregado',    label: 'Entregado',    color: '#3A8A3A', bg: 'rgba(58,138,58,0.1)'  },
