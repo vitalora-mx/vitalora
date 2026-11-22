@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { MercadoPagoConfig, Preference } from 'mercadopago'
 import { createServiceClient } from '@/lib/supabase/service'
 import { calcularPedido, desglose, guardarPedido, totalCambio } from '@/lib/checkout'
+import { permitirIp } from '@/lib/limites'
 
 const client = new MercadoPagoConfig({ accessToken: process.env.MP_ACCESS_TOKEN! })
 
@@ -9,6 +10,11 @@ const client = new MercadoPagoConfig({ accessToken: process.env.MP_ACCESS_TOKEN!
 // Body conSesion: true para comprar con la cuenta (sesión en cookie httpOnly)
 export async function POST(req: NextRequest) {
   try {
+    // Límite suave por IP (compartido con transferencia/crear): 10 pedidos por hora, 30 al día
+    if (!(await permitirIp(req, 'pedido', 10, 30))) {
+      return NextResponse.json({ error: 'Demasiados intentos de compra. Espera unos minutos o escríbenos a hola@vitalora.com.mx' }, { status: 429 })
+    }
+
     const body = await req.json()
 
     // 1. Calcular todo en el servidor

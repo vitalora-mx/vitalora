@@ -86,7 +86,7 @@ export default function LoraChat() {
 
       const data = await res.json()
 
-      setMessages(prev => [...prev, { role: 'lora', content: data.respuesta }])
+      setMessages(prev => [...prev, { role: 'lora', content: data.respuesta || data.error || 'Lo siento, tuve un problema técnico. Intenta de nuevo en un momento 🙏' }])
       setMensajesEnviados(prev => prev + 1)
 
       if (data.limitAlcanzado) {
@@ -261,6 +261,7 @@ export default function LoraChat() {
                 </p>
                 <form onSubmit={handleSubmit} style={{ display: 'flex', gap: '8px', alignItems: 'center', border: '1px solid var(--line, #E8E4DA)', padding: '4px 4px 4px 16px', borderRadius: '100px' }}>
                   <input
+                    maxLength={1000}
                     value={input}
                     onChange={e => setInput(e.target.value)}
                     placeholder="Pregúntame lo que quieras..."

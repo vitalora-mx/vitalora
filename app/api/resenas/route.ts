@@ -11,21 +11,22 @@ const supabaseAdmin = createClient(
 // Devuelve las reseñas APROBADAS de un producto + resumen (promedio y total)
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
-  const productoId = searchParams.get('producto_id')
+  const productoId = Number(searchParams.get('producto_id'))
 
-  if (!productoId) {
+  if (!Number.isInteger(productoId) || productoId <= 0) {
     return NextResponse.json({ error: 'Falta producto_id' }, { status: 400 })
   }
 
   const { data, error } = await supabaseAdmin
     .from('resenas')
     .select('id, autor_nombre, estrellas, titulo, comentario, fotos, created_at')
-    .eq('producto_id', parseInt(productoId))
+    .eq('producto_id', productoId)
     .eq('estado', 'aprobada')
     .order('created_at', { ascending: false })
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    console.error('Error cargando reseñas:', error)
+    return NextResponse.json({ error: 'Error al cargar reseñas' }, { status: 500 })
   }
 
   const resenas = data || []

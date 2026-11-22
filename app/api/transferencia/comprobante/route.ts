@@ -1,37 +1,50 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { timingSafeEqual } from 'crypto'
+import { createServiceClient } from '@/lib/supabase/service'
+import { permitirIp, permitirClave } from '@/lib/limites'
 
-const supabaseAdmin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
+const supabaseAdmin = createServiceClient()
 
-// GET: obtener datos del pedido de transferencia (para la página de instrucciones)
+// Tipos permitidos y la extensión que se guarda (no se confía en el nombre del archivo)
+const TIPOS: Record<string, string> = {
+  'image/jpeg': 'jpg',
+  'image/png': 'png',
+  'image/webp': 'webp',
+  'application/pdf': 'pdf',
+}
+const MAX_BYTES = 5 * 1024 * 1024
+const ESTADOS_CONFIRMADOS = ['pagado', 'preparando', 'enviado', 'entregado']
+
+function mismoToken(a: string, b: string): boolean {
+  const x = Buffer.from(a)
+  const y = Buffer.from(b)
+  return x.length === y.length && timingSafeEqual(x, y)
+}
+
+// El pedido solo se puede ver o tocar con su token de acceso (?t=...).
+// Sin token guardado (pedidos anteriores a la Fase D) no hay acceso.
+// Siempre el mismo 404 si no existe, no es de transferencia o el token no coincide.
+async function pedidoConAcceso(idTexto: string | null, token: string | null) {
+  const id = Number(idTexto)
+  if (!Number.isInteger(id) || id <= 0) return null
+  const { data: pedido } = await supabaseAdmin
+    .from('pedidos')
+    .select('id, estado, metodo_pago, total, nombre, limite_transferencia_at, comprobante_url, acceso_token')
+    .eq('id', id)
+    .maybeSingle()
+  if (!pedido || pedido.metodo_pago !== 'transferencia') return null
+  if (!pedido.acceso_token || !token || !mismoToken(pedido.acceso_token, token)) return null
+  return pedido
+}
+
+const NO_ENCONTRADO = () => NextResponse.json({ error: 'Pedido no encontrado.' }, { status: 404 })
+
+// GET: datos del pedido para la página de instrucciones
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url)
-    const id = searchParams.get('id')
-    const email = searchParams.get('email')
-
-    if (!id) {
-      return NextResponse.json({ error: 'Falta el id del pedido.' }, { status: 400 })
-    }
-
-    const { data: pedido } = await supabaseAdmin
-      .from('pedidos')
-      .select('id, estado, metodo_pago, total, email, nombre, limite_transferencia_at, comprobante_url')
-      .eq('id', parseInt(id))
-      .maybeSingle()
-
-    if (!pedido) {
-      return NextResponse.json({ error: 'Pedido no encontrado.' }, { status: 404 })
-    }
-
-    // Verificación ligera: si pasan email, debe coincidir (privacidad básica)
-    if (email && pedido.email && pedido.email.toLowerCase() !== email.toLowerCase()) {
-      return NextResponse.json({ error: 'No autorizado.' }, { status: 403 })
-    }
-
-    if (pedido.metodo_pago !== 'transferencia') {
-      return NextResponse.json({ error: 'Este pedido no es por transferencia.' }, { status: 400 })
-    }
+    const pedido = await pedidoConAcceso(searchParams.get('id'), searchParams.get('t'))
+    if (!pedido) return NO_ENCONTRADO()
 
     return NextResponse.json({
       pedido: {
@@ -50,68 +63,58 @@ export async function GET(req: NextRequest) {
 }
 
 // POST: subir el comprobante de pago
-// Recibe FormData con: file, pedidoId
+// Recibe FormData con: file, pedidoId, t (token de acceso)
 export async function POST(req: NextRequest) {
   try {
-    const formData = await req.formData()
-    const file = formData.get('file') as File | null
-    const pedidoId = formData.get('pedidoId') as string | null
+    // Límite por IP: 10 subidas por hora, 30 al día
+    if (!(await permitirIp(req, 'comprobante', 10, 30))) {
+      return NextResponse.json({ error: 'Demasiados intentos. Espera un momento e inténtalo de nuevo.' }, { status: 429 })
+    }
 
-    if (!file || !pedidoId) {
+    const formData = await req.formData()
+    const file = formData.get('file')
+    const pedidoId = formData.get('pedidoId')
+    const token = formData.get('t')
+
+    if (!(file instanceof File) || typeof pedidoId !== 'string') {
       return NextResponse.json({ error: 'Falta el archivo o el pedido.' }, { status: 400 })
     }
-
-    // Validar tamaño (máx 5MB)
-    if (file.size > 5 * 1024 * 1024) {
+    if (file.size > MAX_BYTES) {
       return NextResponse.json({ error: 'El archivo no debe superar 5MB.' }, { status: 400 })
     }
-
-    // Validar tipo (imágenes o PDF)
-    const tiposPermitidos = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf']
-    if (!tiposPermitidos.includes(file.type)) {
+    const ext = TIPOS[file.type]
+    if (!ext) {
       return NextResponse.json({ error: 'Solo se permiten imágenes (JPG, PNG, WEBP) o PDF.' }, { status: 400 })
     }
 
-    // Verificar que el pedido existe y está esperando comprobante
-    const { data: pedido } = await supabaseAdmin
-      .from('pedidos')
-      .select('id, estado, metodo_pago, limite_transferencia_at')
-      .eq('id', parseInt(pedidoId))
-      .maybeSingle()
-
-    if (!pedido) {
-      return NextResponse.json({ error: 'Pedido no encontrado.' }, { status: 404 })
-    }
-
-    if (pedido.metodo_pago !== 'transferencia') {
-      return NextResponse.json({ error: 'Este pedido no es por transferencia.' }, { status: 400 })
-    }
+    const pedido = await pedidoConAcceso(pedidoId, typeof token === 'string' ? token : null)
+    if (!pedido) return NO_ENCONTRADO()
 
     if (pedido.estado === 'cancelado_sin_pago') {
       return NextResponse.json({ error: 'Este pedido fue cancelado porque venció el plazo de 2 horas.' }, { status: 400 })
     }
-
-    // Si el pedido ya está pagado, no permitir resubir
-    if (pedido.estado === 'pagado' || pedido.estado === 'preparando' || pedido.estado === 'enviado' || pedido.estado === 'entregado') {
+    if (ESTADOS_CONFIRMADOS.includes(pedido.estado)) {
       return NextResponse.json({ error: 'Este pedido ya fue confirmado.' }, { status: 400 })
     }
     // Estados que permiten subir/resubir: esperando_comprobante, comprobante_en_revision, comprobante_rechazado
 
-    // Subir el archivo a Storage (bucket privado "comprobantes")
-    const ext = file.name.split('.').pop() || 'jpg'
-    const ruta = `pedido-${pedidoId}-${Date.now()}.${ext}`
-    const arrayBuffer = await file.arrayBuffer()
+    // Máximo 5 comprobantes por pedido
+    if (!(await permitirClave(`comprobante-pedido:${pedido.id}`, 5, 5))) {
+      return NextResponse.json({ error: 'Ya subiste varios comprobantes para este pedido. Escríbenos a hola@vitalora.com.mx' }, { status: 429 })
+    }
 
+    // Subir el archivo a Storage (bucket privado "comprobantes")
+    const ruta = `pedido-${pedido.id}-${Date.now()}.${ext}`
     const { error: uploadError } = await supabaseAdmin.storage
       .from('comprobantes')
-      .upload(ruta, arrayBuffer, { contentType: file.type, upsert: false })
+      .upload(ruta, await file.arrayBuffer(), { contentType: file.type, upsert: false })
 
     if (uploadError) {
       console.error('Error al subir comprobante:', uploadError)
       return NextResponse.json({ error: 'Error al subir el comprobante.' }, { status: 500 })
     }
 
-    // Actualizar el pedido: guardar ruta del comprobante y cambiar estado
+    // Guardar ruta del comprobante y cambiar estado (solo si sigue en un estado que lo permite)
     await supabaseAdmin
       .from('pedidos')
       .update({
@@ -119,7 +122,8 @@ export async function POST(req: NextRequest) {
         comprobante_subido_at: new Date().toISOString(),
         estado: 'comprobante_en_revision',
       })
-      .eq('id', parseInt(pedidoId))
+      .eq('id', pedido.id)
+      .in('estado', ['esperando_comprobante', 'comprobante_en_revision', 'comprobante_rechazado'])
 
     return NextResponse.json({ ok: true })
   } catch (err) {

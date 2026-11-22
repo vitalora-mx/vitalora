@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import crypto from 'crypto'
+import { createServiceClient } from '@/lib/supabase/service'
+import { permitirIp } from '@/lib/limites'
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+const supabaseAdmin = createServiceClient()
+
+const MIN_PASSWORD = 8
 
 async function buscarUsuarioPorEmail(email: string) {
   for (let page = 1; page <= 20; page++) {
@@ -17,60 +18,91 @@ async function buscarUsuarioPorEmail(email: string) {
   return null
 }
 
+// GET /api/recuperar/cambiar?token=... — solo revisa si el enlace sigue sirviendo (no lo consume).
+// Responde { valido: boolean } sin decir de qué correo es.
+export async function GET(req: NextRequest) {
+  try {
+    if (!(await permitirIp(req, 'recuperar-verificar', 30, 100))) {
+      return NextResponse.json({ error: 'Demasiados intentos. Espera un momento e inténtalo de nuevo.' }, { status: 429 })
+    }
+    const token = (req.nextUrl.searchParams.get('token') ?? '').trim()
+    if (!token || token.length > 200) return NextResponse.json({ valido: false })
+
+    const tokenHash = crypto.createHash('sha256').update(token).digest('hex')
+    const { data } = await supabaseAdmin
+      .from('password_reset_tokens')
+      .select('id')
+      .eq('token_hash', tokenHash)
+      .eq('usado', false)
+      .gt('expira_at', new Date().toISOString())
+      .maybeSingle()
+
+    return NextResponse.json({ valido: !!data })
+  } catch (err) {
+    console.error('Error verificando enlace de recuperación:', err)
+    return NextResponse.json({ error: 'No se pudo verificar el enlace.' }, { status: 500 })
+  }
+}
+
 export async function POST(req: NextRequest) {
   try {
-    const { token, password } = await req.json()
+    // Evita probar tokens a lo loco: 10 intentos por hora por IP
+    if (!(await permitirIp(req, 'recuperar-cambiar', 10, 30))) {
+      return NextResponse.json({ error: 'Demasiados intentos. Espera un momento e inténtalo de nuevo.' }, { status: 429 })
+    }
+
+    const body = await req.json().catch(() => ({}))
+    const token = typeof body?.token === 'string' ? body.token.trim() : ''
+    const password = typeof body?.password === 'string' ? body.password : ''
 
     if (!token || !password) {
       return NextResponse.json({ error: 'Datos incompletos' }, { status: 400 })
     }
-
-    if (password.length < 6) {
-      return NextResponse.json({ error: 'La contraseña debe tener al menos 6 caracteres.' }, { status: 400 })
+    if (password.length < MIN_PASSWORD) {
+      return NextResponse.json({ error: `La contraseña debe tener al menos ${MIN_PASSWORD} caracteres.` }, { status: 400 })
+    }
+    if (password.length > 72) {
+      return NextResponse.json({ error: 'La contraseña es demasiado larga (máximo 72 caracteres).' }, { status: 400 })
     }
 
-    // Buscar token válido
-    const { data: tokenData } = await supabaseAdmin
+    const tokenHash = crypto.createHash('sha256').update(token).digest('hex')
+
+    // Reclamar el token de forma atómica: solo una petición puede marcarlo como usado
+    const { data: reclamado } = await supabaseAdmin
       .from('password_reset_tokens')
-      .select('*')
-      .eq('token', token)
+      .update({ usado: true })
+      .eq('token_hash', tokenHash)
       .eq('usado', false)
+      .gt('expira_at', new Date().toISOString())
+      .select('id, email')
       .maybeSingle()
 
-    if (!tokenData) {
-      return NextResponse.json({ error: 'El enlace no es válido o ya fue usado.' }, { status: 400 })
+    if (!reclamado) {
+      return NextResponse.json({ error: 'El enlace no es válido, ya fue usado o expiró. Solicita uno nuevo.' }, { status: 400 })
     }
 
-    if (new Date(tokenData.expira_at) < new Date()) {
-      return NextResponse.json({ error: 'El enlace ha expirado. Solicita uno nuevo.' }, { status: 400 })
-    }
-
-    // Buscar el usuario en el sistema de auth por email
-    const usuario = await buscarUsuarioPorEmail(tokenData.email)
-
+    const usuario = await buscarUsuarioPorEmail(reclamado.email)
     if (!usuario) {
       return NextResponse.json({ error: 'Usuario no encontrado.' }, { status: 400 })
     }
 
-    // Actualizar la contraseña
-    const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
-      usuario.id,
-      { password }
-    )
+    const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(usuario.id, { password })
 
     if (updateError) {
       console.error('Error al actualizar contraseña:', updateError)
+      // Devolver el token para que pueda intentarlo otra vez con el mismo enlace
+      await supabaseAdmin.from('password_reset_tokens').update({ usado: false }).eq('id', reclamado.id)
       return NextResponse.json({ error: 'No se pudo actualizar la contraseña.' }, { status: 500 })
     }
 
-    // Marcar el token como usado
+    // Invalidar cualquier otro enlace pendiente de ese correo
     await supabaseAdmin
       .from('password_reset_tokens')
       .update({ usado: true })
-      .eq('id', tokenData.id)
+      .eq('email', reclamado.email)
+      .eq('usado', false)
 
     return NextResponse.json({ ok: true })
-
   } catch (err) {
     console.error('Error reset password:', err)
     return NextResponse.json({ error: 'Error al procesar' }, { status: 500 })

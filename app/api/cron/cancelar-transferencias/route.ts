@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
+import { cronAutorizado } from '@/lib/cron-auth'
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -12,9 +13,8 @@ const supabaseAdmin = createClient(
 //  - nunca subieron comprobante
 // Se ejecuta periódicamente vía cron.
 export async function GET(request: Request) {
-  // Verificar el secreto del cron (igual que el de escalación)
-  const authHeader = request.headers.get('authorization')
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  // Verificar el secreto del cron (se rechaza si CRON_SECRET no existe)
+  if (!cronAutorizado(request)) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   }
 

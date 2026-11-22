@@ -1,7 +1,6 @@
 ﻿import { NextRequest, NextResponse } from 'next/server'
-import { createHash } from 'crypto'
 import { Resend } from 'resend'
-import { createServiceClient } from '@/lib/supabase/service'
+import { permitirIp } from '@/lib/limites'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
@@ -21,26 +20,6 @@ function escaparHtml(s: string): string {
 
 const texto = (v: unknown, max: number) => (typeof v === 'string' ? v.trim().slice(0, max) : '')
 
-function ipDe(req: NextRequest): string {
-  const reenviada = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
-  return reenviada || req.headers.get('x-real-ip')?.trim() || 'desconocida'
-}
-
-// Devuelve true si se permite el envío (y lo registra). Si la base falla, se permite.
-async function permitirEnvio(req: NextRequest): Promise<boolean> {
-  const clave = 'ayuda:' + createHash('sha256').update('vitalora:' + ipDe(req)).digest('hex')
-  const { data, error } = await createServiceClient().rpc('registrar_envio', {
-    p_clave: clave,
-    p_max_hora: MAX_POR_HORA,
-    p_max_dia: MAX_POR_DIA,
-  })
-  if (error) {
-    console.error('Error revisando límite de ayuda:', error)
-    return true
-  }
-  return data === true
-}
-
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json().catch(() => ({}))
@@ -56,7 +35,7 @@ export async function POST(req: NextRequest) {
     const email = /^[^\s@<>"]+@[^\s@<>"]+\.[^\s@<>"]+$/.test(emailBruto) ? emailBruto : ''
 
     // Límite por IP: se revisa después de validar, para no gastar intentos en formularios incompletos
-    if (!(await permitirEnvio(req))) {
+    if (!(await permitirIp(req, 'ayuda', MAX_POR_HORA, MAX_POR_DIA))) {
       return NextResponse.json({ error: MENSAJE_LIMITE }, { status: 429 })
     }
 

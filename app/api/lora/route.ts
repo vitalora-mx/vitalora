@@ -1,6 +1,8 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
+import { permitirIp } from '@/lib/limites'
+import { origenValido } from '@/lib/cliente-auth'
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -12,6 +14,36 @@ const supabase = createClient(
 )
 
 const LIMITE_MENSAJES = 10
+// Límite real (en el servidor) por IP: cada llamada gasta créditos de la API de Anthropic
+const MAX_POR_HORA = 20
+const MAX_POR_DIA = 60
+const MAX_HISTORIAL = 20          // mensajes enviados al modelo
+const MAX_CHARS_USUARIO = 1000
+const MAX_CHARS_LORA = 6000        // respuestas previas de Lora (hasta 1024 tokens)
+
+type MensajeApi = { role: 'user' | 'assistant'; content: string }
+
+// Valida el historial: solo user/assistant, alternados, empieza y termina en user, con largos máximos.
+function limpiarHistorial(messages: unknown): MensajeApi[] | null {
+  if (!Array.isArray(messages) || messages.length === 0 || messages.length > 60) return null
+  const lista: MensajeApi[] = []
+  for (const m of messages) {
+    const role = (m as { role?: unknown })?.role
+    const content = (m as { content?: unknown })?.content
+    if ((role !== 'user' && role !== 'assistant') || typeof content !== 'string') return null
+    const max = role === 'user' ? MAX_CHARS_USUARIO : MAX_CHARS_LORA
+    if (role === 'user' && content.length > MAX_CHARS_USUARIO) return null
+    lista.push({ role, content: content.slice(0, max) })
+  }
+  // Quedarse con los últimos MAX_HISTORIAL, empezando en un mensaje del usuario
+  let recorte = lista.slice(-MAX_HISTORIAL)
+  while (recorte.length && recorte[0].role !== 'user') recorte = recorte.slice(1)
+  if (!recorte.length || recorte[recorte.length - 1].role !== 'user') return null
+  for (let i = 1; i < recorte.length; i++) {
+    if (recorte[i].role === recorte[i - 1].role) return null
+  }
+  return recorte
+}
 
 // Cache del catalogo
 let catalogoCache: string | null = null
@@ -155,8 +187,22 @@ Recuerda: eres la cara de Vitalora, representa la marca con calidez y profesiona
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json()
-    const { messages, sessionMessageCount = 0 } = body
+    if (!origenValido(request)) {
+      return NextResponse.json({ error: 'Origen no permitido' }, { status: 403 })
+    }
+
+    const body = await request.json().catch(() => ({}))
+    const historial = limpiarHistorial(body?.messages)
+    if (!historial) {
+      return NextResponse.json({ error: 'Mensaje no válido. Escribe máximo 1000 caracteres.' }, { status: 400 })
+    }
+
+    // Límite por sesión: se cuenta en el servidor con los mensajes del usuario en el historial
+    const enviadosAntes = Math.max(
+      Number.isFinite(Number(body?.sessionMessageCount)) ? Number(body.sessionMessageCount) : 0,
+      (Array.isArray(body?.messages) ? body.messages : []).filter((m: { role?: string }) => m?.role === 'user').length - 1,
+    )
+    const sessionMessageCount = Math.max(0, enviadosAntes)
 
     if (sessionMessageCount >= LIMITE_MENSAJES) {
       return NextResponse.json({
@@ -165,8 +211,12 @@ export async function POST(request: Request) {
       })
     }
 
-    if (!messages || !Array.isArray(messages) || messages.length === 0) {
-      return NextResponse.json({ error: 'Mensajes requeridos' }, { status: 400 })
+    // Límite por IP (el que de verdad protege los créditos)
+    if (!(await permitirIp(request, 'lora', MAX_POR_HORA, MAX_POR_DIA))) {
+      return NextResponse.json({
+        respuesta: 'Recibimos muchos mensajes desde tu conexión. Intenta más tarde o escríbenos a hola@vitalora.com.mx 💌',
+        limitAlcanzado: true,
+      }, { status: 429 })
     }
 
     const catalogo = await obtenerCatalogo()
@@ -176,10 +226,7 @@ export async function POST(request: Request) {
       model: 'claude-haiku-4-5',
       max_tokens: 1024,
       system: SISTEMA(personalidad, catalogo),
-      messages: messages.map((m: { role: string; content: string }) => ({
-        role: m.role as 'user' | 'assistant',
-        content: m.content,
-      })),
+      messages: historial,
     })
 
     const respuesta = response.content[0].type === 'text'

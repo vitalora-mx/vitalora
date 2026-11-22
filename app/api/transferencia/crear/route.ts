@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { randomBytes } from 'crypto'
 import { calcularPedido, desglose, guardarPedido, totalCambio } from '@/lib/checkout'
+import { permitirIp } from '@/lib/limites'
 
 // Crea un pedido con método de pago TRANSFERENCIA.
 // Estado inicial: 'esperando_comprobante', con ventana de 2 horas.
@@ -7,6 +9,11 @@ import { calcularPedido, desglose, guardarPedido, totalCambio } from '@/lib/chec
 // Body conSesion: true para comprar con la cuenta (sesión en cookie httpOnly)
 export async function POST(req: NextRequest) {
   try {
+    // Límite suave por IP (compartido con crear-preferencia): 10 pedidos por hora, 30 al día
+    if (!(await permitirIp(req, 'pedido', 10, 30))) {
+      return NextResponse.json({ error: 'Demasiados intentos de compra. Espera unos minutos o escríbenos a hola@vitalora.com.mx' }, { status: 429 })
+    }
+
     const body = await req.json()
 
     // 1. Calcular todo en el servidor
@@ -19,6 +26,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ totalCambio: true, desglose: desglose(p) }, { status: 409 })
     }
 
+    // Token de acceso a la página del pedido (/transferencia/[id]?t=...): sin él no se ve ni se sube nada
+    const accesoToken = randomBytes(24).toString('base64url')
+
     // Ventana de 2 horas para subir el comprobante
     const limite = new Date(Date.now() + 2 * 60 * 60 * 1000)
 
@@ -28,11 +38,12 @@ export async function POST(req: NextRequest) {
       metodo_pago: 'transferencia',
       forma_pago: 'Transferencia bancaria',
       limite_transferencia_at: limite.toISOString(),
+      acceso_token: accesoToken,
     })
     if (!pedido) return NextResponse.json({ error: 'Error guardando pedido' }, { status: 500 })
 
     // Devolver el id del pedido para redirigir a la página de instrucciones
-    return NextResponse.json({ pedidoId: pedido.id, limite: limite.toISOString() })
+    return NextResponse.json({ pedidoId: pedido.id, token: accesoToken, limite: limite.toISOString() })
   } catch (error) {
     console.error('Error crear pedido transferencia:', error)
     return NextResponse.json({ error: 'Error al crear el pedido' }, { status: 500 })

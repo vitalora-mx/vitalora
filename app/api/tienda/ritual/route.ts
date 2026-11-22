@@ -34,9 +34,10 @@ export async function GET(req: NextRequest) {
       .eq('video_id', video.id)
       .order('posicion', { ascending: true })
 
+    // Solo productos activos y no archivados
     const productos = (relaciones || [])
-      .map((r: { productos: unknown }) => r.productos)
-      .filter(Boolean)
+      .map((r: { productos: unknown }) => r.productos as { activo?: boolean; archivado?: boolean } | null)
+      .filter(p => p && p.activo && !p.archivado)
 
     return NextResponse.json({ ...video, productos })
   }
@@ -59,6 +60,9 @@ export async function GET(req: NextRequest) {
   }
 
   const { data, error } = await query
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) {
+    console.error('Error ritual:', error)
+    return NextResponse.json({ error: 'Error al cargar videos' }, { status: 500 })
+  }
   return NextResponse.json(data || [])
 }

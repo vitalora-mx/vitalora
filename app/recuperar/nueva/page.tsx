@@ -14,14 +14,26 @@ function NuevaPasswordForm() {
   const [guardando, setGuardando] = useState(false)
   const [error, setError] = useState('')
   const [exito, setExito] = useState(false)
+  // 'verificando' al abrir; 'invalido' si ya se usó o expiró; 'valido' muestra el formulario
+  const [enlace, setEnlace] = useState<'verificando' | 'valido' | 'invalido'>('verificando')
 
   useEffect(() => {
-    if (!token) setError('Enlace inválido. Solicita uno nuevo.')
+    if (!token) { setEnlace('invalido'); return }
+    let cancelado = false
+    fetch(`/api/recuperar/cambiar?token=${encodeURIComponent(token)}`)
+      .then(r => r.json().then(d => ({ ok: r.ok, d })))
+      .then(({ ok, d }) => {
+        if (cancelado) return
+        // Si la verificación falla por algo técnico, se muestra el formulario: el servidor vuelve a revisar al guardar
+        setEnlace(ok && d.valido === false ? 'invalido' : 'valido')
+      })
+      .catch(() => { if (!cancelado) setEnlace('valido') })
+    return () => { cancelado = true }
   }, [token])
 
   async function cambiar() {
     setError('')
-    if (password.length < 6) { setError('La contraseña debe tener al menos 6 caracteres.'); return }
+    if (password.length < 8) { setError('La contraseña debe tener al menos 8 caracteres.'); return }
     if (password !== password2) { setError('Las contraseñas no coinciden.'); return }
 
     setGuardando(true)
@@ -32,7 +44,9 @@ function NuevaPasswordForm() {
         body: JSON.stringify({ token, password }),
       })
       const data = await res.json()
-      if (!res.ok) {
+      if (res.status === 400 && typeof data.error === 'string' && data.error.startsWith('El enlace no es válido')) {
+        setEnlace('invalido')
+      } else if (!res.ok) {
         setError(data.error ?? 'Error al cambiar la contraseña.')
       } else {
         setExito(true)
@@ -51,6 +65,21 @@ function NuevaPasswordForm() {
         <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '26px', fontWeight: 600, color: '#0E0E0E', marginBottom: '12px' }}>¡Contraseña actualizada!</h1>
         <p style={{ fontSize: '14px', color: '#6B6B6B', lineHeight: 1.7, marginBottom: '24px' }}>Ya puedes iniciar sesión con tu nueva contraseña.</p>
         <a href={destino === 'admin' ? "/admin" : "/cuenta"} style={{ display: 'inline-block', padding: '12px 28px', background: '#0E0E0E', color: '#C9A961', textDecoration: 'none', borderRadius: '3px', fontSize: '13px', fontWeight: 600, letterSpacing: '0.05em' }}>{destino === 'admin' ? 'Entrar al admin' : 'Iniciar sesion'}</a>
+      </div>
+    )
+  }
+
+  if (enlace === 'verificando') {
+    return <p style={{ textAlign: 'center', color: '#A8A8A8' }}>Verificando enlace…</p>
+  }
+
+  if (enlace === 'invalido') {
+    return (
+      <div style={{ textAlign: 'center' }}>
+        <img src="/images/logo/logo-header.png" alt="Vitalora" style={{ height: '36px', width: 'auto', marginBottom: '20px' }} />
+        <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '26px', fontWeight: 600, color: '#0E0E0E', marginBottom: '12px' }}>Este enlace ya fue usado o expiró</h1>
+        <p style={{ fontSize: '14px', color: '#6B6B6B', lineHeight: 1.7, marginBottom: '24px' }}>Los enlaces para cambiar la contraseña sirven una sola vez y duran 1 hora. Pide uno nuevo y te lo enviamos a tu correo.</p>
+        <a href="/recuperar" style={{ display: 'inline-block', padding: '12px 28px', background: '#0E0E0E', color: '#C9A961', textDecoration: 'none', borderRadius: '3px', fontSize: '13px', fontWeight: 600, letterSpacing: '0.05em' }}>Pedir un enlace nuevo</a>
       </div>
     )
   }

@@ -55,22 +55,29 @@ const GRUPOS_SINONIMOS: string[][] = [
 ]
 
 // Dado un termino, devuelve la lista de terminos a buscar (el original + sinonimos)
+// Límites para que una búsqueda no dispare cientos de consultas a la base
+const MAX_LARGO_BUSQUEDA = 60
+const MAX_TERMINOS = 15
+
 function expandirSinonimos(termino: string): string[] {
   const t = termino.toLowerCase().trim()
   const terminos = new Set<string>([t])
+  // Con menos de 3 letras no se expanden sinónimos ("ca" coincidía con casi todos los grupos)
+  if (t.length < 3) return [t]
   for (const grupo of GRUPOS_SINONIMOS) {
+    if (terminos.size >= MAX_TERMINOS) break
     const coincide = grupo.some(palabra => t.includes(palabra) || palabra.includes(t))
     if (coincide) {
       grupo.forEach(palabra => terminos.add(palabra))
     }
   }
-  return Array.from(terminos)
+  return Array.from(terminos).slice(0, MAX_TERMINOS)
 }
 
 // GET /api/tienda/buscar?q=texto
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
-  const q = (searchParams.get('q') || '').trim()
+  const q = (searchParams.get('q') || '').trim().slice(0, MAX_LARGO_BUSQUEDA)
 
   if (q.length < 2) {
     return NextResponse.json([])
@@ -99,7 +106,10 @@ export async function GET(req: NextRequest) {
     .in('id', ids)
     .eq('activo', true)
 
-  if (err2) return NextResponse.json({ error: err2.message }, { status: 500 })
+  if (err2) {
+    console.error('Error en búsqueda:', err2)
+    return NextResponse.json({ error: 'Error en la búsqueda' }, { status: 500 })
+  }
 
   return NextResponse.json(completos || [])
 }

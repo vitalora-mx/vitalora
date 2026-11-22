@@ -30,11 +30,18 @@ export default function TransferenciaPage() {
   const [exito, setExito] = useState(false)
   const [tiempoRestante, setTiempoRestante] = useState('')
   const [copiado, setCopiado] = useState('')
+  // Token de acceso del pedido (va en la URL: ?t=...)
+  const [token, setToken] = useState<string | null>(null)
+
+  useEffect(() => {
+    setToken(new URLSearchParams(window.location.search).get('t') || '')
+  }, [])
 
   const cargar = useCallback(async () => {
+    if (token === null) return
     setLoading(true)
     try {
-      const res = await fetch(`/api/transferencia/comprobante?id=${id}`)
+      const res = await fetch(`/api/transferencia/comprobante?id=${encodeURIComponent(id)}&t=${encodeURIComponent(token)}`)
       const data = await res.json()
       if (data.error) setError(data.error)
       else {
@@ -49,7 +56,7 @@ export default function TransferenciaPage() {
       setError('No se pudo cargar el pedido.')
     }
     setLoading(false)
-  }, [id])
+  }, [id, token])
 
   useEffect(() => { cargar() }, [cargar])
 
@@ -89,6 +96,7 @@ export default function TransferenciaPage() {
       const fd = new FormData()
       fd.append('file', archivo)
       fd.append('pedidoId', id)
+      fd.append('t', token || '')
       const res = await fetch('/api/transferencia/comprobante', { method: 'POST', body: fd })
       const data = await res.json()
       if (data.error) setError(data.error)

@@ -3,6 +3,7 @@ import { Resend } from 'resend'
 import { createServiceClient } from '@/lib/supabase/service'
 import { formatearNumeroPedido } from '@/lib/utils'
 import { esCorreoValido } from '@/lib/facturas'
+import { permitirIp } from '@/lib/limites'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
@@ -27,15 +28,17 @@ async function verificarPedido(pedidoId: unknown, email: unknown) {
 
   const { data: pedido } = await createServiceClient()
     .from('pedidos')
-    .select('id, email, estado, total, forma_pago, created_at, requiere_factura, factura_estado')
+    .select('id, email, estado, total, forma_pago, created_at, requiere_factura, factura_estado, factura_pdf_path, factura_xml_path')
     .eq('id', id)
     .maybeSingle()
 
-  if (!pedido) return { error: 'No encontramos un pedido con ese número.', status: 404 } as const
+  // Mismo mensaje si no existe o si el correo no coincide (no revelar qué pedidos existen)
+  const NO_COINCIDE = { error: 'No encontramos un pedido con ese número y ese correo.', status: 404 } as const
+  if (!pedido) return NO_COINCIDE
 
   // Verificar que el correo coincida (sin distinguir mayusculas/espacios)
   if (String(pedido.email).trim().toLowerCase() !== String(email).trim().toLowerCase()) {
-    return { error: 'El correo no coincide con el del pedido.', status: 403 } as const
+    return NO_COINCIDE
   }
 
   // Solo se factura un pedido con pago confirmado
@@ -50,7 +53,12 @@ async function verificarPedido(pedidoId: unknown, email: unknown) {
 // Dos acciones segun "accion": "buscar" o "enviar"
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json()
+    // Límite por IP: 10 consultas o envíos por hora, 30 al día
+    if (!(await permitirIp(req, 'facturacion', 10, 30))) {
+      return NextResponse.json({ error: 'Demasiados intentos. Espera un momento o escríbenos a hola@vitalora.com.mx' }, { status: 429 })
+    }
+
+    const body = await req.json().catch(() => ({}))
     const accion = body.accion
 
     // ---------- ACCION 1: BUSCAR Y VERIFICAR PEDIDO ----------
@@ -104,6 +112,10 @@ export async function POST(req: NextRequest) {
 
       if (pedido.requiere_factura && pedido.factura_estado === 'emitida') {
         return NextResponse.json({ error: 'Este pedido ya fue facturado.' }, { status: 400 })
+      }
+      // Si ya adjuntamos la factura (PDF o XML), los datos no se cambian desde aquí
+      if (pedido.requiere_factura && (pedido.factura_pdf_path || pedido.factura_xml_path)) {
+        return NextResponse.json({ error: 'Tu factura ya está en proceso. Si necesitas corregir algo, escríbenos a hola@vitalora.com.mx' }, { status: 400 })
       }
 
       // Guardar la solicitud en el pedido

@@ -1,6 +1,8 @@
 import { createClient } from '@supabase/supabase-js'
 import { Resend } from 'resend'
 import { NextResponse } from 'next/server'
+import { cronAutorizado } from '@/lib/cron-auth'
+import { PROGRAMA_EMBAJADORAS_ACTIVO } from '@/lib/inscripciones'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -14,10 +16,14 @@ const ADMIN_EMAIL = 'gabomaciel7@gmail.com'
 // Este endpoint lo llama el cron de Vercel una vez al día.
 // Protegido con CRON_SECRET para que nadie más lo dispare.
 export async function GET(request: Request) {
-  // Verificar el secreto del cron
-  const authHeader = request.headers.get('authorization')
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  // Verificar el secreto del cron (se rechaza si CRON_SECRET no existe)
+  if (!cronAutorizado(request)) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+  }
+
+  // Programa suspendido: no se mandan correos ni se pausan códigos
+  if (!PROGRAMA_EMBAJADORAS_ACTIVO) {
+    return NextResponse.json({ ok: true, omitido: 'Programa de embajadoras suspendido' })
   }
 
   try {

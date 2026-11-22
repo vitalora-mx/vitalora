@@ -1,19 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
 import { Resend } from 'resend'
 import crypto from 'crypto'
+import { createServiceClient } from '@/lib/supabase/service'
+import { permitirIp, permitirClave, hashClave } from '@/lib/limites'
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+const supabaseAdmin = createServiceClient()
 const resend = new Resend(process.env.RESEND_API_KEY)
 
 const BASE_URL = 'https://vitalora.com.mx'
 
-// Buscar un usuario por email en el sistema de auth de Supabase
+// Buscar un usuario por email en el sistema de auth de Supabase (1000 por página)
 async function buscarUsuarioPorEmail(email: string) {
-  // listUsers pagina de 50 en 50; buscamos en las primeras páginas
   for (let page = 1; page <= 20; page++) {
     const { data, error } = await supabaseAdmin.auth.admin.listUsers({ page, perPage: 1000 })
     if (error || !data) break
@@ -24,30 +21,35 @@ async function buscarUsuarioPorEmail(email: string) {
   return null
 }
 
+// Siempre se responde { ok: true }: no se revela si el correo existe ni si se alcanzó un límite.
 export async function POST(req: NextRequest) {
   try {
-    const { email } = await req.json()
-    if (!email) return NextResponse.json({ error: 'Email requerido' }, { status: 400 })
+    const body = await req.json().catch(() => ({}))
+    const emailLimpio = typeof body?.email === 'string' ? body.email.toLowerCase().trim().slice(0, 200) : ''
+    if (!emailLimpio) return NextResponse.json({ error: 'Email requerido' }, { status: 400 })
 
-    const emailLimpio = email.toLowerCase().trim()
+    // Límites: por IP (5/hora, 20/día) y por correo (3/hora, 5/día)
+    if (!(await permitirIp(req, 'recuperar', 5, 20))) return NextResponse.json({ ok: true })
+    if (!(await permitirClave(`recuperar-email:${hashClave(emailLimpio)}`, 3, 5))) return NextResponse.json({ ok: true })
 
     // Verificar que el usuario existe en el sistema de auth
     const usuario = await buscarUsuarioPorEmail(emailLimpio)
+    if (!usuario) return NextResponse.json({ ok: true })
 
-    // Por seguridad, respondemos OK aunque no exista (no revelar correos registrados)
-    if (!usuario) {
-      return NextResponse.json({ ok: true })
-    }
-
-    // Generar token seguro
+    // Token seguro: el correo lleva el token; en la base solo se guarda su hash
     const token = crypto.randomBytes(32).toString('hex')
+    const tokenHash = crypto.createHash('sha256').update(token).digest('hex')
     const expira = new Date(Date.now() + 60 * 60 * 1000) // 1 hora
 
-    await supabaseAdmin.from('password_reset_tokens').insert({
+    const { error: insertError } = await supabaseAdmin.from('password_reset_tokens').insert({
       email: emailLimpio,
-      token,
+      token_hash: tokenHash,
       expira_at: expira.toISOString(),
     })
+    if (insertError) {
+      console.error('Error guardando token de recuperación:', insertError)
+      return NextResponse.json({ ok: true })
+    }
 
     const enlace = `${BASE_URL}/recuperar/nueva?token=${token}`
 
@@ -82,7 +84,6 @@ export async function POST(req: NextRequest) {
     })
 
     return NextResponse.json({ ok: true })
-
   } catch (err) {
     console.error('Error solicitar recuperación:', err)
     return NextResponse.json({ ok: true })

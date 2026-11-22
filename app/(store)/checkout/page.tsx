@@ -223,7 +223,7 @@ export default function CheckoutPage() {
         return
       }
       if (esTransferencia && data.pedidoId) {
-        window.location.href = '/transferencia/' + data.pedidoId
+        window.location.href = '/transferencia/' + data.pedidoId + '?t=' + encodeURIComponent(data.token || '')
         return
       }
       if (!esTransferencia && data.init_point) {
