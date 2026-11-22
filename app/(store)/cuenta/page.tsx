@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { useAuthStore } from '@/store/authStore'
+import { useAuthStore, fetchCliente } from '@/store/authStore'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import FormularioResena from '@/components/store/producto/FormularioResena'
 import { formatearNumeroPedido } from '@/lib/utils'
@@ -10,7 +10,7 @@ import { formatearNumeroPedido } from '@/lib/utils'
 interface Pedido {
   id: number; estado: string; total: number; subtotal: number; costo_envio: number
   nombre: string; apellido: string; calle: string; numero: string; ciudad: string
-  estado_dir: string; cp: string; numero_guia: string | null; factura_url: string | null
+  estado_dir: string; cp: string; numero_guia: string | null; tiene_factura: boolean
   created_at: string; pedido_items: { producto_id: number; nombre: string; marca: string; precio: number; cantidad: number }[]
 }
 
@@ -25,7 +25,7 @@ const emptyDir = { nombre_etiqueta: 'Casa', calle: '', numero: '', interior: '',
 
 export default function CuentaPage() {
   const isMobile = useIsMobile()
-  const { user, session, perfil, setPerfil, logout, isLoggedIn } = useAuthStore()
+  const { user, perfil, setPerfil, cerrarSesion, isLoggedIn } = useAuthStore()
   const [mounted, setMounted] = useState(false)
   const [esInfluencerCuenta, setEsInfluencerCuenta] = useState(false)
   const [tab, setTab] = useState('perfil')
@@ -61,11 +61,11 @@ export default function CuentaPage() {
   })
 
   useEffect(() => { setMounted(true) }, [])
-  useEffect(() => { if (user && session) { cargarPerfil(); cargarPedidos(); cargarRegimenes(); cargarDirecciones() } }, [user, session])
+  useEffect(() => { if (user) { cargarPerfil(); cargarPedidos(); cargarRegimenes(); cargarDirecciones() } }, [user?.id])
 
   async function cargarPerfil() {
     if (!user) return
-    const res = await fetch('/api/cuenta/perfil', { headers: { 'x-user-id': user.id } })
+    const res = await fetchCliente('/api/cuenta/perfil')
     if (res.ok) {
       const data = await res.json()
       setPerfil(data)
@@ -83,16 +83,16 @@ export default function CuentaPage() {
     }
   }
 
-  async function cargarPedidos() { if (!user) return; const res = await fetch('/api/cuenta/mis-pedidos', { headers: { 'x-user-id': user.id } }); if (res.ok) { const data = await res.json(); setPedidos(Array.isArray(data) ? data : []) } }
+  async function cargarPedidos() { if (!user) return; const res = await fetchCliente('/api/cuenta/mis-pedidos'); if (res.ok) { const data = await res.json(); setPedidos(Array.isArray(data) ? data : []) } }
   async function cargarRegimenes() { const res = await fetch('/api/cuenta/regimenes'); if (res.ok) { const data = await res.json(); setRegimenes(Array.isArray(data) ? data : []) } }
-  async function cargarDirecciones() { if (!user) return; const res = await fetch('/api/cuenta/direcciones', { headers: { 'x-user-id': user.id } }); if (res.ok) { const data = await res.json(); setDirecciones(Array.isArray(data) ? data : []) } }
+  async function cargarDirecciones() { if (!user) return; const res = await fetchCliente('/api/cuenta/direcciones'); if (res.ok) { const data = await res.json(); setDirecciones(Array.isArray(data) ? data : []) } }
 
   async function handleAuth() {
     setAuthLoading(true); setAuthError('')
     const res = await fetch('/api/cuenta/auth', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: authMode, ...authForm }) })
     const data = await res.json()
     if (data.error) { setAuthError(data.error); setAuthLoading(false); return }
-    useAuthStore.getState().setAuth(data.user, data.session)
+    useAuthStore.getState().setAuth(data.user)
     try {
       const resInf = await fetch('/api/influencer/es-influencer', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: data.user.email }) })
       const infData = await resInf.json()
@@ -103,7 +103,7 @@ export default function CuentaPage() {
 
   async function guardarPerfil() {
     if (!user) return; setSaving(true); setMensaje('')
-    const res = await fetch('/api/cuenta/perfil', { method: 'PUT', headers: { 'Content-Type': 'application/json', 'x-user-id': user.id }, body: JSON.stringify(perfilForm) })
+    const res = await fetchCliente('/api/cuenta/perfil', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(perfilForm) })
     const data = await res.json()
     if (data.error) setMensaje('Error: ' + data.error)
     else { setMensaje('Datos guardados'); setPerfil(data) }
@@ -114,12 +114,17 @@ export default function CuentaPage() {
     if (!user || !dirForm.calle || !dirForm.numero || !dirForm.cp) { setMensaje('Completa calle, número y CP'); return }
     setSaving(true); setMensaje('')
 
+    let res: Response
     if (editingDirId) {
-      await fetch('/api/cuenta/direcciones', { method: 'PUT', headers: { 'Content-Type': 'application/json', 'x-user-id': user.id }, body: JSON.stringify({ id: editingDirId, ...dirForm }) })
+      res = await fetchCliente('/api/cuenta/direcciones', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: editingDirId, ...dirForm }) })
     } else {
       // Si es la primera, hacerla principal
       const esPrimera = direcciones.length === 0
-      await fetch('/api/cuenta/direcciones', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-user-id': user.id }, body: JSON.stringify({ ...dirForm, es_principal: esPrimera || dirForm.es_principal }) })
+      res = await fetchCliente('/api/cuenta/direcciones', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...dirForm, es_principal: esPrimera || dirForm.es_principal }) })
+    }
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}))
+      setMensaje('Error: ' + (data.error || 'no se pudo guardar la dirección')); setSaving(false); return
     }
 
     setMensaje(editingDirId ? 'Dirección actualizada' : 'Dirección agregada')
@@ -128,13 +133,13 @@ export default function CuentaPage() {
 
   async function marcarPrincipal(id: number) {
     if (!user) return
-    await fetch('/api/cuenta/direcciones', { method: 'PUT', headers: { 'Content-Type': 'application/json', 'x-user-id': user.id }, body: JSON.stringify({ id, es_principal: true }) })
+    await fetchCliente('/api/cuenta/direcciones', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, es_principal: true }) })
     cargarDirecciones()
   }
 
   async function eliminarDireccion(id: number) {
     if (!user || !confirm('¿Eliminar esta dirección?')) return
-    await fetch(`/api/cuenta/direcciones?id=${id}`, { method: 'DELETE', headers: { 'x-user-id': user.id } })
+    await fetchCliente(`/api/cuenta/direcciones?id=${id}`, { method: 'DELETE' })
     cargarDirecciones()
   }
 
@@ -163,7 +168,16 @@ export default function CuentaPage() {
     setDirForm(prev => ({ ...prev, [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value }))
   }
 
-  function handleLogout() { logout(); setTab('perfil') }
+  // Pide un enlace firmado (60 s) al PDF o XML de la factura y lo descarga
+  async function descargarFactura(pedidoId: number, tipo: 'pdf' | 'xml') {
+    setMensaje('')
+    const res = await fetchCliente(`/api/cuenta/factura?pedidoId=${pedidoId}&tipo=${tipo}`)
+    const data = await res.json().catch(() => ({}))
+    if (res.ok && data.url) window.location.href = data.url
+    else if (res.status !== 401) alert(data.error || 'No se pudo descargar la factura. Intenta de nuevo.')
+  }
+
+  async function handleLogout() { await cerrarSesion(); setTab('perfil') }
 
   useEffect(() => {
     if (!user?.email) { setEsInfluencerCuenta(false); return }
@@ -206,7 +220,7 @@ export default function CuentaPage() {
           {authError && <p style={{ fontSize: '13px', color: '#D33', marginBottom: '12px' }}>{authError}</p>}
           <button onClick={handleAuth} disabled={authLoading} style={{ width: '100%', padding: '16px', background: authLoading ? '#888' : 'var(--black)', color: 'var(--bg-cream)', border: 'none', borderRadius: '6px', fontSize: '13px', letterSpacing: '0.15em', textTransform: 'uppercase', fontWeight: 600, cursor: authLoading ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}>{authLoading ? 'Procesando...' : authMode === 'login' ? 'Iniciar Sesión' : 'Crear Cuenta'}</button>
           {authMode === 'registro' && <p style={{ fontSize: '12px', color: '#999', textAlign: 'center', marginTop: '16px', lineHeight: 1.6 }}>Al crear tu cuenta obtienes <strong style={{ color: 'var(--gold)' }}>5% de descuento</strong> en tu primera compra</p>}
-          <div style={{ textAlign: 'center', marginTop: '24px' }}><Link href="/" style={{ fontSize: '12px', color: '#999', textDecoration: 'none' }}>â† Volver a la tienda</Link></div>
+          <div style={{ textAlign: 'center', marginTop: '24px' }}><Link href="/" style={{ fontSize: '12px', color: '#999', textDecoration: 'none' }}>← Volver a la tienda</Link></div>
         </div>
       </main>
     )
@@ -316,8 +330,8 @@ export default function CuentaPage() {
                       </p>
                     </div>
                     <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
-                      {!d.es_principal && <button onClick={() => marcarPrincipal(d.id)} style={{ padding: '6px 12px', background: 'none', border: '1px solid #DDD', borderRadius: '6px', color: '#111', fontSize: '11px', cursor: 'pointer', fontFamily: 'inherit' }}>â˜… Principal</button>}
-                      <button onClick={() => editarDireccion(d)} style={{ padding: '6px 12px', background: 'none', border: '1px solid #DDD', borderRadius: '6px', color: '#111', fontSize: '11px', cursor: 'pointer', fontFamily: 'inherit' }}>âœï¸ Editar</button>
+                      {!d.es_principal && <button onClick={() => marcarPrincipal(d.id)} style={{ padding: '6px 12px', background: 'none', border: '1px solid #DDD', borderRadius: '6px', color: '#111', fontSize: '11px', cursor: 'pointer', fontFamily: 'inherit' }}>★ Principal</button>}
+                      <button onClick={() => editarDireccion(d)} style={{ padding: '6px 12px', background: 'none', border: '1px solid #DDD', borderRadius: '6px', color: '#111', fontSize: '11px', cursor: 'pointer', fontFamily: 'inherit' }}>✏️ Editar</button>
                       <button onClick={() => eliminarDireccion(d.id)} style={{ padding: '6px 12px', background: 'none', border: '1px solid #DDD', borderRadius: '6px', color: '#A33', fontSize: '11px', cursor: 'pointer', fontFamily: 'inherit' }}>Eliminar</button>
                     </div>
                   </div>
@@ -338,20 +352,20 @@ export default function CuentaPage() {
                 <label style={L}>Régimen Fiscal</label>
                 <select name="regimen_fiscal" value={perfilForm.regimen_fiscal} onChange={handlePerfilChange} style={S}>
                   <option value="">Selecciona...</option>
-                  {regimenes.map(r => <option key={r.codigo} value={r.codigo}>{r.codigo} â€” {r.descripcion}</option>)}
+                  {regimenes.map(r => <option key={r.codigo} value={r.codigo}>{r.codigo} — {r.descripcion}</option>)}
                 </select>
               </div>
               <div style={{ gridColumn: 'span 2' }}>
                 <label style={L}>Uso de CFDI</label>
                 <select name="uso_cfdi" value={perfilForm.uso_cfdi} onChange={handlePerfilChange} style={S}>
                   <option value="">Selecciona...</option>
-                  <option value="G01 â€” Adquisición de mercancías">G01 â€” Adquisición de mercancías</option>
-                  <option value="G03 â€” Gastos en general">G03 â€” Gastos en general</option>
-                  <option value="I04 â€” Equipo de cómputo y accesorios">I04 â€” Equipo de cómputo y accesorios</option>
-                  <option value="D01 â€” Honorarios médicos">D01 â€” Honorarios médicos</option>
-                  <option value="D10 â€” Pagos por servicios educativos">D10 â€” Pagos por servicios educativos</option>
-                  <option value="S01 â€” Sin efectos fiscales">S01 â€” Sin efectos fiscales</option>
-                  <option value="CP01 â€” Pagos">CP01 â€” Pagos</option>
+                  <option value="G01 — Adquisición de mercancías">G01 — Adquisición de mercancías</option>
+                  <option value="G03 — Gastos en general">G03 — Gastos en general</option>
+                  <option value="I04 — Equipo de cómputo y accesorios">I04 — Equipo de cómputo y accesorios</option>
+                  <option value="D01 — Honorarios médicos">D01 — Honorarios médicos</option>
+                  <option value="D10 — Pagos por servicios educativos">D10 — Pagos por servicios educativos</option>
+                  <option value="S01 — Sin efectos fiscales">S01 — Sin efectos fiscales</option>
+                  <option value="CP01 — Pagos">CP01 — Pagos</option>
                 </select>
               </div>
               <div style={{ gridColumn: 'span 2' }}>
@@ -416,7 +430,12 @@ export default function CuentaPage() {
                     ))}
                     <div style={{ display: 'flex', gap: '16px', marginTop: '16px', paddingTop: '16px', borderTop: '1px solid #EEE' }}>
                       {p.numero_guia && <div style={{ fontSize: '12px', color: '#6B8F6B' }}>📦 Guía: <strong>{p.numero_guia}</strong></div>}
-                      {p.factura_url && <a href={p.factura_url} target="_blank" style={{ fontSize: '12px', color: 'var(--gold)', textDecoration: 'none' }}>📄 Descargar factura</a>}
+                      {p.tiene_factura && (
+                        <>
+                          <button onClick={() => descargarFactura(p.id, 'pdf')} style={{ fontSize: '12px', color: 'var(--gold)', background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontFamily: 'inherit' }}>📄 Factura PDF</button>
+                          <button onClick={() => descargarFactura(p.id, 'xml')} style={{ fontSize: '12px', color: 'var(--gold)', background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontFamily: 'inherit' }}>🧾 Factura XML</button>
+                        </>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -464,7 +483,7 @@ export default function CuentaPage() {
               <div style={{ background: 'white', padding: isMobile ? '20px' : '32px', borderRadius: '12px', border: '1px solid #E5E5E5' }}>
                 <h3 style={{ fontSize: '16px', fontWeight: 600, color: '#111', marginBottom: '20px' }}>Horario de atención</h3>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '14px', color: '#555' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Lunes a Viernes</span><span style={{ fontWeight: 500 }}>9:00 AM â€” 6:00 PM</span></div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Lunes a Viernes</span><span style={{ fontWeight: 500 }}>9:00 AM — 6:00 PM</span></div>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Sábado</span><span style={{ color: '#999' }}>Cerrado</span></div>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Domingo</span><span style={{ color: '#999' }}>Cerrado</span></div>
                 </div>
@@ -480,7 +499,6 @@ export default function CuentaPage() {
         <FormularioResena
           productoId={resenando.id}
           productoNombre={resenando.nombre}
-          userId={user.id}
           onCerrar={() => setResenando(null)}
           onEnviada={() => setResenaOk(true)}
         />

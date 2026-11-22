@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { requireCliente } from '@/lib/cliente-auth'
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -8,13 +9,12 @@ const supabaseAdmin = createClient(
 
 // POST /api/resenas/upload
 // Sube una foto de reseña al bucket "resenas" y devuelve su URL pública.
-// Requiere usuario autenticado (header x-user-id).
+// Requiere sesión de cliente (cookie httpOnly, lib/cliente-auth.ts).
 export async function POST(req: NextRequest) {
   try {
-    const userId = req.headers.get('x-user-id')
-    if (!userId) {
-      return NextResponse.json({ error: 'Debes iniciar sesión.' }, { status: 401 })
-    }
+    const auth = await requireCliente(req)
+    if (!auth.ok) return auth.response
+    const userId = auth.cliente.id
 
     const formData = await req.formData()
     const file = formData.get('file') as File
@@ -25,16 +25,21 @@ export async function POST(req: NextRequest) {
     }
 
     // Validar que sea imagen y no muy pesada (máx 5 MB)
-    if (!file.type.startsWith('image/')) {
-      return NextResponse.json({ error: 'Solo se permiten imágenes.' }, { status: 400 })
+    const EXTENSIONES: Record<string, string> = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' }
+    const extension = file ? EXTENSIONES[file.type] : undefined
+    if (!extension) {
+      return NextResponse.json({ error: 'Solo se permiten imágenes JPG, PNG o WebP.' }, { status: 400 })
     }
     if (file.size > 5 * 1024 * 1024) {
       return NextResponse.json({ error: 'La imagen no debe superar 5 MB.' }, { status: 400 })
     }
 
-    const fileExt = file.name.split('.').pop()
+    const productoNum = parseInt(productoId)
+    if (!Number.isInteger(productoNum) || productoNum <= 0) {
+      return NextResponse.json({ error: 'Producto no válido.' }, { status: 400 })
+    }
     // Ruta: producto/usuario/timestamp.ext
-    const fileName = `${productoId}/${userId}/${Date.now()}.${fileExt}`
+    const fileName = `${productoNum}/${userId}/${Date.now()}.${extension}`
     const arrayBuffer = await file.arrayBuffer()
     const buffer = new Uint8Array(arrayBuffer)
 
@@ -42,11 +47,12 @@ export async function POST(req: NextRequest) {
       .from('resenas')
       .upload(fileName, buffer, {
         contentType: file.type,
-        upsert: true,
+        upsert: false,
       })
 
     if (uploadError) {
-      return NextResponse.json({ error: uploadError.message }, { status: 500 })
+      console.error('Error subiendo foto de reseña:', uploadError)
+      return NextResponse.json({ error: 'No se pudo subir la imagen.' }, { status: 500 })
     }
 
     const { data: { publicUrl } } = supabaseAdmin.storage

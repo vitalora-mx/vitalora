@@ -28,12 +28,9 @@ function InscripcionesSuspendidas() {
         <p style={{ fontSize: '11px', letterSpacing: '0.25em', textTransform: 'uppercase', color: '#C9A961', marginBottom: '12px' }}>Programa de Embajadoras</p>
         <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '28px', fontWeight: 600, color: '#0E0E0E', marginBottom: '12px' }}>Inscripciones suspendidas temporalmente</h1>
         <p style={{ fontSize: '14px', color: '#6B6B6B', lineHeight: 1.7 }}>
-          Por ahora no estamos recibiendo nuevas solicitudes. Si ya eres embajadora, tu código y tu portal siguen activos.
+          Por ahora no estamos recibiendo nuevas solicitudes.
         </p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '28px' }}>
-          <a href="/influencer/portal" style={{ display: 'block', padding: '15px', background: '#0E0E0E', color: '#C9A961', textDecoration: 'none', borderRadius: '3px', fontSize: '13px', fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
-            Ir a mi portal
-          </a>
           <a href="/" style={{ display: 'block', padding: '15px', background: 'white', color: '#8B7530', textDecoration: 'none', borderRadius: '3px', fontSize: '13px', fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', border: '1.5px solid #C9A961' }}>
             Volver a la tienda
           </a>

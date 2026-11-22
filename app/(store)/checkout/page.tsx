@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useCartStore } from '@/store/cartStore'
-import { useAuthStore } from '@/store/authStore'
+import { useAuthStore, fetchCliente } from '@/store/authStore'
 import { useIsMobile } from '@/hooks/useIsMobile'
 
 const ENVIO_GRATIS = 1000
@@ -21,7 +21,7 @@ function normalizarCiudadCheckout(txt: string): string {
 
 export default function CheckoutPage() {
   const { items, total } = useCartStore()
-  const { user, session, isLoggedIn, logout } = useAuthStore()
+  const { user, isLoggedIn, cerrarSesion } = useAuthStore()
   const isMobile = useIsMobile()
   const [intentoPaso1, setIntentoPaso1] = useState(false)
   const [intentoPaso2, setIntentoPaso2] = useState(false)
@@ -65,7 +65,7 @@ export default function CheckoutPage() {
   async function cargarDatosUsuario() {
     if (!user) return
     try {
-      const perfilRes = await fetch('/api/cuenta/perfil', { headers: { 'x-user-id': user.id } })
+      const perfilRes = await fetchCliente('/api/cuenta/perfil')
       if (perfilRes.ok) {
         const perfil = await perfilRes.json()
         setForm(prev => ({
@@ -79,7 +79,7 @@ export default function CheckoutPage() {
         }
       }
 
-      const dirRes = await fetch('/api/cuenta/direcciones', { headers: { 'x-user-id': user.id } })
+      const dirRes = await fetchCliente('/api/cuenta/direcciones')
       if (dirRes.ok) {
         const dirs = await dirRes.json()
         if (Array.isArray(dirs) && dirs.length > 0) {
@@ -138,7 +138,7 @@ export default function CheckoutPage() {
     setCodigoAplicado(null); setCodigoInput('')
     // Restaurar descuento primera compra si aplica
     if (isLoggedIn() && user) {
-      fetch('/api/cuenta/perfil', { headers: { 'x-user-id': user.id } })
+      fetchCliente('/api/cuenta/perfil')
         .then(r => r.json())
         .then(p => { if (!p.primera_compra_usada) setDescuentoPrimeraCompra(true) })
     }
@@ -187,10 +187,10 @@ export default function CheckoutPage() {
     setErrorPago('')
     setSesionExpirada(false)
 
+    // La sesión va en una cookie httpOnly; conSesion indica si se compra con la cuenta
     const sinToken = opciones.sinToken || compraComoInvitado
-    const token = !sinToken && logueado ? session?.access_token : null
+    const conSesion = !sinToken && logueado
     const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-    if (token) headers['Authorization'] = `Bearer ${token}`
 
     const totalEsperado = opciones.totalEsperado ?? (avisoTotal ? avisoTotal.total : totalFinal)
     const esTransferencia = metodoPago === 'transferencia'
@@ -205,6 +205,7 @@ export default function CheckoutPage() {
           direccion: { cp: form.cp, calle: form.calle, numero: form.numero, interior: form.interior, colonia: form.colonia, ciudad: form.ciudad, estado: form.estado, referencia: form.referencia },
           codigoDescuento: codigoAplicado?.codigo || null,
           totalEsperado,
+          conSesion,
         }),
       })
       const data = await res.json().catch(() => ({}))
@@ -239,8 +240,8 @@ export default function CheckoutPage() {
   }
 
   // Sesión vencida → iniciar sesión de nuevo
-  function iniciarSesionDeNuevo() {
-    logout()
+  async function iniciarSesionDeNuevo() {
+    await cerrarSesion()
     window.location.href = '/cuenta'
   }
 

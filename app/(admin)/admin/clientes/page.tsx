@@ -5,7 +5,7 @@ import { useState, useEffect, useCallback } from 'react'
 interface Cliente {
   id: string
   nombre: string
-  email: string
+  email: string | null
   created_at: string
   compras: number
   total: number
@@ -65,7 +65,7 @@ export default function ClientesPage() {
     if (filtro === 'sinccompras' && c.compras !== 0) return false
     if (busqueda) {
       const q = busqueda.toLowerCase()
-      return c.nombre.toLowerCase().includes(q) || c.email.toLowerCase().includes(q)
+      return c.nombre.toLowerCase().includes(q) || (c.email ?? '').toLowerCase().includes(q)
     }
     return true
   })

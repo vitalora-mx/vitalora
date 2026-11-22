@@ -12,6 +12,7 @@ export default function PortalInfluencerPage() {
   const [cargando, setCargando] = useState(true)
   const [data, setData] = useState<any>(null)
   const [esInfluencer, setEsInfluencer] = useState<boolean | null>(null)
+  const [errorCarga, setErrorCarga] = useState('')
 
   // Login propio del portal
   const [loginEmail, setLoginEmail] = useState('')
@@ -305,12 +306,17 @@ export default function PortalInfluencerPage() {
       })
       const infData = await resInf.json()
       if (!infData.esInfluencer) {
+        // No dejar abierta la sesión (cookie) de quien no es embajadora en el portal
+        await fetch('/api/cuenta/auth', { method: 'DELETE' }).catch(() => {})
         setLoginError('Este correo no está registrado como embajadora. Si eres cliente, inicia sesión en tu cuenta.')
         setLoginCargando(false)
         return
       }
-      // Guardar sesión y recargar datos del portal
-      useAuthStore.getState().setAuth(d.user, d.session)
+      // Guardar sesión y recargar datos del portal.
+      // cargando=true antes de setAuth: así no se pinta el portal sin datos
+      // mientras el useEffect llama a cargar().
+      setCargando(true)
+      useAuthStore.getState().setAuth(d.user)
       setLoginCargando(false)
     } catch {
       setLoginError('Error al iniciar sesión. Intenta de nuevo.')
@@ -321,20 +327,27 @@ export default function PortalInfluencerPage() {
   const cargar = useCallback(async () => {
     if (!user?.email) return
     setCargando(true)
+    setErrorCarga('')
     try {
       const res = await fetch('/api/influencer/portal', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: user.email }),
       })
-      const d = await res.json()
-      if (!d.esInfluencer) {
+      const d = await res.json().catch(() => null)
+      if (!res.ok || !d) {
+        setErrorCarga(d?.error || 'No pudimos cargar tu información.')
+      } else if (!d.esInfluencer) {
         setEsInfluencer(false)
+      } else if (!d.influencer) {
+        setErrorCarga('La información de tu cuenta llegó incompleta.')
       } else {
         setEsInfluencer(true)
         setData(d)
       }
-    } catch { /* silencioso */ }
+    } catch {
+      setErrorCarga('No pudimos conectar con el servidor. Revisa tu conexión.')
+    }
     finally { setCargando(false) }
   }, [user?.email])
 
@@ -381,7 +394,7 @@ export default function PortalInfluencerPage() {
     return <div style={{ minHeight: '100vh', background: '#F5F0E8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'system-ui', color: '#A8A8A8' }}>Cargando…</div>
   }
 
-  if (!isLoggedIn || !user) {
+  if (!isLoggedIn() || !user) {
     return (
       <>
         <style>{`@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Italiana&display=swap');`}</style>
@@ -445,6 +458,24 @@ export default function PortalInfluencerPage() {
     )
   }
 
+  // Carga fallida o datos aún no disponibles: mensaje en lugar de tronar
+  if (errorCarga || !data?.influencer) {
+    return (
+      <div style={{ minHeight: '100vh', background: '#F5F0E8', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px', fontFamily: 'system-ui' }}>
+        <div style={{ background: 'white', maxWidth: '440px', padding: '48px 40px', borderRadius: '4px', border: '1px solid #E8E4DA', textAlign: 'center' }}>
+          <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '24px', fontWeight: 600, color: '#0E0E0E', marginBottom: '12px' }}>No pudimos cargar el portal</h1>
+          <p style={{ fontSize: '14px', color: '#6B6B6B', lineHeight: 1.7, marginBottom: '24px' }}>
+            {errorCarga || 'Tu información todavía no está disponible.'} Intenta de nuevo en unos momentos.
+          </p>
+          <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', flexWrap: 'wrap' }}>
+            <button onClick={() => cargar()} style={{ padding: '12px 28px', background: '#0E0E0E', color: '#C9A961', border: 'none', borderRadius: '3px', fontSize: '13px', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>Reintentar</button>
+            <button onClick={async () => { await useAuthStore.getState().cerrarSesion(); window.location.href = '/cuenta' }} style={{ padding: '12px 28px', background: 'none', color: '#888', border: '1px solid #DDD', borderRadius: '3px', fontSize: '13px', cursor: 'pointer', fontFamily: 'inherit' }}>Cerrar sesión</button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   const inf = data.influencer
   const fin = data.finanzas
   const fiscal = data.datosFiscalesVitalora
@@ -483,7 +514,7 @@ export default function PortalInfluencerPage() {
                 style={{ padding: '10px 20px', background: '#0E0E0E', border: '1px solid #0E0E0E', borderRadius: '6px', color: '#C9A961', fontSize: '12px', cursor: 'pointer', fontFamily: 'inherit', textDecoration: 'none', fontWeight: 600, whiteSpace: 'nowrap' }}>
                 Mi cuenta de cliente
               </a>
-              <button onClick={() => { useAuthStore.getState().logout(); window.location.href = '/cuenta' }}
+              <button onClick={async () => { await useAuthStore.getState().cerrarSesion(); window.location.href = '/cuenta' }}
                 style={{ padding: '10px 20px', border: '1px solid #DDD', borderRadius: '6px', background: 'none', color: '#888', fontSize: '12px', cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}>
                 Cerrar sesión
               </button>

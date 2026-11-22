@@ -5,7 +5,8 @@
 // descuentos y envío salen de la base de datos y de lib/envio.ts.
 // ============================================================
 import { NextRequest } from 'next/server'
-import { createServiceClient, createLoginClient } from '@/lib/supabase/service'
+import { createServiceClient } from '@/lib/supabase/service'
+import { obtenerCliente } from '@/lib/cliente-auth'
 import { calcularEnvio } from '@/lib/envio'
 import { validarCodigo, montoPrimeraCompra, puedeUsarPrimeraCompra, etiquetaDescuento } from '@/lib/descuentos'
 
@@ -67,18 +68,18 @@ function error(status: number, mensaje: string, extra: Record<string, unknown> =
   return { ok: false, status, body: { error: mensaje, ...extra } }
 }
 
-// Verifica el token de sesión del cliente.
-// - sin token        -> invitado (userId null)
-// - token válido     -> id del usuario
-// - token inválido   -> 'invalido' (la sesión expiró)
-async function verificarSesion(req: NextRequest): Promise<string | null | 'invalido'> {
-  const auth = req.headers.get('authorization') || ''
-  const token = auth.toLowerCase().startsWith('bearer ') ? auth.slice(7).trim() : ''
-  if (!token) return null
+// Verifica la sesión del cliente (cookie httpOnly, lib/cliente-auth.ts).
+// - body.conSesion no es true      -> invitado (userId null)
+// - conSesion y sesión válida      -> id del usuario
+// - conSesion y sin sesión válida  -> 'invalido' (la sesión expiró)
+async function verificarSesion(body: any): Promise<string | null | 'invalido'> {
+  // La sesión va en la cookie httpOnly, que el navegador manda siempre.
+  // Por eso el cliente indica con conSesion si quiere comprar con su cuenta;
+  // si no (invitado), se ignora la cookie.
+  if (body?.conSesion !== true) return null
   try {
-    const { data, error } = await createLoginClient().auth.getUser(token)
-    if (error || !data?.user) return 'invalido'
-    return data.user.id
+    const cliente = await obtenerCliente()
+    return cliente ? cliente.id : 'invalido'
   } catch {
     return 'invalido'
   }
@@ -120,7 +121,7 @@ export async function calcularPedido(req: NextRequest, body: any): Promise<Resul
   }
 
   // ── 2. Sesión del cliente ──
-  const sesion = await verificarSesion(req)
+  const sesion = await verificarSesion(body)
   if (sesion === 'invalido') {
     return error(401, 'Tu sesión expiró.', { sesionExpirada: true })
   }

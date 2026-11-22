@@ -15,15 +15,25 @@ export async function GET(req: Request) {
     // Obtener perfiles de usuarios registrados
     const { data: perfiles, error: perfilesError } = await supabase
       .from('perfiles')
-      .select('id, nombre, apellido, email, created_at')
+      .select('id, nombre, apellido, created_at')
       .order('created_at', { ascending: false })
 
     if (perfilesError) throw perfilesError
 
+    // perfiles no tiene email: se toma de Supabase Auth (paginado)
+    const emailPorId: Record<string, string> = {}
+    const POR_PAGINA = 1000
+    for (let page = 1; page <= 50; page++) {
+      const { data: lista, error: authError } = await supabase.auth.admin.listUsers({ page, perPage: POR_PAGINA })
+      if (authError) throw authError
+      for (const u of lista.users) if (u.email) emailPorId[u.id] = u.email
+      if (lista.users.length < POR_PAGINA) break
+    }
+
     // Para cada perfil, obtener sus pedidos
     const { data: pedidos, error: pedidosError } = await supabase
       .from('pedidos')
-      .select('id, user_id, email_invitado, total, created_at, estado')
+      .select('id, user_id, total, created_at, estado')
       .in('estado', ['pagado', 'preparando', 'enviado', 'entregado'])
 
     if (pedidosError) throw pedidosError
@@ -36,7 +46,7 @@ export async function GET(req: Request) {
         pedidosPorUser[p.user_id] = { count: 0, total: 0, ultima: p.created_at }
       }
       pedidosPorUser[p.user_id].count++
-      pedidosPorUser[p.user_id].total += p.total ?? 0
+      pedidosPorUser[p.user_id].total += Number(p.total ?? 0)
       if (p.created_at > pedidosPorUser[p.user_id].ultima) {
         pedidosPorUser[p.user_id].ultima = p.created_at
       }
@@ -48,12 +58,12 @@ export async function GET(req: Request) {
       return {
         id: p.id,
         nombre: [p.nombre, p.apellido].filter(Boolean).join(' ') || 'Sin nombre',
-        email: p.email,
+        email: emailPorId[p.id] ?? null,
         created_at: p.created_at,
         compras: datos.count,
         total: datos.total,
         ultima_compra: datos.ultima,
-        tipo: datos.count === 0 ? 'nuevo' : datos.count >= 3 ? 'recurrente' : 'nuevo',
+        tipo: datos.count >= 2 ? 'recurrente' : 'nuevo',
       }
     })
 

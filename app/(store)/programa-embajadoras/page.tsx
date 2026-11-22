@@ -27,7 +27,7 @@ export default function ProgramaEmbajadorasPage() {
               Inscripciones suspendidas temporalmente
             </div>
             <p style={{ fontSize: '12px', color: 'rgba(245,240,232,0.6)', marginTop: '14px', lineHeight: 1.6 }}>
-              Si ya eres embajadora, tu código y tu portal siguen activos.
+              Por ahora no estamos recibiendo nuevas solicitudes.
             </p>
           </div>
         </section>
@@ -122,13 +122,8 @@ export default function ProgramaEmbajadorasPage() {
             Tu lugar en Vitalora<br /><em style={{ fontFamily: "'Cormorant Garamond', serif", fontStyle: 'italic', color: '#C9A961' }}>te espera</em>
           </h2>
           <p style={{ fontSize: '15px', color: '#6B6B6B', lineHeight: 1.8, marginBottom: '36px' }}>
-            Por ahora las inscripciones están en pausa. Si ya eres parte de nuestra comunidad de embajadoras, entra a tu portal para seguir tus ventas y comisiones.
+            Por ahora no estamos recibiendo nuevas solicitudes.
           </p>
-          <div style={{ display: 'flex', gap: '14px', justifyContent: 'center', flexWrap: 'wrap' }}>
-            <a href="/influencer/portal" className="emb-cta" style={{ display: 'inline-block', background: '#fff', color: '#8B7530', textDecoration: 'none', padding: '16px 36px', borderRadius: '4px', fontSize: '13px', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', border: '1.5px solid #C9A961' }}>
-              Ya soy embajadora
-            </a>
-          </div>
           <p style={{ fontSize: '12px', color: '#A8A8A8', marginTop: '32px' }}>
             ¿Tienes dudas? Escríbenos a <a href="mailto:hola@vitalora.com.mx" style={{ color: '#C9A961', textDecoration: 'none' }}>hola@vitalora.com.mx</a>
           </p>

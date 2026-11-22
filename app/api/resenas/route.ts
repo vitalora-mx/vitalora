@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { requireCliente } from '@/lib/cliente-auth'
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -40,13 +41,15 @@ export async function GET(req: NextRequest) {
 // Crea una reseña. Verifica que el usuario haya comprado el producto.
 export async function POST(req: NextRequest) {
   try {
-    const userId = req.headers.get('x-user-id')
-    if (!userId) {
-      return NextResponse.json({ error: 'Debes iniciar sesión para dejar una reseña.' }, { status: 401 })
-    }
+    const auth = await requireCliente(req)
+    if (!auth.ok) return auth.response
+    const userId = auth.cliente.id
 
-    const body = await req.json()
-    const { producto_id, estrellas, titulo, comentario, fotos } = body
+    const body = await req.json().catch(() => ({}))
+    const { producto_id, estrellas } = body
+    const titulo = typeof body.titulo === 'string' ? body.titulo.trim().slice(0, 120) : ''
+    const comentario = typeof body.comentario === 'string' ? body.comentario.trim().slice(0, 2000) : ''
+    const fotos: unknown = body.fotos
 
     // Validaciones básicas
     if (!producto_id || !estrellas) {
@@ -57,6 +60,14 @@ export async function POST(req: NextRequest) {
     }
     if (Array.isArray(fotos) && fotos.length > 3) {
       return NextResponse.json({ error: 'Máximo 3 fotos por reseña.' }, { status: 400 })
+    }
+    // Solo se aceptan fotos subidas por este mismo usuario para este producto
+    const prefijoFotos = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/resenas/${parseInt(String(producto_id))}/${userId}/`
+    const fotosValidas = Array.isArray(fotos)
+      ? fotos.filter((f): f is string => typeof f === 'string' && f.startsWith(prefijoFotos) && !f.includes('..'))
+      : []
+    if (Array.isArray(fotos) && fotosValidas.length !== fotos.length) {
+      return NextResponse.json({ error: 'Alguna foto no es válida. Súbela de nuevo.' }, { status: 400 })
     }
 
     // 1. Verificar que el usuario compró este producto (pedido pagado con este producto)
@@ -113,12 +124,13 @@ export async function POST(req: NextRequest) {
         estrellas: parseInt(String(estrellas)),
         titulo: titulo || null,
         comentario: comentario || null,
-        fotos: Array.isArray(fotos) ? fotos : [],
+        fotos: fotosValidas,
         estado: 'pendiente',
       })
 
     if (insertError) {
-      return NextResponse.json({ error: insertError.message }, { status: 500 })
+      console.error('Error guardando reseña:', insertError)
+      return NextResponse.json({ error: 'No se pudo guardar la reseña.' }, { status: 500 })
     }
 
     return NextResponse.json({ success: true, mensaje: 'Tu reseña fue enviada y será revisada antes de publicarse.' })

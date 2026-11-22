@@ -26,13 +26,15 @@ export async function GET(request: Request) {
         costo_envio,
         estado,
         forma_pago,
-        email_invitado,
+        nombre,
+        apellido,
+        email,
         user_id,
-        perfiles:user_id (nombre, apellido, email),
         pedido_items (
           cantidad,
-          precio_unitario,
-          nombre_producto,
+          precio,
+          nombre,
+          marca,
           variante_nombre
         )
       `)

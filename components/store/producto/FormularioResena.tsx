@@ -5,12 +5,11 @@ import { useState } from 'react'
 interface Props {
   productoId: number
   productoNombre: string
-  userId: string
   onCerrar: () => void
   onEnviada: () => void
 }
 
-export default function FormularioResena({ productoId, productoNombre, userId, onCerrar, onEnviada }: Props) {
+export default function FormularioResena({ productoId, productoNombre, onCerrar, onEnviada }: Props) {
   const [estrellas, setEstrellas] = useState(0)
   const [hover, setHover] = useState(0)
   const [titulo, setTitulo] = useState('')
@@ -32,7 +31,6 @@ export default function FormularioResena({ productoId, productoNombre, userId, o
       formData.append('producto_id', String(productoId))
       const res = await fetch('/api/resenas/upload', {
         method: 'POST',
-        headers: { 'x-user-id': userId },
         body: formData,
       })
       const data = await res.json()
@@ -60,7 +58,7 @@ export default function FormularioResena({ productoId, productoNombre, userId, o
     try {
       const res = await fetch('/api/resenas', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-user-id': userId },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ producto_id: productoId, estrellas, titulo, comentario, fotos }),
       })
       const data = await res.json()

@@ -62,7 +62,7 @@ function generarEmailCliente(data: EmailData) {
 
     <!-- Confirmación -->
     <div style="padding: 40px 32px; text-align: center; border-bottom: 1px solid #E8E0D5;">
-      <div style="width: 60px; height: 60px; border-radius: 50%; background: #F0F7F0; border: 2px solid #6B8F6B; display: inline-flex; align-items: center; justify-content: center; font-size: 24px; margin-bottom: 20px;">âœ“</div>
+      <div style="width: 60px; height: 60px; border-radius: 50%; background: #F0F7F0; border: 2px solid #6B8F6B; display: inline-flex; align-items: center; justify-content: center; font-size: 24px; margin-bottom: 20px;">✓</div>
       <h2 style="font-size: 24px; color: #0E0E0E; margin: 0 0 8px; font-weight: 400;">¡Gracias por tu compra, ${comprador.nombre}!</h2>
       <p style="font-size: 14px; color: #888; margin: 0;">Tu pedido ha sido recibido y está siendo procesado.</p>
     </div>
@@ -117,12 +117,12 @@ function generarEmailCliente(data: EmailData) {
       <table style="width: 100%; border-collapse: collapse;">
         <tr>
           <td style="padding: 12px; text-align: center; width: 33%;">
-            <div style="font-size: 24px; margin-bottom: 8px;">ðŸ“¦</div>
+            <div style="font-size: 24px; margin-bottom: 8px;">📦</div>
             <div style="font-size: 12px; font-weight: 600; color: #333; margin-bottom: 4px;">Preparando</div>
             <div style="font-size: 11px; color: #999;">Tu pedido se está preparando</div>
           </td>
           <td style="padding: 12px; text-align: center; width: 33%;">
-            <div style="font-size: 24px; margin-bottom: 8px;">ðŸšš</div>
+            <div style="font-size: 24px; margin-bottom: 8px;">🚚</div>
             <div style="font-size: 12px; font-weight: 600; color: #333; margin-bottom: 4px;">En camino</div>
             <div style="font-size: 11px; color: #999;">Te enviaremos tu guía</div>
           </td>

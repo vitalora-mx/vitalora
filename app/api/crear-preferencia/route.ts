@@ -6,7 +6,7 @@ import { calcularPedido, desglose, guardarPedido, totalCambio } from '@/lib/chec
 const client = new MercadoPagoConfig({ accessToken: process.env.MP_ACCESS_TOKEN! })
 
 // Body: { items:[{productoId,varianteId,cantidad}], comprador, direccion, codigoDescuento, totalEsperado }
-// Header opcional: Authorization: Bearer <access_token del cliente>
+// Body conSesion: true para comprar con la cuenta (sesión en cookie httpOnly)
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()

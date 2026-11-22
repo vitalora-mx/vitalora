@@ -1,21 +1,31 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { createServiceClient } from '@/lib/supabase/service'
+import { requireCliente } from '@/lib/cliente-auth'
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+const supabaseAdmin = createServiceClient()
 
+// GET — pedidos del cliente de la sesión.
+// No se devuelven rutas internas de archivos: solo tiene_factura (PDF y XML listos y enviados).
 export async function GET(req: NextRequest) {
-  const userId = req.headers.get('x-user-id')
-  if (!userId) return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
+  const auth = await requireCliente(req)
+  if (!auth.ok) return auth.response
 
   const { data, error } = await supabaseAdmin
     .from('pedidos')
-    .select('*, pedido_items(*)')
-    .eq('user_id', userId)
+    .select(`
+      id, estado, total, subtotal, descuento, costo_envio, created_at,
+      nombre, apellido, calle, numero, ciudad, estado_dir, cp, numero_guia, paqueteria,
+      factura_pdf_path, factura_xml_path, factura_enviada_at,
+      pedido_items (producto_id, nombre, marca, precio, cantidad, variante_nombre)
+    `)
+    .eq('user_id', auth.cliente.id)
     .order('created_at', { ascending: false })
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  return NextResponse.json(data)
+  if (error) return NextResponse.json({ error: 'No se pudieron cargar los pedidos' }, { status: 500 })
+
+  const pedidos = (data ?? []).map(({ factura_pdf_path, factura_xml_path, factura_enviada_at, ...p }) => ({
+    ...p,
+    tiene_factura: !!(factura_pdf_path && factura_xml_path && factura_enviada_at),
+  }))
+  return NextResponse.json(pedidos)
 }

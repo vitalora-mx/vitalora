@@ -4,8 +4,9 @@ import { useState, useEffect, useCallback } from 'react'
 
 interface PedidoItem {
   cantidad: number
-  precio_unitario: number
-  nombre_producto: string
+  precio: number
+  nombre: string
+  marca: string | null
   variante_nombre: string | null
 }
 
@@ -17,8 +18,10 @@ interface Pedido {
   costo_envio: number | null
   estado: string
   forma_pago: string | null
-  email_invitado: string | null
-  perfiles: { nombre: string | null; apellido: string | null; email: string | null } | null
+  nombre: string | null
+  apellido: string | null
+  email: string | null
+  user_id: string | null
   pedido_items: PedidoItem[]
 }
 
@@ -163,8 +166,8 @@ export default function ReportesPage() {
   const fmt = (n: number) => new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', minimumFractionDigits: 0 }).format(n)
 
   const nombreCliente = (p: Pedido) => {
-    if (p.perfiles?.nombre) return [p.perfiles.nombre, p.perfiles.apellido].filter(Boolean).join(' ')
-    return p.email_invitado ?? 'Invitado'
+    const nombre = [p.nombre, p.apellido].filter(Boolean).join(' ')
+    return nombre || p.email || 'Sin nombre'
   }
 
   const formaPago = (fp: string | null) => {
@@ -353,10 +356,10 @@ export default function ReportesPage() {
                           <tr key={`${p.id}-${j}`} className="rep-sub-row" style={{ borderBottom: '1px solid #F0EDE5' }}>
                             <td colSpan={3} style={{ padding: '8px 14px 8px 52px', fontSize: '12px', color: '#6B6B6B' }}>
                               <span style={{ color: '#C9A961', marginRight: '4px' }}>→</span>
-                              {item.nombre_producto}{item.variante_nombre ? ` · ${item.variante_nombre}` : ''}
+                              {item.marca ? `${item.marca} — ` : ''}{item.nombre}{item.variante_nombre ? ` · ${item.variante_nombre}` : ''}
                             </td>
-                            <td style={{ padding: '8px 14px', textAlign: 'right', fontSize: '12px', color: '#6B6B6B' }}>{item.cantidad} × {fmt(item.precio_unitario)}</td>
-                            <td colSpan={5} style={{ padding: '8px 14px', textAlign: 'right', fontSize: '12px', color: '#6B6B6B' }}>{fmt(item.cantidad * item.precio_unitario)}</td>
+                            <td style={{ padding: '8px 14px', textAlign: 'right', fontSize: '12px', color: '#6B6B6B' }}>{item.cantidad} × {fmt(item.precio)}</td>
+                            <td colSpan={5} style={{ padding: '8px 14px', textAlign: 'right', fontSize: '12px', color: '#6B6B6B' }}>{fmt(item.cantidad * item.precio)}</td>
                           </tr>
                         ))}
                       </>

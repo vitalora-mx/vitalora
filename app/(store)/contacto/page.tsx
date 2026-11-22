@@ -34,7 +34,8 @@ export default function ContactoPage() {
       if (res.ok) {
         setEnviado(true)
       } else {
-        setError('Hubo un problema al enviar. Intenta de nuevo.')
+        const data = await res.json().catch(() => ({}))
+        setError(res.status === 429 && data.error ? data.error : 'Hubo un problema al enviar. Intenta de nuevo.')
       }
     } catch {
       setError('Hubo un problema al enviar. Intenta de nuevo.')
