@@ -4,13 +4,41 @@ import { useState, useEffect, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { formatearNumeroPedido } from '@/lib/utils'
+import { TRANSICIONES_MANUALES, ESTADOS_REEMBOLSABLES, ESTADOS_CON_GUIA, PAQUETERIAS, puedeCancelarse } from '@/lib/estados-pedido'
 
 interface PedidoItem {
+  id: number
   nombre: string
   marca: string
   precio: number
   cantidad: number
+  cantidad_reembolsada: number | null
   variante_nombre: string | null
+}
+
+interface Reembolso {
+  id: number
+  tipo: 'total' | 'parcial' | 'cancelacion'
+  origen: 'admin' | 'webhook' | 'sincronizacion'
+  metodo: 'mercadopago' | 'transferencia' | 'ninguno'
+  estado: 'procesando' | 'completado' | 'fallido'
+  monto: number
+  monto_calculado: number | null
+  ajustado_a_mano: boolean
+  incluye_envio: boolean
+  items: { pedido_item_id: number; cantidad: number }[]
+  mp_refund_id: string | null
+  motivo: string | null
+  admin_email: string | null
+  error: string | null
+  created_at: string
+}
+
+interface ResumenSync {
+  mp: { estado: string; detalle: string; pagado: number; reembolsado: number; refunds: { id: string; monto: number; estado: string; fecha: string; registrado: boolean }[] }
+  base: { estado: string; montoReembolsado: number; total: number }
+  diferencias: string[]
+  hayQueAplicar: boolean
 }
 
 interface Pedido {
@@ -30,9 +58,17 @@ interface Pedido {
   cp: string
   referencia: string
   subtotal: number
+  descuento: number | null
   costo_envio: number
   total: number
   monto_reembolsado: number | null
+  cancelado_at: string | null
+  cancelado_por: string | null
+  motivo_cancelacion: string | null
+  stock_descontado_at: string | null
+  stock_devuelto_at: string | null
+  abandonado_at: string | null
+  reembolsos: Reembolso[]
   numero_guia: string | null
   paqueteria: string | null
   metodo_pago: string | null
@@ -67,11 +103,17 @@ const ESTADOS = [
   { value: 'cancelado',   label: 'Cancelado',    color: '#EF4444' },
   { value: 'reembolso_parcial', label: 'Reembolso parcial', color: '#E08A2B' },
   { value: 'reembolsado', label: 'Reembolsado',  color: '#A8A8A8' },
+  { value: 'abandonado',  label: 'Abandonado',   color: '#B8B4AA' },
 ]
 
 function estadoInfo(estado: string) {
   return ESTADOS.find(e => e.value === estado) ?? { label: estado, color: '#888' }
 }
+
+const fmtMx = (n: number) => new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', minimumFractionDigits: 2 }).format(n)
+
+const TIPO_REEMBOLSO: Record<string, string> = { total: 'Reembolso total', parcial: 'Reembolso parcial', cancelacion: 'Cancelación' }
+const ORIGEN_REEMBOLSO: Record<string, string> = { admin: 'Admin', webhook: 'Panel de Mercado Pago', sincronizacion: 'Sincronización' }
 
 function formaPagoLabel(fp: string | null) {
   const mapa: Record<string, string> = {
@@ -102,11 +144,25 @@ export default function PedidoDetallePage() {
   const [guiaInput, setGuiaInput] = useState('')
   const [paqueteriaInput, setPaqueteriaInput] = useState('')
   const [mostrarGuiaInput, setMostrarGuiaInput] = useState(false)
+  const [puedeGestionarDinero, setPuedeGestionarDinero] = useState(false)
+
+  // Reembolso
   const [reembolsando, setReembolsando] = useState(false)
   const [mostrarReembolso, setMostrarReembolso] = useState(false)
-  const [tipoReembolso, setTipoReembolso] = useState<'total' | 'parcial'>('total')
-  const [montoReembolso, setMontoReembolso] = useState('')
-  const [devolverStockTransfer, setDevolverStockTransfer] = useState(false)
+  const [tipoReembolso, setTipoReembolso] = useState<'total' | 'parcial'>('parcial')
+  const [seleccion, setSeleccion] = useState<Record<number, number>>({})
+  const [incluirEnvio, setIncluirEnvio] = useState(false)
+  const [montoManual, setMontoManual] = useState('')
+  const [motivoReembolso, setMotivoReembolso] = useState('')
+
+  // Cancelación
+  const [mostrarCancelar, setMostrarCancelar] = useState(false)
+  const [motivoCancelacion, setMotivoCancelacion] = useState('')
+  const [cancelando, setCancelando] = useState(false)
+
+  // Sincronizar con Mercado Pago
+  const [sync, setSync] = useState<ResumenSync | null>(null)
+  const [sincronizando, setSincronizando] = useState(false)
 
   const cargar = useCallback(async () => {
     setCargando(true)
@@ -115,6 +171,7 @@ export default function PedidoDetallePage() {
       const data = await res.json()
       setPedido(data.pedido)
       setClienteStats(data.clienteStats)
+      setPuedeGestionarDinero(!!data.puedeGestionarDinero)
     } catch { /* silencioso */ }
     finally { setCargando(false) }
   }, [params.id])
@@ -128,33 +185,42 @@ export default function PedidoDetallePage() {
 
   async function actualizarEstado(estado: string) {
     setGuardando(true)
-    await fetch('/api/admin/pedidos', {
+    const res = await fetch('/api/admin/pedidos', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id: params.id, estado }),
     })
-    mostrarMsg(`Estado actualizado → ${estado}`)
+    const data = await res.json().catch(() => ({}))
+    mostrarMsg(res.ok ? `Estado actualizado → ${estado}` : (data.error || 'No se pudo cambiar el estado.'))
     await cargar()
     setGuardando(false)
   }
 
   async function guardarGuia() {
-    if (!guiaInput.trim() || !paqueteriaInput) return
+    if (!guiaInput.trim() || !paqueteriaInput || !pedido) return
     setGuardando(true)
-    await fetch('/api/admin/pedidos', {
+    // Al registrar la guía el pedido pasa a Enviado (si ya estaba enviado o entregado, se deja igual)
+    const yaEnviado = pedido.estado === 'enviado' || pedido.estado === 'entregado'
+    const res = await fetch('/api/admin/pedidos', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: params.id, numero_guia: guiaInput.trim(), paqueteria: paqueteriaInput, estado: 'enviado' }),
+      body: JSON.stringify({ id: params.id, numero_guia: guiaInput.trim(), paqueteria: paqueteriaInput, ...(yaEnviado ? {} : { estado: 'enviado' }) }),
     })
-    // Disparar correo de envio al cliente con datos de rastreo
-      try {
-        await fetch('/api/admin/pedidos/notificar-envio', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ pedidoId: params.id }),
-        })
-      } catch (e) { console.error('Error al enviar correo de envio:', e) }
-      mostrarMsg('Número de guía guardado y estado → Enviado')
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) {
+      mostrarMsg(data.error || 'No se pudo guardar la guía.')
+      setGuardando(false)
+      return
+    }
+    // Correo de envío al cliente con datos de rastreo
+    try {
+      await fetch('/api/admin/pedidos/notificar-envio', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pedidoId: params.id }),
+      })
+    } catch (e) { console.error('Error al enviar correo de envio:', e) }
+    mostrarMsg(yaEnviado ? 'Número de guía actualizado' : 'Número de guía guardado y estado → Enviado')
     setMostrarGuiaInput(false)
     setGuiaInput('')
     setPaqueteriaInput('')
@@ -172,69 +238,120 @@ export default function PedidoDetallePage() {
     setMostrarGuiaInput(true)
   }
 
+  // ── Reembolso ──
+  function cerrarReembolso() {
+    setMostrarReembolso(false); setSeleccion({}); setIncluirEnvio(false); setMontoManual(''); setMotivoReembolso('')
+  }
+
+  function envioDisponible(p: Pedido): boolean {
+    return Number(p.costo_envio || 0) > 0 && !(p.reembolsos || []).some(r => r.estado === 'completado' && r.incluye_envio)
+  }
+
+  // Mismo cálculo que el servidor (lib/reembolsos.ts): piezas menos su parte del descuento, más el envío
+  function calcularParcial(p: Pedido): number {
+    const subtotalSel = (p.pedido_items || []).reduce((s, it) => s + it.precio * (seleccion[it.id] || 0), 0)
+    const subtotal = Number(p.subtotal || 0)
+    const descuento = Number(p.descuento || 0)
+    const parteDescuento = subtotal > 0 && descuento > 0 ? descuento * (subtotalSel / subtotal) : 0
+    const conEnvio = incluirEnvio && envioDisponible(p) ? Number(p.costo_envio || 0) : 0
+    const saldo = Math.max(0, p.total - (p.monto_reembolsado ?? 0))
+    return Math.max(0, Math.round(Math.min(saldo, subtotalSel - parteDescuento + conEnvio) * 100) / 100)
+  }
+
   async function reembolsar() {
     if (!pedido) return
-    // Confirmacion doble: el reembolso mueve dinero real y es irreversible.
-    const esParcial = tipoReembolso === 'parcial'
-    let monto: number | null = null
-    if (esParcial) {
-      monto = parseFloat(montoReembolso)
-      if (!monto || monto <= 0) { mostrarMsg('Ingresa un monto valido para el reembolso parcial.'); return }
-      if (monto > pedido.total) { mostrarMsg('El monto no puede ser mayor al total del pedido.'); return }
-    }
     const esTransferencia = pedido.metodo_pago === 'transferencia'
-    let texto
-    if (esTransferencia) {
-      texto = esParcial
-        ? `Vas a REGISTRAR un reembolso parcial de ${monto}. Esto NO mueve dinero: haz la transferencia de devolucion desde tu banco. ${devolverStockTransfer ? 'El stock SE devolvera.' : 'El stock NO se devolvera.'} Continuar?`
-        : `Vas a REGISTRAR el reembolso TOTAL (${pedido.total}). Esto NO mueve dinero: haz la transferencia de devolucion desde tu banco. ${devolverStockTransfer ? 'El stock SE devolvera.' : 'El stock NO se devolvera.'} Continuar?`
-    } else {
-      texto = esParcial
-        ? `Vas a reembolsar ${monto} al cliente. El inventario NO se ajusta solo en parciales: hazlo tu si aplica. Esta accion es irreversible. Continuar?`
-        : `Vas a reembolsar el TOTAL (${pedido.total}) al cliente. El inventario se devolvera automaticamente. Esta accion es irreversible. Continuar?`
+    const saldo = Math.max(0, pedido.total - (pedido.monto_reembolsado ?? 0))
+    const esTotal = tipoReembolso === 'total'
+    const calculado = calcularParcial(pedido)
+    const monto = esTotal ? saldo : (montoManual.trim() !== '' ? Number(montoManual) : calculado)
+    if (!esTotal) {
+      if (!Number.isFinite(monto) || monto <= 0) { mostrarMsg('Elige productos o el envío, o escribe un monto.'); return }
+      if (monto > saldo) { mostrarMsg(`El monto no puede ser mayor a ${fmtMx(saldo)}.`); return }
     }
-    if (!window.confirm(texto)) return
+    const como = esTransferencia
+      ? 'Esto NO mueve dinero: haz la transferencia de devolución desde tu banco.'
+      : 'Se devolverá en Mercado Pago y no se puede deshacer.'
+    if (!window.confirm(`Vas a reembolsar ${fmtMx(monto)}${esTotal ? ' (todo lo que falta)' : ''} al cliente. ${como} El inventario NO se ajusta automáticamente. ¿Continuar?`)) return
 
     setReembolsando(true)
     try {
-      const endpoint = esTransferencia
-        ? `/api/admin/pedidos/${params.id}/reembolsar-transferencia`
-        : `/api/admin/pedidos/${params.id}/reembolsar`
-      const bodyData = esTransferencia
-        ? (esParcial ? { monto, devolverStock: devolverStockTransfer } : { devolverStock: devolverStockTransfer })
-        : (esParcial ? { monto } : {})
-      const res = await fetch(endpoint, {
+      const body = esTotal
+        ? { total: true, motivo: motivoReembolso }
+        : {
+            items: Object.entries(seleccion).filter(([, c]) => c > 0).map(([id, cantidad]) => ({ pedido_item_id: Number(id), cantidad })),
+            incluirEnvio,
+            ...(montoManual.trim() !== '' ? { monto: Number(montoManual) } : {}),
+            motivo: motivoReembolso,
+          }
+      const res = await fetch(`/api/admin/pedidos/${params.id}/reembolsar`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(bodyData),
+        body: JSON.stringify(body),
       })
-      const data = await res.json()
-      if (res.ok && (data.success || data.ok)) {
-        mostrarMsg(data.mensaje || 'Reembolso procesado.')
-          // Disparar correo de confirmacion de reembolso al cliente
-          try {
-            await fetch('/api/admin/pedidos/notificar-reembolso', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                pedidoId: params.id,
-                metodo: esTransferencia ? 'transferencia' : 'mercadopago',
-                monto: esParcial ? monto : (pedido.total || 0),
-                esParcial,
-              }),
-            })
-          } catch (e) { console.error('Error al enviar correo de reembolso:', e) }
-        setMostrarReembolso(false)
-        setMontoReembolso('')
-        // Esperar un momento a que MP dispare el webhook y refrescar
-        setTimeout(() => cargar(), 2500)
+      const data = await res.json().catch(() => ({}))
+      if (res.ok && data.ok) {
+        mostrarMsg([data.mensaje, data.recordatorio].filter(Boolean).join(' '))
+        cerrarReembolso()
+        await cargar()
       } else {
         mostrarMsg(data.error || 'No se pudo procesar el reembolso.')
       }
     } catch {
-      mostrarMsg('Error de conexion al procesar el reembolso.')
+      mostrarMsg('Error de conexión al procesar el reembolso.')
     }
     setReembolsando(false)
+  }
+
+  // ── Cancelación ──
+  async function cancelar() {
+    if (!pedido) return
+    const motivo = motivoCancelacion.trim()
+    if (motivo.length < 3) { mostrarMsg('Escribe el motivo de la cancelación.'); return }
+    if (!window.confirm(`¿Cancelar el pedido ${formatearNumeroPedido(pedido.id)}? Se avisará al cliente por correo y no se puede deshacer.`)) return
+    setCancelando(true)
+    try {
+      const res = await fetch(`/api/admin/pedidos/${params.id}/cancelar`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ motivo }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (res.ok && data.ok) {
+        mostrarMsg([data.mensaje, data.recordatorio].filter(Boolean).join(' '))
+        setMostrarCancelar(false); setMotivoCancelacion('')
+        await cargar()
+      } else {
+        mostrarMsg(data.error || 'No se pudo cancelar el pedido.')
+      }
+    } catch {
+      mostrarMsg('Error de conexión al cancelar.')
+    }
+    setCancelando(false)
+  }
+
+  // ── Sincronizar con Mercado Pago ──
+  async function revisarSync() {
+    setSincronizando(true)
+    try {
+      const res = await fetch(`/api/admin/pedidos/${params.id}/sincronizar`)
+      const data = await res.json().catch(() => ({}))
+      if (res.ok) setSync(data)
+      else mostrarMsg(data.error || 'No se pudo consultar Mercado Pago.')
+    } catch { mostrarMsg('Error de conexión con Mercado Pago.') }
+    setSincronizando(false)
+  }
+
+  async function aplicarSync() {
+    if (!window.confirm('Se registrarán aquí los reembolsos que tiene Mercado Pago. El inventario no se ajusta. ¿Continuar?')) return
+    setSincronizando(true)
+    try {
+      const res = await fetch(`/api/admin/pedidos/${params.id}/sincronizar`, { method: 'POST' })
+      const data = await res.json().catch(() => ({}))
+      mostrarMsg(res.ok ? data.mensaje : (data.error || 'No se pudo sincronizar.'))
+      if (res.ok) { setSync(null); await cargar() }
+    } catch { mostrarMsg('Error de conexión al sincronizar.') }
+    setSincronizando(false)
   }
 
   if (cargando) return (
@@ -258,6 +375,11 @@ export default function PedidoDetallePage() {
   const envioCliente = pedido.costo_envio ?? 0
   const montoReembolsado = pedido.monto_reembolsado ?? 0
   const hayReembolso = montoReembolsado > 0
+  const saldoPorDevolver = Math.max(0, Math.round((pedido.total - montoReembolsado) * 100) / 100)
+  const nombreItem = (id: number) => {
+    const it = pedido.pedido_items?.find(i => i.id === id)
+    return it ? `${it.nombre}${it.variante_nombre ? ` · ${it.variante_nombre}` : ''}` : `Producto ${id}`
+  }
   const montoNeto = Math.max(0, pedido.total - montoReembolsado)  // lo que realmente quedo cobrado
   const comisionMP = montoNeto * 0.0418             // ~4.18% sobre lo que quedo (MP bonifica lo reembolsado)
   const costoEnvioMP = envioCliente > 0 ? envioCliente * 0.85 : 0  // estimado: MP se queda ~15%
@@ -300,6 +422,23 @@ export default function PedidoDetallePage() {
             {info.label}
           </span>
         </div>
+
+        {/* ── Pedido cancelado ── */}
+        {pedido.cancelado_at && (
+          <div style={{ padding: '12px 16px', background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: '6px', marginBottom: '20px', fontSize: '13px', color: '#B91C1C', lineHeight: 1.6 }}>
+            <strong>Cancelado</strong> el {new Date(pedido.cancelado_at).toLocaleString('es-MX', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+            {pedido.cancelado_por ? ` por ${pedido.cancelado_por}` : ''}.
+            {pedido.motivo_cancelacion && <><br />Motivo: {pedido.motivo_cancelacion}</>}
+            {pedido.stock_devuelto_at && <><br />Stock devuelto al inventario el {new Date(pedido.stock_devuelto_at).toLocaleString('es-MX', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}.</>}
+          </div>
+        )}
+
+        {/* ── Pedido abandonado ── */}
+        {pedido.estado === 'abandonado' && (
+          <div style={{ padding: '12px 16px', background: '#FAFAF7', border: '1px solid #E8E4DA', borderRadius: '6px', marginBottom: '20px', fontSize: '13px', color: '#6B6B6B', lineHeight: 1.6 }}>
+            <strong>Abandonado</strong>{pedido.abandonado_at ? ` el ${new Date(pedido.abandonado_at).toLocaleString('es-MX', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}` : ''}: el cliente no pagó. No se descontó stock ni se le mandó correo. Si llega a pagar, el pedido se procesa normal.
+          </div>
+        )}
 
         {/* ── Mensaje ── */}
         {mensaje && (
@@ -363,6 +502,9 @@ export default function PedidoDetallePage() {
                       <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '15px', fontWeight: 600, color: '#0E0E0E' }}>{item.nombre}</p>
                       <p style={{ fontSize: '11px', color: '#6B6B6B', marginTop: '2px' }}>
                         {item.marca}{item.variante_nombre ? ` · ${item.variante_nombre}` : ''} · ×{item.cantidad}
+                        {(item.cantidad_reembolsada ?? 0) > 0 && (
+                          <span style={{ color: '#E08A2B', fontWeight: 600 }}> · {item.cantidad_reembolsada} devuelta{item.cantidad_reembolsada === 1 ? '' : 's'}</span>
+                        )}
                       </p>
                     </div>
                     <div style={{ textAlign: 'right' }}>
@@ -411,6 +553,44 @@ export default function PedidoDetallePage() {
               </div>
             </div>
 
+            {/* Bloque: Historial de reembolsos y cancelaciones */}
+            {(pedido.reembolsos?.length ?? 0) > 0 && (
+              <div style={{ background: '#fff', border: '1px solid #E8E4DA', borderRadius: '8px', overflow: 'hidden' }}>
+                <div style={{ padding: '16px 20px', borderBottom: '1px solid #E8E4DA', background: '#FAFAF7' }}>
+                  <p style={{ fontSize: '10px', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#6B6B6B', fontWeight: 600 }}>Reembolsos y cancelaciones</p>
+                </div>
+                <div style={{ padding: '8px 0' }}>
+                  {pedido.reembolsos.map((r, i) => (
+                    <div key={r.id} style={{ padding: '12px 20px', borderBottom: i < pedido.reembolsos.length - 1 ? '1px solid #F0EDE5' : 'none', fontSize: '12px', color: '#2C2C2C', lineHeight: 1.6 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px' }}>
+                        <strong>{TIPO_REEMBOLSO[r.tipo] ?? r.tipo}</strong>
+                        <strong style={{ color: r.estado === 'fallido' ? '#A8A8A8' : '#EF4444' }}>{r.estado === 'fallido' ? 'Falló' : `−${fmtMx(Number(r.monto))}`}</strong>
+                      </div>
+                      <div style={{ color: '#6B6B6B' }}>
+                        {new Date(r.created_at).toLocaleString('es-MX', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                        {' · '}{ORIGEN_REEMBOLSO[r.origen] ?? r.origen}
+                        {r.metodo !== 'ninguno' ? ` · ${r.metodo === 'mercadopago' ? 'Mercado Pago' : 'Transferencia'}` : ''}
+                        {r.admin_email ? ` · ${r.admin_email}` : ''}
+                        {r.estado === 'procesando' ? ' · en proceso' : ''}
+                      </div>
+                      {(r.items?.length ?? 0) > 0 && (
+                        <div style={{ color: '#6B6B6B' }}>
+                          {r.items.map(x => `${x.cantidad}× ${nombreItem(x.pedido_item_id)}`).join(', ')}{r.incluye_envio ? ' + envío' : ''}
+                        </div>
+                      )}
+                      {r.items?.length === 0 && r.incluye_envio && <div style={{ color: '#6B6B6B' }}>Envío</div>}
+                      {r.ajustado_a_mano && r.monto_calculado != null && (
+                        <div style={{ color: '#E08A2B' }}>Ajustado a mano (calculado: {fmtMx(Number(r.monto_calculado))})</div>
+                      )}
+                      {r.motivo && <div style={{ color: '#6B6B6B' }}>Motivo: {r.motivo}</div>}
+                      {r.error && <div style={{ color: '#B91C1C' }}>Error: {r.error}</div>}
+                      {r.mp_refund_id && <div style={{ color: '#A8A8A8', fontFamily: 'monospace', fontSize: '11px' }}>MP reembolso {r.mp_refund_id}</div>}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Bloque: Facturación */}
             {pedido.requiere_factura && (
               <div style={{ background: '#fff', border: '1px solid #E8E4DA', borderRadius: '8px', overflow: 'hidden' }}>
@@ -448,70 +628,106 @@ export default function PedidoDetallePage() {
                 <p style={{ fontSize: '10px', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#6B6B6B', fontWeight: 600 }}>Estado del pedido</p>
               </div>
               <div style={{ padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                <select value={pedido.estado} onChange={e => actualizarEstado(e.target.value)} disabled={guardando}
+                {/* Solo el estado actual y a los que se puede pasar a mano */}
+                <select value={pedido.estado} onChange={e => actualizarEstado(e.target.value)}
+                  disabled={guardando || !(TRANSICIONES_MANUALES[pedido.estado]?.length)}
                   className="det-estado-select" style={{ borderLeft: `3px solid ${info.color}` }}>
-                  {ESTADOS.map(e => <option key={e.value} value={e.value}>{e.label}</option>)}
+                  {ESTADOS.filter(e => e.value === pedido.estado || (TRANSICIONES_MANUALES[pedido.estado] ?? []).includes(e.value))
+                    .map(e => <option key={e.value} value={e.value}>{e.label}</option>)}
+                  {!ESTADOS.some(e => e.value === pedido.estado) && <option value={pedido.estado}>{pedido.estado}</option>}
                 </select>
+                {!(TRANSICIONES_MANUALES[pedido.estado]?.length) && (
+                  <p style={{ fontSize: '11px', color: '#A8A8A8', lineHeight: 1.5 }}>Este estado no se cambia a mano.</p>
+                )}
                 {pedido.mp_payment_id && (
                   <p style={{ fontSize: '11px', color: '#A8A8A8', fontFamily: 'monospace' }}>MP: {pedido.mp_payment_id}</p>
                 )}
               </div>
             </div>
 
-            {/* Reembolso (si esta pagado o con reembolso parcial) */}
-            {(pedido.estado === 'pagado' || pedido.estado === 'reembolso_parcial') && (
+            {/* ── Reembolso (dueño y gerente) ── */}
+            {puedeGestionarDinero && ESTADOS_REEMBOLSABLES.includes(pedido.estado) && saldoPorDevolver > 0 && (
               <div style={{ background: '#fff', border: '1px solid #E8E4DA', borderRadius: '8px', overflow: 'hidden' }}>
                 <div style={{ padding: '14px 18px', borderBottom: '1px solid #E8E4DA', background: '#FAFAF7' }}>
                   <p style={{ fontSize: '10px', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#6B6B6B', fontWeight: 600 }}>Reembolso</p>
                 </div>
                 <div style={{ padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  {(pedido.monto_reembolsado ?? 0) > 0 && (
-                    <p style={{ fontSize: '11px', color: '#E08A2B', fontWeight: 600 }}>Reembolsado: ${pedido.monto_reembolsado} de ${pedido.total}</p>
+                  {montoReembolsado > 0 && (
+                    <p style={{ fontSize: '11px', color: '#E08A2B', fontWeight: 600 }}>Reembolsado: {fmtMx(montoReembolsado)} de {fmtMx(pedido.total)}</p>
                   )}
                   {!mostrarReembolso ? (
                     <button onClick={() => setMostrarReembolso(true)}
                       style={{ width: '100%', padding: '10px 16px', border: '1px solid rgba(239,68,68,0.3)', background: 'rgba(239,68,68,0.06)', color: '#EF4444', borderRadius: '6px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', fontWeight: 600 }}>
-                      Reembolsar pedido
+                      Reembolsar
                     </button>
                   ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                       <div style={{ display: 'flex', gap: '8px' }}>
-                        <button onClick={() => setTipoReembolso('total')}
-                          style={{ flex: 1, padding: '8px', borderRadius: '5px', border: tipoReembolso === 'total' ? '1px solid #EF4444' : '1px solid #E8E4DA', background: tipoReembolso === 'total' ? 'rgba(239,68,68,0.06)' : '#FAFAF7', color: tipoReembolso === 'total' ? '#EF4444' : '#6B6B6B', fontSize: '12px', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600 }}>
-                          Total
-                        </button>
-                        <button onClick={() => setTipoReembolso('parcial')}
-                          style={{ flex: 1, padding: '8px', borderRadius: '5px', border: tipoReembolso === 'parcial' ? '1px solid #EF4444' : '1px solid #E8E4DA', background: tipoReembolso === 'parcial' ? 'rgba(239,68,68,0.06)' : '#FAFAF7', color: tipoReembolso === 'parcial' ? '#EF4444' : '#6B6B6B', fontSize: '12px', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600 }}>
-                          Parcial
-                        </button>
+                        {(['parcial', 'total'] as const).map(t => (
+                          <button key={t} onClick={() => setTipoReembolso(t)}
+                            style={{ flex: 1, padding: '8px', borderRadius: '5px', border: tipoReembolso === t ? '1px solid #EF4444' : '1px solid #E8E4DA', background: tipoReembolso === t ? 'rgba(239,68,68,0.06)' : '#FAFAF7', color: tipoReembolso === t ? '#EF4444' : '#6B6B6B', fontSize: '12px', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600 }}>
+                            {t === 'parcial' ? 'Elegir productos' : 'Todo lo que falta'}
+                          </button>
+                        ))}
                       </div>
+
                       {tipoReembolso === 'total' ? (
-                        <p style={{ fontSize: '11px', color: '#6B6B6B', lineHeight: 1.5 }}>Se reembolsaran <strong>${pedido.total}</strong> y el inventario se devolvera automaticamente.</p>
+                        <p style={{ fontSize: '11px', color: '#6B6B6B', lineHeight: 1.5 }}>Se devolverán <strong>{fmtMx(saldoPorDevolver)}</strong> (todas las piezas pendientes{envioDisponible(pedido) ? ' y el envío' : ''}).</p>
                       ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                          <p style={{ fontSize: '11px', color: '#6B6B6B', lineHeight: 1.5 }}>Monto a reembolsar (max ${pedido.total}). El inventario NO se ajusta solo.</p>
-                          <input type="number" placeholder="Ej. 99" value={montoReembolso}
-                            onChange={e => setMontoReembolso(e.target.value)}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                          {(pedido.pedido_items || []).map(it => {
+                            const disponibles = it.cantidad - (it.cantidad_reembolsada ?? 0)
+                            return (
+                              <div key={it.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', opacity: disponibles > 0 ? 1 : 0.5 }}>
+                                <span style={{ flex: 1, color: '#2C2C2C', lineHeight: 1.3 }}>
+                                  {it.nombre}{it.variante_nombre ? ` · ${it.variante_nombre}` : ''}
+                                  <span style={{ display: 'block', fontSize: '10px', color: '#A8A8A8' }}>{fmtMx(it.precio)} c/u · {disponibles} de {it.cantidad} por devolver</span>
+                                </span>
+                                <select value={seleccion[it.id] || 0} disabled={disponibles <= 0}
+                                  onChange={e => setSeleccion(s => ({ ...s, [it.id]: Number(e.target.value) }))}
+                                  style={{ padding: '4px 6px', border: '1px solid #E8E4DA', borderRadius: '4px', fontSize: '12px', fontFamily: 'inherit' }}>
+                                  {Array.from({ length: Math.max(0, disponibles) + 1 }, (_, n) => <option key={n} value={n}>{n}</option>)}
+                                </select>
+                              </div>
+                            )
+                          })}
+                          {envioDisponible(pedido) && (
+                            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '12px', color: '#2C2C2C' }}>
+                              <input type="checkbox" checked={incluirEnvio} onChange={e => setIncluirEnvio(e.target.checked)} style={{ width: '15px', height: '15px' }} />
+                              Incluir envío ({fmtMx(Number(pedido.costo_envio || 0))})
+                            </label>
+                          )}
+                          <div style={{ padding: '8px 10px', background: '#FAFAF7', borderRadius: '5px', fontSize: '12px', color: '#2C2C2C' }}>
+                            Calculado: <strong>{fmtMx(calcularParcial(pedido))}</strong>
+                            {Number(pedido.descuento || 0) > 0 && <span style={{ display: 'block', fontSize: '10px', color: '#A8A8A8' }}>Ya descuenta la parte proporcional del descuento del pedido.</span>}
+                          </div>
+                          <label style={{ fontSize: '11px', color: '#6B6B6B' }}>Ajustar monto a mano (opcional, máx. {fmtMx(saldoPorDevolver)})</label>
+                          <input type="number" min="0" step="0.01" placeholder={String(calcularParcial(pedido))} value={montoManual}
+                            onChange={e => setMontoManual(e.target.value)}
                             style={{ width: '100%', padding: '8px 10px', border: '1px solid #E8E4DA', borderRadius: '5px', fontSize: '13px', fontFamily: 'inherit', boxSizing: 'border-box' }} />
+                          {montoManual.trim() !== '' && Number(montoManual) !== calcularParcial(pedido) && (
+                            <p style={{ fontSize: '10px', color: '#E08A2B' }}>Ajustado a mano (se guarda junto al calculado).</p>
+                          )}
                         </div>
                       )}
 
-                      {/* devolver-stock-checkbox: solo para transferencias */}
-                      {pedido.metodo_pago === 'transferencia' && (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px' }}>
-                          <div style={{ padding: '8px 10px', background: 'rgba(201,169,97,0.1)', border: '1px solid rgba(201,169,97,0.4)', borderRadius: '5px' }}>
-                            <p style={{ fontSize: '11px', color: '#8B7530', lineHeight: 1.5, margin: 0 }}>Este registro NO mueve dinero. Haz la transferencia de devolucion al cliente desde tu banco y registra aqui para tu control.</p>
-                          </div>
-                          <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '12px', color: '#2C2C2C' }}>
-                            <input type="checkbox" checked={devolverStockTransfer} onChange={e => setDevolverStockTransfer(e.target.checked)} style={{ width: '16px', height: '16px', cursor: 'pointer' }} />
-                            Devolver productos al inventario
-                          </label>
-                        </div>
-                      )}
+                      <input type="text" placeholder="Motivo (opcional)" value={motivoReembolso} maxLength={500}
+                        onChange={e => setMotivoReembolso(e.target.value)}
+                        style={{ width: '100%', padding: '8px 10px', border: '1px solid #E8E4DA', borderRadius: '5px', fontSize: '12px', fontFamily: 'inherit', boxSizing: 'border-box' }} />
+
+                      <div style={{ padding: '8px 10px', background: 'rgba(201,169,97,0.1)', border: '1px solid rgba(201,169,97,0.4)', borderRadius: '5px' }}>
+                        <p style={{ fontSize: '11px', color: '#8B7530', lineHeight: 1.5, margin: 0 }}>
+                          {pedido.metodo_pago === 'transferencia'
+                            ? 'Este registro NO mueve dinero: haz la transferencia de devolución desde tu banco. '
+                            : 'Se devuelve en Mercado Pago. '}
+                          El inventario NO se ajusta automáticamente.
+                        </p>
+                      </div>
+
                       <div style={{ display: 'flex', gap: '8px' }}>
-                        <button onClick={() => { setMostrarReembolso(false); setMontoReembolso('') }} disabled={reembolsando}
+                        <button onClick={cerrarReembolso} disabled={reembolsando}
                           style={{ flex: 1, padding: '9px', border: '1px solid #E8E4DA', borderRadius: '5px', background: '#FAFAF7', fontSize: '12px', cursor: 'pointer', fontFamily: 'inherit', color: '#6B6B6B' }}>
-                          Cancelar
+                          Cerrar
                         </button>
                         <button onClick={reembolsar} disabled={reembolsando}
                           style={{ flex: 1, padding: '9px', border: 'none', borderRadius: '5px', background: reembolsando ? '#E8E4DA' : '#EF4444', color: reembolsando ? '#A8A8A8' : '#fff', fontSize: '12px', cursor: reembolsando ? 'not-allowed' : 'pointer', fontFamily: 'inherit', fontWeight: 600 }}>
@@ -524,16 +740,118 @@ export default function PedidoDetallePage() {
               </div>
             )}
 
+            {/* ── Cancelar pedido (dueño y gerente; solo sin guía) ── */}
+            {puedeGestionarDinero && puedeCancelarse(pedido) && (
+              <div style={{ background: '#fff', border: '1px solid #E8E4DA', borderRadius: '8px', overflow: 'hidden' }}>
+                <div style={{ padding: '14px 18px', borderBottom: '1px solid #E8E4DA', background: '#FAFAF7' }}>
+                  <p style={{ fontSize: '10px', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#6B6B6B', fontWeight: 600 }}>Cancelar pedido</p>
+                </div>
+                <div style={{ padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  {!mostrarCancelar ? (
+                    <button onClick={() => setMostrarCancelar(true)}
+                      style={{ width: '100%', padding: '10px 16px', border: '1px solid #E8E4DA', background: '#FAFAF7', color: '#6B6B6B', borderRadius: '6px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', fontWeight: 600 }}>
+                      Cancelar pedido
+                    </button>
+                  ) : (
+                    <>
+                      <p style={{ fontSize: '11px', color: '#6B6B6B', lineHeight: 1.6 }}>
+                        {pedido.metodo_pago === 'transferencia'
+                          ? (['pagado', 'preparando', 'reembolso_parcial'].includes(pedido.estado)
+                              ? <>Se registrará la devolución de <strong>{fmtMx(saldoPorDevolver)}</strong>. <strong>La transferencia de devolución la haces tú desde tu banco.</strong></>
+                              : pedido.estado === 'comprobante_en_revision'
+                                ? <>El comprobante aún no está aprobado. <strong>Si te llegó la transferencia, devuelve {fmtMx(saldoPorDevolver)} desde tu banco.</strong></>
+                                : <>No hay pago que devolver.</>)
+                          : (['pagado', 'preparando', 'reembolso_parcial', 'revision_monto'].includes(pedido.estado)
+                              ? <>Se devolverá en Mercado Pago <strong>todo lo que queda del pago</strong>{montoReembolsado > 0 ? ` (ya se devolvieron ${fmtMx(montoReembolsado)})` : ''}.</>
+                              : <>Se caducará el enlace de pago de Mercado Pago (y una ficha OXXO pendiente, si hay).</>)}
+                        {' '}El cliente recibirá el correo &quot;Tu pedido fue cancelado&quot;.
+                        {pedido.stock_descontado_at && !pedido.stock_devuelto_at
+                          ? ' Las piezas regresarán al inventario.'
+                          : ' Este pedido no descontó stock, así que no hay nada que regresar al inventario.'}
+                      </p>
+                      <textarea placeholder="Motivo de la cancelación (obligatorio)" value={motivoCancelacion} maxLength={500} rows={3}
+                        onChange={e => setMotivoCancelacion(e.target.value)}
+                        style={{ width: '100%', padding: '8px 10px', border: '1px solid #E8E4DA', borderRadius: '5px', fontSize: '12px', fontFamily: 'inherit', boxSizing: 'border-box', resize: 'vertical' }} />
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <button onClick={() => { setMostrarCancelar(false); setMotivoCancelacion('') }} disabled={cancelando}
+                          style={{ flex: 1, padding: '9px', border: '1px solid #E8E4DA', borderRadius: '5px', background: '#FAFAF7', fontSize: '12px', cursor: 'pointer', fontFamily: 'inherit', color: '#6B6B6B' }}>
+                          Volver
+                        </button>
+                        <button onClick={cancelar} disabled={cancelando || motivoCancelacion.trim().length < 3}
+                          style={{ flex: 1, padding: '9px', border: 'none', borderRadius: '5px', background: (cancelando || motivoCancelacion.trim().length < 3) ? '#E8E4DA' : '#0E0E0E', color: (cancelando || motivoCancelacion.trim().length < 3) ? '#A8A8A8' : '#fff', fontSize: '12px', cursor: (cancelando || motivoCancelacion.trim().length < 3) ? 'not-allowed' : 'pointer', fontFamily: 'inherit', fontWeight: 600 }}>
+                          {cancelando ? 'Cancelando...' : 'Confirmar cancelación'}
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* ── Sincronizar con Mercado Pago (dueño y gerente) ── */}
+            {puedeGestionarDinero && pedido.mp_payment_id && (
+              <div style={{ background: '#fff', border: '1px solid #E8E4DA', borderRadius: '8px', overflow: 'hidden' }}>
+                <div style={{ padding: '14px 18px', borderBottom: '1px solid #E8E4DA', background: '#FAFAF7' }}>
+                  <p style={{ fontSize: '10px', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#6B6B6B', fontWeight: 600 }}>Mercado Pago</p>
+                </div>
+                <div style={{ padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  {!sync ? (
+                    <button onClick={revisarSync} disabled={sincronizando}
+                      style={{ width: '100%', padding: '10px 16px', border: '1px solid #E8E4DA', background: '#FAFAF7', color: '#5B7C99', borderRadius: '6px', cursor: sincronizando ? 'wait' : 'pointer', fontFamily: 'inherit', fontSize: '12px', fontWeight: 600 }}>
+                      {sincronizando ? 'Consultando…' : 'Sincronizar con Mercado Pago'}
+                    </button>
+                  ) : (
+                    <>
+                      <div style={{ fontSize: '12px', color: '#2C2C2C', lineHeight: 1.7 }}>
+                        <div>En MP: <strong>{sync.mp.estado}</strong> · cobrado {fmtMx(sync.mp.pagado)} · reembolsado <strong>{fmtMx(sync.mp.reembolsado)}</strong></div>
+                        <div>Aquí: <strong>{sync.base.estado}</strong> · reembolsado <strong>{fmtMx(sync.base.montoReembolsado)}</strong></div>
+                        {sync.mp.refunds.map(r => (
+                          <div key={r.id} style={{ fontSize: '11px', color: '#6B6B6B' }}>
+                            Reembolso {r.id}: {fmtMx(r.monto)} ({r.estado}) {r.registrado ? '✓ registrado' : '— sin registrar'}
+                          </div>
+                        ))}
+                      </div>
+                      {sync.diferencias.length === 0 ? (
+                        <p style={{ fontSize: '12px', color: '#6A8A62', fontWeight: 600 }}>✓ Coincide con Mercado Pago.</p>
+                      ) : (
+                        <ul style={{ margin: 0, paddingLeft: '16px', fontSize: '11px', color: '#B45309', lineHeight: 1.6 }}>
+                          {sync.diferencias.map((d, i) => <li key={i}>{d}</li>)}
+                        </ul>
+                      )}
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <button onClick={() => setSync(null)} disabled={sincronizando}
+                          style={{ flex: 1, padding: '9px', border: '1px solid #E8E4DA', borderRadius: '5px', background: '#FAFAF7', fontSize: '12px', cursor: 'pointer', fontFamily: 'inherit', color: '#6B6B6B' }}>
+                          Cerrar
+                        </button>
+                        {sync.hayQueAplicar && (
+                          <button onClick={aplicarSync} disabled={sincronizando}
+                            style={{ flex: 1, padding: '9px', border: 'none', borderRadius: '5px', background: sincronizando ? '#E8E4DA' : '#5B7C99', color: '#fff', fontSize: '12px', cursor: sincronizando ? 'wait' : 'pointer', fontFamily: 'inherit', fontWeight: 600 }}>
+                            {sincronizando ? 'Aplicando…' : 'Aplicar'}
+                          </button>
+                        )}
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
+
             {/* Guía MP */}
             <div style={{ background: '#fff', border: '1px solid #E8E4DA', borderRadius: '8px', overflow: 'hidden' }}>
               <div style={{ padding: '14px 18px', borderBottom: '1px solid #E8E4DA', background: '#FAFAF7' }}>
                 <p style={{ fontSize: '10px', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#6B6B6B', fontWeight: 600 }}>Guía Mercado Envíos</p>
               </div>
               <div style={{ padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                <button onClick={imprimirGuia}
-                  style={{ width: '100%', padding: '10px 16px', border: `1px solid ${guia.border}`, background: guia.bg, color: guia.color, borderRadius: '6px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', fontWeight: 600, transition: 'all 0.15s' }}>
-                  {guia.label}
-                </button>
+                {ESTADOS_CON_GUIA.includes(pedido.estado) ? (
+                  <button onClick={imprimirGuia}
+                    style={{ width: '100%', padding: '10px 16px', border: `1px solid ${guia.border}`, background: guia.bg, color: guia.color, borderRadius: '6px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', fontWeight: 600, transition: 'all 0.15s' }}>
+                    {guia.label}
+                  </button>
+                ) : (
+                  <p style={{ fontSize: '12px', color: '#A8A8A8', textAlign: 'center' }}>
+                    {pedido.numero_guia ? 'La guía ya no se puede cambiar en este estado.' : 'No aplica en este estado.'}
+                  </p>
+                )}
 
                 {mostrarGuiaInput && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -541,10 +859,7 @@ export default function PedidoDetallePage() {
                     {/* paqueteria-selector */}
                       <select value={paqueteriaInput} onChange={e => setPaqueteriaInput(e.target.value)} className="guia-input" style={{ marginBottom: '4px' }}>
                         <option value="">— Elige paquetería —</option>
-                        <option value="Estafeta">Estafeta</option>
-                        <option value="DHL">DHL</option>
-                        <option value="FedEx">FedEx</option>
-                        <option value="Paquetexpress">Paquetexpress</option>
+                        {PAQUETERIAS.map(p => <option key={p} value={p}>{p}</option>)}
                       </select>
                       <input type="text" placeholder="Número de guía" value={guiaInput}
                       onChange={e => setGuiaInput(e.target.value)}

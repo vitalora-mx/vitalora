@@ -1,17 +1,15 @@
-import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 import { cronAutorizado } from '@/lib/cron-auth'
+import { createServiceClient } from '@/lib/supabase/service'
+import { limpiarPendientesViejos } from '@/lib/abandonados'
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
-
-// Cancela los pedidos por transferencia que:
-//  - están en estado 'esperando_comprobante'
-//  - su límite de 2 horas ya pasó
-//  - nunca subieron comprobante
-// Se ejecuta periódicamente vía cron.
+// Limpieza diaria de pedidos sin pago (cron de Vercel, una vez al día):
+//  1. Transferencias sin comprobante válido cuyo plazo venció -> 'cancelado_sin_pago'
+//     - 'esperando_comprobante': 2 horas desde que se creó el pedido
+//     - 'comprobante_rechazado': 24 horas desde el rechazo
+//  2. Pedidos de Mercado Pago en 'pendiente', sin pago y con más de 2 horas -> 'abandonado'
+//     (se caduca su preferencia; si MP tiene un pago, p. ej. ficha OXXO, no se tocan)
+// Ninguno de los dos manda correo ni toca el inventario.
 export async function GET(request: Request) {
   // Verificar el secreto del cron (se rechaza si CRON_SECRET no existe)
   if (!cronAutorizado(request)) {
@@ -19,31 +17,30 @@ export async function GET(request: Request) {
   }
 
   try {
-    const ahora = new Date().toISOString()
+    const supabaseAdmin = createServiceClient()
 
-    // Buscar pedidos esperando comprobante cuyo límite ya venció
-    const { data: vencidos } = await supabaseAdmin
-      .from('pedidos')
-      .select('id')
-      .eq('metodo_pago', 'transferencia')
-      .eq('estado', 'esperando_comprobante')
-      .lt('limite_transferencia_at', ahora)
-
-    if (!vencidos || vencidos.length === 0) {
-      return NextResponse.json({ ok: true, cancelados: 0 })
-    }
-
-    const ids = vencidos.map(p => p.id)
-
-    // Cancelarlos
-    await supabaseAdmin
+    // 1) Transferencias vencidas (solo si siguen esperando comprobante o con el comprobante rechazado)
+    const { data: cancelados } = await supabaseAdmin
       .from('pedidos')
       .update({ estado: 'cancelado_sin_pago' })
-      .in('id', ids)
+      .eq('metodo_pago', 'transferencia')
+      .in('estado', ['esperando_comprobante', 'comprobante_rechazado'])
+      .lt('limite_transferencia_at', new Date().toISOString())
+      .select('id')
 
-    return NextResponse.json({ ok: true, cancelados: ids.length, ids })
+    // 2) Pedidos de Mercado Pago abandonados
+    const { abandonados, conPago } = await limpiarPendientesViejos()
+
+    return NextResponse.json({
+      ok: true,
+      cancelados: cancelados?.length ?? 0,
+      idsCancelados: (cancelados || []).map(p => p.id),
+      abandonados: abandonados.length,
+      idsAbandonados: abandonados,
+      pendientesConPagoEnMP: conPago,
+    })
   } catch (err) {
-    console.error('Error en cron de cancelación de transferencias:', err)
+    console.error('Error en cron de limpieza de pedidos:', err)
     return NextResponse.json({ error: 'Error interno' }, { status: 500 })
   }
 }

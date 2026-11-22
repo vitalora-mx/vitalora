@@ -1,13 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { randomBytes } from 'crypto'
 import { MercadoPagoConfig, Preference } from 'mercadopago'
 import { createServiceClient } from '@/lib/supabase/service'
 import { calcularPedido, desglose, guardarPedido, totalCambio } from '@/lib/checkout'
 import { permitirIp } from '@/lib/limites'
+import { huellaPedido, revisarPedidoPrevio } from '@/lib/abandonados'
 
 const client = new MercadoPagoConfig({ accessToken: process.env.MP_ACCESS_TOKEN! })
 
 // Body: { items:[{productoId,varianteId,cantidad}], comprador, direccion, codigoDescuento, totalEsperado }
 // Body conSesion: true para comprar con la cuenta (sesión en cookie httpOnly)
+// Body pedidoPrevio: { id, token } del pedido de MP que este navegador creó antes:
+//   mismo pedido (huella igual) -> se reutiliza con su enlace de pago; distinto -> el anterior pasa a 'abandonado'
+// Respuesta: { init_point, pedidoId, token }
 export async function POST(req: NextRequest) {
   try {
     // Límite suave por IP (compartido con transferencia/crear): 10 pedidos por hora, 30 al día
@@ -27,11 +32,19 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ totalCambio: true, desglose: desglose(p) }, { status: 409 })
     }
 
-    // 3. Guardar pedido + items
-    const pedido = await guardarPedido(p, { estado: 'pendiente' })
+    // 3. ¿Es el mismo pedido que dejó pendiente? Reutilizarlo. Si no, abandonar el anterior.
+    const huella = huellaPedido(p)
+    const previo = await revisarPedidoPrevio(body?.pedidoPrevio, huella, 'mercadopago')
+    if (previo) {
+      return NextResponse.json({ init_point: previo.reutilizar.initPoint, pedidoId: previo.reutilizar.id, token: previo.reutilizar.token, reutilizado: true })
+    }
+
+    // 4. Guardar pedido + items (con su token para poder reutilizarlo después)
+    const accesoToken = randomBytes(24).toString('base64url')
+    const pedido = await guardarPedido(p, { estado: 'pendiente', metodo_pago: 'mercadopago', acceso_token: accesoToken, huella })
     if (!pedido) return NextResponse.json({ error: 'Error guardando pedido' }, { status: 500 })
 
-    // 4. Items para MP (descuento como item negativo)
+    // 5. Items para MP (descuento como item negativo)
     const mpItems = p.lineas.map(l => ({
       id: String(l.productoId),
       title: l.varianteNombre ? `${l.nombre} (${l.varianteNombre})` : l.nombre,
@@ -49,7 +62,7 @@ export async function POST(req: NextRequest) {
       })
     }
 
-    // 5. Crear preferencia en MP
+    // 6. Crear preferencia en MP
     const preference = new Preference(client)
     const result = await preference.create({
       body: {
@@ -90,13 +103,13 @@ export async function POST(req: NextRequest) {
       },
     })
 
-    // 6. Guardar preference_id
+    // 7. Guardar preference_id y el enlace de pago (para reutilizarlo)
     await createServiceClient()
       .from('pedidos')
-      .update({ mp_preference_id: result.id })
+      .update({ mp_preference_id: result.id, mp_init_point: result.init_point })
       .eq('id', pedido.id)
 
-    return NextResponse.json({ init_point: result.init_point })
+    return NextResponse.json({ init_point: result.init_point, pedidoId: pedido.id, token: accesoToken })
   } catch (error) {
     console.error('Error Mercado Pago:', JSON.stringify(error, null, 2))
     return NextResponse.json({ error: 'Error al crear preferencia' }, { status: 500 })

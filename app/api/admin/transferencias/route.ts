@@ -3,7 +3,17 @@ import { createClient } from '@supabase/supabase-js'
 import { Resend } from 'resend'
 import { requireAdmin } from '@/lib/admin-auth'
 import { formatearNumeroPedido } from '@/lib/utils'
-import { filaDescuentoHTML, resumenInternoHTML } from '@/lib/correoPedido'
+import { filaDescuentoHTML, resumenInternoHTML, avisoCancelacionHTML } from '@/lib/correoPedido'
+import { registrarComisionVenta } from '@/lib/comisiones'
+import { descontarStockUnaVez } from '@/lib/inventario'
+import { correoRechazoTransferencia } from '@/lib/correoTransferencia'
+import { HORAS_TRAS_RECHAZO } from '@/lib/datos-transferencia'
+
+// Estados desde los que se puede aprobar o rechazar un comprobante.
+// 'cancelado_sin_pago' (venció el plazo) se puede aprobar si el pago llegó tarde;
+// 'cancelado' (cancelado por el admin) NO.
+const ESTADOS_APROBABLES = ['esperando_comprobante', 'comprobante_en_revision', 'comprobante_rechazado', 'cancelado_sin_pago']
+const ESTADOS_RECHAZABLES = ['esperando_comprobante', 'comprobante_en_revision']
 
 const supabaseAdmin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 const resend = new Resend(process.env.RESEND_API_KEY)
@@ -72,35 +82,45 @@ export async function POST(req: NextRequest) {
     if (accion === 'rechazar') {
       // Usamos 'comprobante_rechazado' (no 'cancelado') para que el pedido
       // se pueda recuperar: el cliente puede resubir comprobante, o el admin re-aprobar.
-      await supabaseAdmin
+      // Plazo nuevo: 24 horas desde el rechazo para subir otro comprobante.
+      // Si vence sin comprobante, el cron diario lo pasa a 'cancelado_sin_pago'.
+      const nuevoLimite = new Date(Date.now() + HORAS_TRAS_RECHAZO * 60 * 60 * 1000).toISOString()
+      const { data: rechazado } = await supabaseAdmin
         .from('pedidos')
-        .update({ estado: 'comprobante_rechazado' })
+        .update({ estado: 'comprobante_rechazado', limite_transferencia_at: nuevoLimite })
         .eq('id', pedidoId)
+        .in('estado', ESTADOS_RECHAZABLES)
+        .select('id')
+      if ((rechazado?.length ?? 0) === 0) {
+        return NextResponse.json({ error: `No se puede rechazar un pedido en estado "${pedido.estado}".` }, { status: 400 })
+      }
 
-      // Email al cliente avisando del rechazo
-      await enviarEmailRechazo(pedido)
+      // Correo al cliente con el enlace (con token) y el plazo nuevo
+      await correoRechazoTransferencia(pedido, nuevoLimite)
 
       return NextResponse.json({ ok: true })
     }
 
     // ─── APROBAR ───
     if (accion === 'aprobar') {
-      // Evitar doble procesamiento
-      if (pedido.estado === 'pagado' || pedido.estado === 'preparando' || pedido.estado === 'enviado' || pedido.estado === 'entregado') {
-        return NextResponse.json({ error: 'Este pedido ya fue confirmado antes.' }, { status: 400 })
-      }
-
-      // 1) Marcar como pagado
-      await supabaseAdmin
+      // 1) Marcar como pagado de forma atómica: solo una aprobación ejecuta los efectos,
+      //    y un pedido cancelado, reembolsado o ya confirmado no se puede aprobar
+      const { data: aprobado } = await supabaseAdmin
         .from('pedidos')
         .update({ estado: 'pagado' })
         .eq('id', pedidoId)
+        .in('estado', ESTADOS_APROBABLES)
+        .is('cancelado_at', null)
+        .select('id')
+      if ((aprobado?.length ?? 0) === 0) {
+        return NextResponse.json({ error: `No se puede aprobar un pedido en estado "${pedido.estado}".` }, { status: 400 })
+      }
 
-      // 2) Descontar stock
-      await descontarStock(pedido.pedido_items || [])
+      // 2) Descontar stock (una sola vez)
+      await descontarStockUnaVez(pedido.id)
 
-      // 3) Comisión de influencer
-      await procesarComisionInfluencer(pedido)
+      // 3) Comisión de embajadora (misma regla que en Mercado Pago)
+      try { await registrarComisionVenta(pedido) } catch (e) { console.error('Error al procesar comisión de influencer:', e) }
 
       // 4) Primera compra
       if (pedido.user_id && pedido.descuento_tipo === 'primera_compra') {
@@ -170,83 +190,6 @@ export async function PATCH(req: NextRequest) {
   }
 }
 
-// ============================================================
-// Funciones auxiliares (copiadas del webhook, autocontenidas)
-// ============================================================
-async function descontarStock(items: any[]) {
-  for (const item of items) {
-    const cantidad = item.cantidad || 0
-    if (cantidad <= 0) continue
-    try {
-      if (item.variante_id) {
-        const { data: variante } = await supabaseAdmin.from('producto_variantes').select('stock').eq('id', item.variante_id).single()
-        if (variante) {
-          const nuevoStock = Math.max(0, (variante.stock || 0) - cantidad)
-          await supabaseAdmin.from('producto_variantes').update({ stock: nuevoStock }).eq('id', item.variante_id)
-        }
-        continue
-      }
-      const { data: componentes } = await supabaseAdmin.from('kit_componentes').select('producto_id, cantidad').eq('kit_id', item.producto_id)
-      if (componentes && componentes.length > 0) {
-        for (const comp of componentes) {
-          const { data: prodComp } = await supabaseAdmin.from('productos').select('stock').eq('id', comp.producto_id).single()
-          if (prodComp) {
-            const restar = (comp.cantidad || 1) * cantidad
-            const nuevoStock = Math.max(0, (prodComp.stock || 0) - restar)
-            await supabaseAdmin.from('productos').update({ stock: nuevoStock }).eq('id', comp.producto_id)
-          }
-        }
-        continue
-      }
-      const { data: prod } = await supabaseAdmin.from('productos').select('stock').eq('id', item.producto_id).single()
-      if (prod) {
-        const nuevoStock = Math.max(0, (prod.stock || 0) - cantidad)
-        await supabaseAdmin.from('productos').update({ stock: nuevoStock }).eq('id', item.producto_id)
-      }
-    } catch (e) {
-      console.error('Error descontando stock del item', item.producto_id, e)
-    }
-  }
-}
-
-async function procesarComisionInfluencer(pedido: any) {
-  try {
-    if (!pedido.codigo_descuento) return
-    const { data: codigo } = await supabaseAdmin
-      .from('codigos_descuento')
-      .select('es_influencer, influencer_id')
-      .eq('codigo', pedido.codigo_descuento)
-      .single()
-
-    if (!codigo || !codigo.es_influencer || !codigo.influencer_id) return
-
-    if (pedido.user_id) {
-      await supabaseAdmin.from('perfiles').update({ primera_compra_usada: true }).eq('id', pedido.user_id)
-    }
-
-    const { data: comisionExistente } = await supabaseAdmin
-      .from('influencer_comisiones')
-      .select('id')
-      .eq('pedido_id', pedido.id)
-      .maybeSingle()
-
-    if (comisionExistente) return
-
-    const subtotalVenta = pedido.subtotal || 0
-    const montoComision = Math.round(subtotalVenta * 0.05 * 100) / 100
-
-    await supabaseAdmin.from('influencer_comisiones').insert({
-      influencer_id: codigo.influencer_id,
-      pedido_id: pedido.id,
-      subtotal_venta: subtotalVenta,
-      monto_comision: montoComision,
-      estado: 'pendiente',
-    })
-  } catch (e) {
-    console.error('Error al procesar comisión de influencer:', e)
-  }
-}
-
 async function enviarEmails(pedido: any) {
   const items = pedido.pedido_items || []
   const subtotal = pedido.subtotal || 0
@@ -287,6 +230,7 @@ async function enviarEmails(pedido: any) {
       </table>
     </div>
   </div>
+  ${avisoCancelacionHTML()}
   <div style="background:#0E0E0E;padding:24px;text-align:center;">
     <p style="font-size:12px;color:rgba(245,240,232,0.6);margin:0;">Vitalora · hola@vitalora.com.mx</p>
   </div>
@@ -316,39 +260,5 @@ async function enviarEmails(pedido: any) {
     })
   } catch (e) {
     console.error('Error email admin:', e)
-  }
-}
-
-async function enviarEmailRechazo(pedido: any) {
-  try {
-    await resend.emails.send({
-      from: 'Vitalora <hola@vitalora.com.mx>',
-      to: pedido.email,
-      subject: `Sobre tu pedido #${pedido.id}`,
-      html: `
-<!DOCTYPE html>
-<html><head><meta charset="utf-8"></head>
-<body style="margin:0;padding:0;background:#F5F0E8;font-family:Georgia,serif;">
-<div style="max-width:600px;margin:0 auto;background:white;">
-  <div style="background:#0E0E0E;padding:32px;text-align:center;">
-    <img src="https://vitalora.com.mx/images/logo/logo-footer.png" alt="Vitalora" width="160" style="display:block;margin:0 auto;max-width:160px;height:auto;" />
-  </div>
-  <div style="padding:40px 32px;">
-    <p style="font-size:15px;color:#333;line-height:1.7;">Hola ${pedido.nombre},</p>
-    <p style="font-size:14px;color:#555;line-height:1.7;">No pudimos confirmar el pago de tu pedido <strong>#${pedido.id}</strong> por transferencia. Esto puede deberse a que aún no recibimos la transferencia, o a que el comprobante que subiste no correspondía o no se veía con claridad.</p>
-    <p style="font-size:14px;color:#555;line-height:1.7;"><strong>¿Qué puedes hacer?</strong></p>
-    <ul style="font-size:14px;color:#555;line-height:1.7;padding-left:20px;">
-      <li>Si subiste un archivo equivocado, puedes subir tu comprobante correcto de nuevo desde el enlace de tu pedido.</li>
-      <li>Nos pondremos en contacto contigo por teléfono o WhatsApp para ayudarte a resolverlo.</li>
-    </ul>
-    <p style="font-size:14px;color:#555;line-height:1.7;">También puedes escribirnos a <a href="mailto:hola@vitalora.com.mx" style="color:#C9A961;">hola@vitalora.com.mx</a> si tienes cualquier duda.</p>
-  </div>
-  <div style="background:#0E0E0E;padding:24px;text-align:center;">
-    <p style="font-size:12px;color:rgba(245,240,232,0.6);margin:0;">Vitalora · hola@vitalora.com.mx</p>
-  </div>
-</div></body></html>`,
-    })
-  } catch (e) {
-    console.error('Error email rechazo:', e)
   }
 }

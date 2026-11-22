@@ -2,12 +2,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
-
-const DATOS_BANCARIOS = {
-  clabe: '722969020946634146',
-  beneficiario: 'VANGUARDIA IMPORTACIONES & LOGISTICA DE MEXICO',
-  institucion: 'Mercado Pago W',
-}
+import { DATOS_BANCARIOS } from '@/lib/datos-transferencia'
 
 interface PedidoTransferencia {
   id: number
@@ -59,6 +54,18 @@ export default function TransferenciaPage() {
   }, [id, token])
 
   useEffect(() => { cargar() }, [cargar])
+
+  // Si el cliente regresa con "atrás"/"adelante", el navegador puede restaurar la página desde
+  // su caché con datos viejos o con "Subiendo…" congelado: se reactiva y se recarga el pedido.
+  useEffect(() => {
+    const alMostrar = (e: PageTransitionEvent) => {
+      if (!e.persisted) return
+      setSubiendo(false)
+      cargar()
+    }
+    window.addEventListener('pageshow', alMostrar)
+    return () => window.removeEventListener('pageshow', alMostrar)
+  }, [cargar])
 
   // Contador de tiempo restante
   useEffect(() => {
@@ -134,7 +141,7 @@ export default function TransferenciaPage() {
             Estamos verificando tu transferencia. La confirmación de tu pedido puede tardar hasta <strong>24 horas hábiles</strong> (los sábados, domingos y días festivos no se consideran días hábiles). Te enviaremos un correo cuando tu pago sea confirmado.
           </p>
           <p style={{ fontSize: '13px', color: '#888', lineHeight: 1.6, margin: 0 }}>
-            Si hay algún problema con tu pago, nos pondremos en contacto contigo por teléfono o WhatsApp.
+            Si tienes dudas, escríbenos a hola@vitalora.com.mx o por WhatsApp. En algunos casos podríamos contactarte para ayudarte a resolverlo.
           </p>
         </div>
         <Link href="/" style={{ display: 'inline-block', padding: '14px 28px', background: '#0E0E0E', color: '#C9A961', textDecoration: 'none', borderRadius: '4px', fontSize: '14px' }}>Volver a la tienda</Link>
@@ -142,7 +149,9 @@ export default function TransferenciaPage() {
     )
   }
 
-  const tiempoAgotado = (tiempoRestante === 'Tiempo agotado' || pedido?.estado === 'cancelado_sin_pago') && pedido?.estado !== 'comprobante_rechazado'
+  // Tras un rechazo el plazo es otro (24 h desde el rechazo): al vencer tampoco se puede subir
+  const rechazado = pedido?.estado === 'comprobante_rechazado'
+  const tiempoAgotado = tiempoRestante === 'Tiempo agotado' || pedido?.estado === 'cancelado_sin_pago'
 
   return (
     <div style={{ maxWidth: '600px', margin: '0 auto', padding: '40px 24px', fontFamily: 'Georgia, serif' }}>
@@ -162,7 +171,7 @@ export default function TransferenciaPage() {
         <>
           {/* Contador */}
           <div style={{ background: '#0E0E0E', borderRadius: '8px', padding: '16px', textAlign: 'center', marginBottom: '24px' }}>
-            <div style={{ fontSize: '12px', color: 'rgba(245,240,232,0.6)', marginBottom: '4px' }}>Tienes hasta 2 horas para completar tu pago</div>
+            <div style={{ fontSize: '12px', color: 'rgba(245,240,232,0.6)', marginBottom: '4px' }}>{rechazado ? 'Tiempo para subir tu comprobante nuevo' : 'Tienes hasta 2 horas para completar tu pago'}</div>
             <div style={{ fontSize: '28px', color: '#C9A961', fontWeight: 600, fontFamily: 'monospace' }}>{tiempoRestante || '…'}</div>
           </div>
 
@@ -211,7 +220,7 @@ export default function TransferenciaPage() {
           {pedido?.estado === 'comprobante_rechazado' && (
             <div style={{ background: '#FDEEEE', border: '1px solid #F0C0C0', borderRadius: '8px', padding: '16px', marginBottom: '20px' }}>
               <p style={{ fontSize: '14px', color: '#B91C1C', lineHeight: 1.6, margin: 0 }}>
-                Hubo un problema con tu comprobante anterior. Por favor revisa que sea el archivo correcto y súbelo de nuevo. Si tienes dudas, te contactaremos por teléfono o WhatsApp.
+                Hubo un problema con tu comprobante anterior. Por favor revisa que sea el archivo correcto y súbelo de nuevo. Si tienes dudas, escríbenos a hola@vitalora.com.mx o por WhatsApp. En algunos casos podríamos contactarte para ayudarte a resolverlo.
               </p>
             </div>
           )}

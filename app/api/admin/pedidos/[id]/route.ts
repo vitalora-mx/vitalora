@@ -23,7 +23,9 @@ export async function GET(
         id, created_at, estado, mp_payment_id, mp_preference_id,
         nombre, apellido, email, telefono,
         calle, numero, interior, colonia, ciudad, estado_dir, cp, referencia,
-        subtotal, costo_envio, total, monto_reembolsado, forma_pago,
+        subtotal, descuento, costo_envio, total, monto_reembolsado, forma_pago,
+        cancelado_at, cancelado_por, motivo_cancelacion,
+        stock_descontado_at, stock_devuelto_at, abandonado_at,
         numero_guia, paqueteria, metodo_pago,
         factura_url,
         requiere_factura, factura_rfc:rfc, factura_razon_social:razon_social, factura_uso_cfdi:uso_cfdi,
@@ -31,7 +33,11 @@ export async function GET(
         factura_pdf_path, factura_xml_path, factura_enviada_at,
         user_id,
         pedido_items (
-          producto_id, variante_id, nombre, marca, precio, cantidad, variante_nombre
+          id, producto_id, variante_id, nombre, marca, precio, cantidad, cantidad_reembolsada, variante_nombre
+        ),
+        reembolsos (
+          id, tipo, origen, metodo, estado, monto, monto_calculado, ajustado_a_mano, incluye_envio,
+          items, mp_refund_id, motivo, admin_email, error, created_at
         )
       `)
       .eq('id', id)
@@ -56,7 +62,12 @@ export async function GET(
       }
     }
 
-    return NextResponse.json({ pedido, clienteStats })
+    // Historial más reciente primero
+    if (pedido?.reembolsos) {
+      pedido.reembolsos.sort((a: { id: number }, b: { id: number }) => b.id - a.id)
+    }
+    const puedeGestionarDinero = ['dueno', 'gerente'].includes(adminAuth.admin.rol)
+    return NextResponse.json({ pedido, clienteStats, puedeGestionarDinero })
   } catch (err) {
     console.error('Error pedido detalle GET:', err)
     return NextResponse.json({ error: 'Error al cargar pedido' }, { status: 500 })

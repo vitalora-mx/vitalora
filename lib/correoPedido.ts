@@ -25,3 +25,18 @@ export function resumenInternoHTML(pedido: any): string {
     + fila('Total', mxn(pedido.total), 'font-weight:700;border-top:1px solid #E8E0D5;')
     + `</table>`
 }
+
+// ── Regla de cancelación (correos al cliente) ──
+export const WHATSAPP_URL = 'https://wa.me/524622341282'
+
+// Para el correo de pago confirmado
+export function avisoCancelacionHTML(): string {
+  return `<div style="margin:0 32px 24px;padding:14px 18px;background:#FAF7F0;border:1px solid #E8E0D5;border-radius:6px;font-family:Arial,sans-serif;font-size:13px;color:#555;line-height:1.6;text-align:center;">
+Puedes cancelar tu pedido mientras no se haya generado tu guía de envío. Escríbenos a <a href="mailto:hola@vitalora.com.mx" style="color:#C9A961;">hola@vitalora.com.mx</a> o por <a href="${WHATSAPP_URL}" style="color:#C9A961;">WhatsApp</a>.
+</div>`
+}
+
+// Para el correo con el número de guía
+export function avisoYaEnviadoHTML(): string {
+  return `<p style="margin:16px 0 0;font-family:Arial,sans-serif;font-size:12px;color:#888;line-height:1.6;text-align:center;">Tu pedido ya fue enviado y no puede cancelarse.</p>`
+}

@@ -1,129 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
 import { requireAdmin } from '@/lib/admin-auth'
-import { restaurarPrimeraCompraSiAplica } from '@/lib/descuentos'
+import { procesarReembolsoAdmin } from '@/lib/reembolsos'
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
-
-// POST /api/admin/pedidos/[id]/reembolsar
-// Body opcional: { monto?: number }
-//  - sin monto  -> reembolso TOTAL (devuelve todo el pago)
-//  - con monto   -> reembolso PARCIAL (devuelve solo esa cantidad)
-//
-// Mercado Pago disparara el webhook con status 'refunded', que ya
-// devuelve stock y marca el pedido como 'reembolsado' automaticamente.
+// POST /api/admin/pedidos/[id]/reembolsar  (solo dueño y gerente)
+// Mercado Pago: devuelve el dinero en MP. Transferencia: solo lo registra
+// (la devolución se hace desde el banco).
+// Body:
+//   { total: true, motivo? }                                   -> todo lo que falta por devolver
+//   { items: [{ pedido_item_id, cantidad }], incluirEnvio?, monto?, motivo? } -> parcial
+//     (monto opcional: ajuste a mano; si no se manda, se usa el calculado)
+// Nunca devuelve stock: el inventario se ajusta a mano.
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const adminAuth = await requireAdmin(request, "/admin/pedidos", { roles: ['dueno', 'gerente'] })
+  const adminAuth = await requireAdmin(request, '/admin/pedidos', { roles: ['dueno', 'gerente'] })
   if (!adminAuth.ok) return adminAuth.response
 
   try {
     const { id } = await params
-
-    // 1. Buscar el pedido y su mp_payment_id
-    const { data: pedido, error: pedidoError } = await supabaseAdmin
-      .from('pedidos')
-      .select('id, estado, mp_payment_id, total, monto_reembolsado, user_id, descuento_tipo')
-      .eq('id', id)
-      .single()
-
-    if (pedidoError || !pedido) {
-      return NextResponse.json({ error: 'Pedido no encontrado.' }, { status: 404 })
-    }
-
-    if (!pedido.mp_payment_id) {
-      return NextResponse.json({ error: 'Este pedido no tiene un pago de Mercado Pago asociado.' }, { status: 400 })
-    }
-
-    if (pedido.estado !== 'pagado' && pedido.estado !== 'reembolso_parcial') {
-      return NextResponse.json({ error: `Solo se pueden reembolsar pedidos pagados o con reembolso parcial. Estado actual: ${pedido.estado}.` }, { status: 400 })
-    }
-
-    // 2. Leer monto opcional del body (reembolso parcial)
-    let monto: number | null = null
-    try {
-      const body = await request.json()
-      if (body && typeof body.monto === 'number' && body.monto > 0) {
-        monto = body.monto
-      }
-    } catch {
-      // sin body -> reembolso total
-    }
-
-    // Validar que el parcial no exceda el SALDO restante (total - lo ya reembolsado)
-    const saldoRestante = (pedido.total || 0) - (pedido.monto_reembolsado || 0)
-    if (monto !== null && monto > saldoRestante) {
-      return NextResponse.json({ error: `El monto a reembolsar ($${monto}) no puede ser mayor al saldo restante ($${saldoRestante}).` }, { status: 400 })
-    }
-
-    // 3. Llamar a la API de reembolsos de Mercado Pago
-    // Header de idempotencia para evitar reembolsos duplicados por reintentos.
-    const idempotencyKey = `refund-${pedido.id}-${monto ?? 'total'}-${Date.now()}`
-
-    const mpRes = await fetch(
-      `https://api.mercadopago.com/v1/payments/${pedido.mp_payment_id}/refunds`,
-      {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${process.env.MP_ACCESS_TOKEN}`,
-          'Content-Type': 'application/json',
-          'X-Idempotency-Key': idempotencyKey,
-        },
-        body: monto !== null ? JSON.stringify({ amount: monto }) : JSON.stringify({}),
-      }
-    )
-
-    const mpData = await mpRes.json()
-
-    if (!mpRes.ok) {
-      console.error('Error MP reembolso:', mpData)
-      const msg = mpData?.message || mpData?.error || 'Error al procesar el reembolso en Mercado Pago.'
-      return NextResponse.json({ error: msg, detalle: mpData }, { status: mpRes.status })
-    }
-
-    // 4. Registrar el reembolso en la base de datos (total acumulado).
-    const yaReembolsado = pedido.monto_reembolsado || 0
-    const montoEsteReembolso = monto !== null ? monto : (pedido.total || 0)
-    const nuevoAcumulado = yaReembolsado + montoEsteReembolso
-
-    if (monto !== null) {
-      // Reembolso PARCIAL: el webhook de MP no se dispara (el pago sigue approved).
-      // Guardamos el acumulado y marcamos el pedido como 'reembolso_parcial'.
-      // Si el acumulado ya cubre el total, lo marcamos como 'reembolsado'.
-      const nuevoEstado = nuevoAcumulado >= (pedido.total || 0) ? 'reembolsado' : 'reembolso_parcial'
-      await supabaseAdmin
-        .from('pedidos')
-        .update({ monto_reembolsado: nuevoAcumulado, estado: nuevoEstado })
-        .eq('id', pedido.id)
-      // Los parciales ya cubren el total: la cuenta recupera el descuento de primera compra
-      if (nuevoEstado === 'reembolsado' && pedido.estado !== 'reembolsado') {
-        await restaurarPrimeraCompraSiAplica(pedido)
-      }
-    } else {
-      // (La restauración de primera compra la hace el webhook al recibir 'refunded')
-      // Reembolso TOTAL: el webhook de MP marcara 'reembolsado' y devolvera stock.
-      // Aqui solo registramos el monto acumulado para el reporte.
-      await supabaseAdmin
-        .from('pedidos')
-        .update({ monto_reembolsado: nuevoAcumulado })
-        .eq('id', pedido.id)
-    }
-
-    return NextResponse.json({
-      success: true,
-      tipo: monto !== null ? 'parcial' : 'total',
-      monto: montoEsteReembolso,
-      total_reembolsado: nuevoAcumulado,
-      refund_id: mpData?.id || null,
-      mensaje: monto !== null
-        ? `Reembolso parcial de $${montoEsteReembolso} procesado. Total reembolsado: $${nuevoAcumulado} de $${pedido.total}.`
-        : 'Reembolso total procesado correctamente. El inventario se actualizara automaticamente.',
-    })
+    const body = await request.json().catch(() => ({}))
+    const r = await procesarReembolsoAdmin(Number(id), { id: adminAuth.admin.id, email: adminAuth.admin.email }, body)
+    if (!r.ok) return NextResponse.json({ error: r.error }, { status: r.status })
+    return NextResponse.json(r)
   } catch (error) {
     console.error('Error en reembolso admin:', error)
     return NextResponse.json({ error: 'Error interno al procesar el reembolso.' }, { status: 500 })

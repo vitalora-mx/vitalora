@@ -5,7 +5,10 @@ import { MercadoPagoConfig, Payment } from 'mercadopago'
 import { Resend } from 'resend'
 import { formatearNumeroPedido } from '@/lib/utils'
 import { filaDescuentoHTML, resumenInternoHTML } from '@/lib/correoPedido'
-import { restaurarPrimeraCompraSiAplica } from '@/lib/descuentos'
+import { sincronizarReembolsosMP, reembolsarPagoEnCancelado } from '@/lib/reembolsos'
+import { registrarComisionVenta } from '@/lib/comisiones'
+import { descontarStockUnaVez } from '@/lib/inventario'
+import { avisoCancelacionHTML } from '@/lib/correoPedido'
 
 const supabaseAdmin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 const mpClient = new MercadoPagoConfig({ accessToken: process.env.MP_ACCESS_TOKEN! })
@@ -49,21 +52,18 @@ export async function POST(req: NextRequest) {
       const datosPago = { mp_payment_id: String(paymentId), forma_pago: formaPagoTexto }
       const estadoAnterior: string = pedido.estado
 
-      // ── Reembolsos (sin cambios de comportamiento) ──
-      if (status === 'refunded' || statusDetail === 'partially_refunded' || (mpRefunded > 0 && status === 'approved')) {
-        const nuevoEstado = status === 'refunded'
-          ? 'reembolsado'
-          // Reembolso parcial: total si ya cubre el monto, parcial si no
-          : (mpRefunded >= (pedido.total || 0)) ? 'reembolsado' : 'reembolso_parcial'
-        await supabaseAdmin.from('pedidos').update({ estado: nuevoEstado, ...datosPago }).eq('id', pedido.id)
-        // Si fue reembolsado y antes estaba pagado: devolver stock al inventario
-        if (status === 'refunded' && estadoAnterior === 'pagado') {
-          await devolverStock(pedido.pedido_items || [])
-        }
-        // Reembolso TOTAL: si usó primera compra, la cuenta recupera el descuento
-        if (nuevoEstado === 'reembolsado' && estadoAnterior !== 'reembolsado') {
-          await restaurarPrimeraCompraSiAplica(pedido)
-        }
+      // ── Reembolsos (hechos desde el admin o desde el panel de MP) ──
+      // Se registran en `reembolsos` y se ajusta el monto; NUNCA se devuelve stock.
+      // Respeta los pedidos cancelados (no les cambia el estado).
+      if (status === 'refunded' || statusDetail === 'partially_refunded' || mpRefunded > 0) {
+        await sincronizarReembolsosMP(pedido.id, paymentData, 'webhook')
+        return NextResponse.json({ ok: true })
+      }
+
+      // ── Pedido cancelado desde el admin: no se revive ──
+      // Si llega un pago aprobado (p. ej. ficha OXXO pagada después), se reembolsa solo y se avisa.
+      if (pedido.cancelado_at) {
+        if (status === 'approved') await reembolsarPagoEnCancelado(pedido.id, paymentData)
         return NextResponse.json({ ok: true })
       }
 
@@ -118,8 +118,8 @@ export async function POST(req: NextRequest) {
 
       // Efectos del pago aprobado (solo llega aquí la notificación que hizo el cambio)
       {
-        // Descontar stock (variante / kit / producto normal)
-        await descontarStock(pedido.pedido_items || [])
+        // Descontar stock (variante / kit / producto normal) una sola vez
+        await descontarStockUnaVez(pedido.id)
 
         await enviarEmails(pedido)
 
@@ -168,8 +168,10 @@ export async function GET() {
 }
 
 // Estados desde los que un pago aprobado se procesa (una sola vez).
-// 'cancelado' cubre el reintento con otra tarjeta tras un rechazo en la misma preferencia.
-const ESTADOS_ANTES_DEL_PAGO = ['pendiente', 'cancelado']
+// 'cancelado' cubre el reintento con otra tarjeta tras un rechazo en la misma preferencia
+// (los cancelados por el admin, con cancelado_at, se atienden antes y no llegan aquí).
+// 'abandonado': el cliente sí pagó después, se procesa normal.
+const ESTADOS_ANTES_DEL_PAGO = ['pendiente', 'cancelado', 'abandonado']
 
 // Cambia el estado solo si el pedido sigue en uno de `desde` (update condicional, atómico).
 // Devuelve true si ESTA notificación hizo el cambio.
@@ -257,87 +259,21 @@ ${fila('Estado anterior del pedido', info.estadoAnterior)}
 
 // ============================================================
 // PROGRAMA DE INFLUENCERS
-// Cuando un pedido pagado usó un código de influencer:
-//   1. Candado: si el comprador tiene cuenta, marcar primera_compra_usada
-//      (pierde el descuento de primera compra para siempre)
-//   2. Registrar la comisión del 5% sobre el subtotal (sin envío)
+// Cuando un pedido pagado usó un código de embajadora:
+//   1. Registrar la comisión (lib/comisiones.ts: candado de primera compra,
+//      cálculo por porcentaje o monto fijo por pieza, copia de la configuración)
+//   2. Avisar a la embajadora por correo
 // ============================================================
 async function procesarComisionInfluencer(pedido: any) {
   try {
-    // Verificar si el código usado es de un influencer
-    const { data: codigo } = await supabaseAdmin
-      .from('codigos_descuento')
-      .select('es_influencer, influencer_id')
-      .eq('codigo', pedido.codigo_descuento)
-      .single()
-
-    if (!codigo || !codigo.es_influencer || !codigo.influencer_id) {
-      return // No es código de influencer, no hacer nada
-    }
-
-    // 1) CANDADO DE EXCLUSIÓN MUTUA
-    // Si el comprador tiene cuenta, marcar primera_compra_usada = true
-    // (al usar un código de influencer, pierde el descuento de primera compra)
-    if (pedido.user_id) {
-      await supabaseAdmin
-        .from('perfiles')
-        .update({ primera_compra_usada: true })
-        .eq('id', pedido.user_id)
-    }
-
-    // 2) REGISTRAR COMISIÓN
-    // Verificar que este pedido no tenga ya una comisión registrada (evitar duplicados)
-    const { data: comisionExistente } = await supabaseAdmin
-      .from('influencer_comisiones')
-      .select('id')
-      .eq('pedido_id', pedido.id)
-      .maybeSingle()
-
-    if (comisionExistente) return // Ya se registró
-
-    // ─── Comisión variable: leer configuración del influencer ───
-    const { data: influencerDatos } = await supabaseAdmin
-      .from('influencers')
-      .select('tipo_comision, comision_valor')
-      .eq('id', codigo.influencer_id)
-      .maybeSingle()
-
-    // Valores por defecto: 5% (comportamiento histórico) si no hay config
-    const tipoComision = influencerDatos?.tipo_comision || 'porcentaje'
-    const comisionValor = influencerDatos?.comision_valor != null ? Number(influencerDatos.comision_valor) : 5
-
-    // La comisión se calcula sobre el subtotal SIN envío
-    const subtotalVenta = pedido.subtotal || 0
-
-    let montoComision = 0
-    if (tipoComision === 'monto_fijo') {
-      // Monto fijo por cada unidad vendida: sumar todas las cantidades del pedido
-      const { data: items } = await supabaseAdmin
-        .from('pedido_items')
-        .select('cantidad')
-        .eq('pedido_id', pedido.id)
-      const totalUnidades = (items || []).reduce((suma, it) => suma + (it.cantidad || 0), 0)
-      montoComision = Math.round(totalUnidades * comisionValor * 100) / 100
-    } else {
-      // Porcentaje (normal 5% o VIP con % más alto)
-      montoComision = Math.round(subtotalVenta * (comisionValor / 100) * 100) / 100
-    }
-
-    await supabaseAdmin
-      .from('influencer_comisiones')
-      .insert({
-        influencer_id: codigo.influencer_id,
-        pedido_id: pedido.id,
-        subtotal_venta: subtotalVenta,
-        monto_comision: montoComision,
-        estado: 'pendiente',
-      })
+    const comision = await registrarComisionVenta(pedido)
+    if (!comision) return
 
     try {
       const { data: inf } = await supabaseAdmin
         .from('influencers')
         .select('nombre, email')
-        .eq('id', codigo.influencer_id)
+        .eq('id', comision.influencerId)
         .maybeSingle()
 
       if (inf && inf.email) {
@@ -349,7 +285,7 @@ async function procesarComisionInfluencer(pedido: any) {
         const listaItems = itemsCorreo || []
         const totalPiezas = listaItems.reduce((s, it) => s + (it.cantidad || 0), 0)
         const costoEnvioPedido = pedido.costo_envio != null ? Number(pedido.costo_envio) : 0
-        const totalPedido = pedido.total != null ? Number(pedido.total) : (subtotalVenta + costoEnvioPedido)
+        const totalPedido = pedido.total != null ? Number(pedido.total) : (comision.subtotalVenta + costoEnvioPedido)
 
         const correo = generarCorreoInfluencer({
           nombreInfluencer: inf.nombre || 'Embajadora',
@@ -357,13 +293,13 @@ async function procesarComisionInfluencer(pedido: any) {
           numeroPedido: formatearNumeroPedido(pedido.id),
           items: listaItems,
           totalPiezas,
-          subtotal: subtotalVenta,
+          subtotal: comision.subtotalVenta,
           costoEnvio: costoEnvioPedido,
           total: totalPedido,
           ciudad: pedido.ciudad || '',
-          montoComision,
-          tipoComision,
-          comisionValor,
+          montoComision: comision.montoComision,
+          tipoComision: comision.tipoComision,
+          comisionValor: comision.comisionValor,
         })
 
         await resend.emails.send({
@@ -379,153 +315,6 @@ async function procesarComisionInfluencer(pedido: any) {
 
   } catch (e) {
     console.error('Error al procesar comisión de influencer:', e)
-  }
-}
-
-// ============================================================
-// Descuento de stock al confirmarse el pago
-// - item con variante_id  -> descuenta de producto_variantes
-// - item que es kit        -> descuenta de cada componente (kit_componentes)
-// - item producto normal   -> descuenta de productos
-// ============================================================
-async function descontarStock(items: any[]) {
-  for (const item of items) {
-    const cantidad = item.cantidad || 0
-    if (cantidad <= 0) continue
-
-    try {
-      // 1) Si el item es de una variante: descontar de la variante
-      if (item.variante_id) {
-        const { data: variante } = await supabaseAdmin
-          .from('producto_variantes')
-          .select('stock')
-          .eq('id', item.variante_id)
-          .single()
-        if (variante) {
-          const nuevoStock = Math.max(0, (variante.stock || 0) - cantidad)
-          await supabaseAdmin
-            .from('producto_variantes')
-            .update({ stock: nuevoStock })
-            .eq('id', item.variante_id)
-        }
-        continue // ya descontamos esta linea
-      }
-
-      // 2) Revisar si el producto es un kit (tiene componentes)
-      const { data: componentes } = await supabaseAdmin
-        .from('kit_componentes')
-        .select('producto_id, cantidad')
-        .eq('kit_id', item.producto_id)
-
-      if (componentes && componentes.length > 0) {
-        // Es un kit: descontar de cada componente
-        for (const comp of componentes) {
-          const { data: prodComp } = await supabaseAdmin
-            .from('productos')
-            .select('stock')
-            .eq('id', comp.producto_id)
-            .single()
-          if (prodComp) {
-            const restar = (comp.cantidad || 1) * cantidad
-            const nuevoStock = Math.max(0, (prodComp.stock || 0) - restar)
-            await supabaseAdmin
-              .from('productos')
-              .update({ stock: nuevoStock })
-              .eq('id', comp.producto_id)
-          }
-        }
-        continue
-      }
-
-      // 3) Producto normal: descontar del producto
-      const { data: prod } = await supabaseAdmin
-        .from('productos')
-        .select('stock')
-        .eq('id', item.producto_id)
-        .single()
-      if (prod) {
-        const nuevoStock = Math.max(0, (prod.stock || 0) - cantidad)
-        await supabaseAdmin
-          .from('productos')
-          .update({ stock: nuevoStock })
-          .eq('id', item.producto_id)
-      }
-    } catch (e) {
-      console.error('Error descontando stock del item', item.producto_id, e)
-    }
-  }
-}
-
-// ============================================================
-// Devolucion de stock al reembolsar un pedido (espejo de descontarStock)
-// - item con variante_id  -> suma a producto_variantes
-// - item que es kit        -> suma a cada componente (kit_componentes)
-// - item producto normal   -> suma a productos
-// ============================================================
-async function devolverStock(items: any[]) {
-  for (const item of items) {
-    const cantidad = item.cantidad || 0
-    if (cantidad <= 0) continue
-
-    try {
-      // 1) Si el item es de una variante: devolver a la variante
-      if (item.variante_id) {
-        const { data: variante } = await supabaseAdmin
-          .from('producto_variantes')
-          .select('stock')
-          .eq('id', item.variante_id)
-          .single()
-        if (variante) {
-          const nuevoStock = (variante.stock || 0) + cantidad
-          await supabaseAdmin
-            .from('producto_variantes')
-            .update({ stock: nuevoStock })
-            .eq('id', item.variante_id)
-        }
-        continue
-      }
-
-      // 2) Revisar si el producto es un kit (tiene componentes)
-      const { data: componentes } = await supabaseAdmin
-        .from('kit_componentes')
-        .select('producto_id, cantidad')
-        .eq('kit_id', item.producto_id)
-
-      if (componentes && componentes.length > 0) {
-        for (const comp of componentes) {
-          const { data: prodComp } = await supabaseAdmin
-            .from('productos')
-            .select('stock')
-            .eq('id', comp.producto_id)
-            .single()
-          if (prodComp) {
-            const sumar = (comp.cantidad || 1) * cantidad
-            const nuevoStock = (prodComp.stock || 0) + sumar
-            await supabaseAdmin
-              .from('productos')
-              .update({ stock: nuevoStock })
-              .eq('id', comp.producto_id)
-          }
-        }
-        continue
-      }
-
-      // 3) Producto normal: devolver al producto
-      const { data: prod } = await supabaseAdmin
-        .from('productos')
-        .select('stock')
-        .eq('id', item.producto_id)
-        .single()
-      if (prod) {
-        const nuevoStock = (prod.stock || 0) + cantidad
-        await supabaseAdmin
-          .from('productos')
-          .update({ stock: nuevoStock })
-          .eq('id', item.producto_id)
-      }
-    } catch (e) {
-      console.error('Error devolviendo stock del item', item.producto_id, e)
-    }
   }
 }
 
@@ -586,6 +375,7 @@ async function enviarEmails(pedido: any) {
   <div style="padding:32px;text-align:center;">
     <p style="font-size:13px;color:#888;">Te enviaremos tu numero de guia cuando el pedido sea enviado.</p>
   </div>
+  ${avisoCancelacionHTML()}
   <div style="background:#0E0E0E;padding:32px;text-align:center;">
     <div style="margin-bottom:16px;"><img src="https://vitalora.com.mx/images/logo/logo-footer.png" alt="Vitalora" width="110" style="display:block;margin:0 auto;max-width:110px;height:auto;opacity:0.8;" /></div>
     <p style="font-size:12px;color:rgba(245,240,232,0.6);margin:0 0 8px;">&iquest;Tienes dudas? Escribenos a</p>

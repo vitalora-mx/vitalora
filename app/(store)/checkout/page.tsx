@@ -1,10 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { useCartStore } from '@/store/cartStore'
 import { useAuthStore, fetchCliente } from '@/store/authStore'
 import { useIsMobile } from '@/hooks/useIsMobile'
+import { leerPedidoPendiente, guardarPedidoPendiente, borrarPedidoPendiente } from '@/lib/pedido-pendiente'
+import { leerBorradorCheckout, guardarBorradorCheckout, borrarBorradorCheckout, type BorradorCheckout } from '@/lib/checkout-borrador'
 
 const ENVIO_GRATIS = 1000
 const COSTO_ENVIO = 99
@@ -28,6 +30,47 @@ export default function CheckoutPage() {
   const [mounted, setMounted] = useState(false)
   const [paso, setPaso] = useState(1)
   const [enviando, setEnviando] = useState(false)
+
+  // Al ir a Mercado Pago (o a la página de transferencia) la página se queda en "Procesando...".
+  // Si el cliente regresa con "atrás", el navegador puede restaurarla desde su caché (bfcache)
+  // con ese estado congelado. `saliendo` marca que ya se redirigió: al volver (pageshow, foco o
+  // pestaña visible) se reactiva el botón. Mientras una petición sigue en curso NO se reactiva,
+  // para no permitir un doble pedido.
+  const saliendo = useRef(false)
+  const respaldoSalida = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  function irA(url: string) {
+    saliendo.current = true
+    window.location.href = url
+    // Respaldo: si en 15 s la página sigue visible (la redirección no ocurrió), se reactiva
+    if (respaldoSalida.current) clearTimeout(respaldoSalida.current)
+    respaldoSalida.current = setTimeout(() => {
+      if (saliendo.current && document.visibilityState === 'visible') { saliendo.current = false; setEnviando(false) }
+    }, 15000)
+  }
+
+  useEffect(() => {
+    const reactivar = () => {
+      if (!saliendo.current) return
+      saliendo.current = false
+      if (respaldoSalida.current) clearTimeout(respaldoSalida.current)
+      setEnviando(false)
+    }
+    const alMostrar = (e: PageTransitionEvent) => {
+      // persisted = la página vino de la caché del navegador ("atrás"/"adelante")
+      if (e.persisted) { saliendo.current = true; reactivar() }
+    }
+    const alCambiarVisibilidad = () => { if (document.visibilityState === 'visible') reactivar() }
+    window.addEventListener('pageshow', alMostrar)
+    window.addEventListener('focus', reactivar)
+    document.addEventListener('visibilitychange', alCambiarVisibilidad)
+    return () => {
+      window.removeEventListener('pageshow', alMostrar)
+      window.removeEventListener('focus', reactivar)
+      document.removeEventListener('visibilitychange', alCambiarVisibilidad)
+      if (respaldoSalida.current) clearTimeout(respaldoSalida.current)
+    }
+  }, [])
   const [datosConfirmados, setDatosConfirmados] = useState(false)
   const [metodoPago, setMetodoPago] = useState('mercadopago')
   const [direcciones, setDirecciones] = useState<Direccion[]>([])
@@ -56,12 +99,51 @@ export default function CheckoutPage() {
   // Si cambia algo que afecta el total, el aviso anterior del servidor ya no aplica
   useEffect(() => { setAvisoTotal(null); setErrorPago('') }, [items, codigoAplicado, form.ciudad, metodoPago, descuentoPrimeraCompra])
 
+  // ── Avance guardado (sessionStorage): se recupera al volver, p. ej. desde "Editar carrito" ──
+  // Va ANTES de la carga del perfil para que el perfil solo llene lo que esté vacío.
+  const borradorRestaurado = useRef(false)
+  const borrador = useRef<BorradorCheckout | null>(null)
+  useEffect(() => {
+    if (!mounted || borradorRestaurado.current) return
+    borradorRestaurado.current = true
+    const b = leerBorradorCheckout()
+    if (!b) return
+    borrador.current = b
+    setForm(prev => ({ ...prev, ...b.form }))
+    setMetodoPago(b.metodoPago)
+    setDireccionSeleccionada(b.direccionSeleccionada)
+    setUsarNuevaDireccion(b.usarNuevaDireccion)
+    setCompraComoInvitado(b.compraComoInvitado)
+    // El paso se recupera solo si los anteriores siguen completos.
+    // La casilla "confirmo mis datos" queda sin marcar para que los revise.
+    const f = b.form
+    const p1 = !!(f.nombre && f.apellido && f.email && f.telefono)
+    const p2 = !!(f.calle && f.numero && f.colonia && f.ciudad && f.estado && (f.cp || '').length === 5)
+    setPaso(b.paso >= 3 && p1 && p2 ? 3 : b.paso >= 2 && p1 ? 2 : 1)
+    // El código se vuelve a validar con el carrito actual (el monto depende del subtotal)
+    if (b.codigo) {
+      setCodigoInput(b.codigo)
+      validarCodigo({ codigo: b.codigo, email: f.email || '', ciudad: f.ciudad || '' })
+    }
+  }, [mounted])
+
+  useEffect(() => {
+    if (!mounted || !borradorRestaurado.current) return
+    const t = setTimeout(() => guardarBorradorCheckout({
+      form, paso, metodoPago, direccionSeleccionada, usarNuevaDireccion, compraComoInvitado,
+      codigo: codigoAplicado?.codigo ?? '',
+    }), 300)
+    return () => clearTimeout(t)
+  }, [mounted, form, paso, metodoPago, direccionSeleccionada, usarNuevaDireccion, compraComoInvitado, codigoAplicado])
+
   useEffect(() => {
     if (mounted && isLoggedIn() && user && !perfilCargado) {
       cargarDatosUsuario()
     }
   }, [mounted, user])
 
+  // Con sesión: los datos del perfil y la dirección principal solo llenan lo que esté VACÍO
+  // (lo que el cliente ya escribió y se recuperó del avance guardado tiene prioridad).
   async function cargarDatosUsuario() {
     if (!user) return
     try {
@@ -70,8 +152,8 @@ export default function CheckoutPage() {
         const perfil = await perfilRes.json()
         setForm(prev => ({
           ...prev,
-          nombre: perfil.nombre || '', apellido: perfil.apellido || '',
-          email: user.email || '', telefono: perfil.telefono || '',
+          nombre: prev.nombre || perfil.nombre || '', apellido: prev.apellido || perfil.apellido || '',
+          email: prev.email || user.email || '', telefono: prev.telefono || perfil.telefono || '',
         }))
         // Verificar si tiene descuento de primera compra
         if (!perfil.primera_compra_usada) {
@@ -82,11 +164,23 @@ export default function CheckoutPage() {
       const dirRes = await fetchCliente('/api/cuenta/direcciones')
       if (dirRes.ok) {
         const dirs = await dirRes.json()
+        const guardado = borrador.current
+        const habiaDireccion = !!guardado?.form?.calle
         if (Array.isArray(dirs) && dirs.length > 0) {
           setDirecciones(dirs)
-          const principal = dirs.find((d: Direccion) => d.es_principal) || dirs[0]
-          setDireccionSeleccionada(principal.id)
-          aplicarDireccion(principal)
+          if (!habiaDireccion) {
+            const principal = dirs.find((d: Direccion) => d.es_principal) || dirs[0]
+            setDireccionSeleccionada(principal.id)
+            aplicarDireccion(principal)
+          } else if (guardado?.direccionSeleccionada && dirs.some((d: Direccion) => d.id === guardado.direccionSeleccionada)) {
+            // Había elegido una dirección guardada: se deja seleccionada con los datos recuperados
+            setDireccionSeleccionada(guardado.direccionSeleccionada)
+            setUsarNuevaDireccion(false)
+          } else {
+            // Había escrito una dirección nueva: se muestra el formulario con lo que escribió
+            setDireccionSeleccionada(null)
+            setUsarNuevaDireccion(true)
+          }
         } else {
           setUsarNuevaDireccion(true)
         }
@@ -119,13 +213,15 @@ export default function CheckoutPage() {
     setForm(prev => ({ ...prev, calle: '', numero: '', interior: '', colonia: '', ciudad: '', estado: '', cp: '', referencia: '' }))
   }
 
-  async function validarCodigo() {
-    if (!codigoInput.trim()) return
+  // datos: al recuperar el avance guardado se pasan directo (el estado aún no se actualizó)
+  async function validarCodigo(datos?: { codigo: string; email: string; ciudad: string }) {
+    const codigo = (datos?.codigo ?? codigoInput).trim()
+    if (!codigo) return
     setValidandoCodigo(true); setCodigoError('')
     try {
       const res = await fetch('/api/validar-codigo', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ codigo: codigoInput, subtotal: total(), email: form.email, ciudad: form.ciudad }),
+        body: JSON.stringify({ codigo, subtotal: total(), email: datos?.email ?? form.email, ciudad: datos?.ciudad ?? form.ciudad }),
       })
       const data = await res.json()
       if (data.error) { setCodigoError(data.error) }
@@ -206,6 +302,8 @@ export default function CheckoutPage() {
           codigoDescuento: codigoAplicado?.codigo || null,
           totalEsperado,
           conSesion,
+          // Pedido de MP que este navegador dejó pendiente: se reutiliza si es el mismo, o se abandona
+          pedidoPrevio: leerPedidoPendiente(),
         }),
       })
       const data = await res.json().catch(() => ({}))
@@ -223,11 +321,14 @@ export default function CheckoutPage() {
         return
       }
       if (esTransferencia && data.pedidoId) {
-        window.location.href = '/transferencia/' + data.pedidoId + '?t=' + encodeURIComponent(data.token || '')
+        borrarPedidoPendiente()
+        borrarBorradorCheckout() // compra creada: ya no se necesita el avance guardado
+        irA('/transferencia/' + data.pedidoId + '?t=' + encodeURIComponent(data.token || ''))
         return
       }
       if (!esTransferencia && data.init_point) {
-        window.location.href = data.init_point
+        guardarPedidoPendiente(data.pedidoId, data.token)
+        irA(data.init_point)
         return
       }
       setErrorPago(data.error || (esTransferencia ? 'Error al crear el pedido. Intenta de nuevo.' : 'Error al conectar con Mercado Pago. Intenta de nuevo.'))
@@ -613,7 +714,10 @@ export default function CheckoutPage() {
           {/* Resumen */}
           <div style={{ position: 'sticky', top: '24px' }}>
             <div style={{ background: 'white', padding: '32px', borderRadius: '4px', border: '1px solid var(--line)' }}>
-              <h3 style={{ fontFamily: 'var(--font-italiana), serif', fontSize: '22px', marginBottom: '24px', color: 'var(--black)' }}>Tu pedido</h3>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '12px', marginBottom: '24px' }}>
+                <h3 style={{ fontFamily: 'var(--font-italiana), serif', fontSize: '22px', color: 'var(--black)', margin: 0 }}>Tu pedido</h3>
+                <Link href="/carrito" style={{ fontSize: '11px', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--gold)', textDecoration: 'none', whiteSpace: 'nowrap' }}>Editar carrito</Link>
+              </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '24px' }}>
                 {items.map((item) => (
                   <div key={item.id} style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
@@ -663,7 +767,7 @@ export default function CheckoutPage() {
                 <div>
                   <div style={{ display: 'flex', gap: '8px' }}>
                     <input value={codigoInput} onChange={e => { setCodigoInput(e.target.value.toUpperCase()); setCodigoError('') }} placeholder="Ej: BIENVENIDO10" onKeyDown={e => e.key === 'Enter' && validarCodigo()} style={{ flex: 1, padding: '10px 12px', border: '1px solid var(--line)', borderRadius: '2px', fontSize: '13px', fontFamily: 'monospace', textTransform: 'uppercase', letterSpacing: '0.1em', outline: 'none' }} />
-                    <button onClick={validarCodigo} disabled={validandoCodigo || !codigoInput.trim()} style={{ padding: '10px 16px', background: codigoInput.trim() ? 'var(--black)' : 'var(--line)', color: codigoInput.trim() ? 'white' : 'var(--text-muted)', border: 'none', borderRadius: '2px', fontSize: '12px', cursor: codigoInput.trim() ? 'pointer' : 'not-allowed', fontFamily: 'inherit', fontWeight: 600 }}>{validandoCodigo ? '...' : 'Aplicar'}</button>
+                    <button onClick={() => validarCodigo()} disabled={validandoCodigo || !codigoInput.trim()} style={{ padding: '10px 16px', background: codigoInput.trim() ? 'var(--black)' : 'var(--line)', color: codigoInput.trim() ? 'white' : 'var(--text-muted)', border: 'none', borderRadius: '2px', fontSize: '12px', cursor: codigoInput.trim() ? 'pointer' : 'not-allowed', fontFamily: 'inherit', fontWeight: 600 }}>{validandoCodigo ? '...' : 'Aplicar'}</button>
                   </div>
                   {codigoError && <p style={{ fontSize: '11px', color: '#D33', marginTop: '6px', marginBottom: 0 }}>{codigoError}</p>}
                   {descuentoPrimeraCompra && <p style={{ fontSize: '11px', color: '#888', marginTop: '6px', marginBottom: 0 }}>Nota: los códigos no son acumulables con el descuento de primera compra</p>}

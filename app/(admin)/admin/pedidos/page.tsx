@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { formatearNumeroPedido } from '@/lib/utils'
+import { TRANSICIONES_MANUALES } from '@/lib/estados-pedido'
 
 interface Pedido {
   id: string
@@ -31,6 +32,8 @@ const ESTADOS = [
   { value: 'cancelado',    label: 'Cancelado',    color: '#EF4444', bg: 'rgba(239,68,68,0.1)'  },
   { value: 'reembolso_parcial', label: 'Reembolso parcial', color: '#E08A2B', bg: 'rgba(224,138,43,0.1)' },
   { value: 'reembolsado',  label: 'Reembolsado',  color: '#A8A8A8', bg: 'rgba(168,168,168,0.1)'},
+  // Pedidos de MP que nunca se pagaron: ocultos en "Todos", con su propio filtro
+  { value: 'abandonado',   label: 'Abandonados',  color: '#B8B4AA', bg: 'rgba(184,180,170,0.12)'},
 ]
 
 function estadoInfo(estado: string) {
@@ -71,12 +74,13 @@ export default function PedidosPage() {
   useEffect(() => { cargar() }, [cargar])
 
   async function actualizarEstado(id: string, estado: string) {
-    await fetch('/api/admin/pedidos', {
+    const res = await fetch('/api/admin/pedidos', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id, estado }),
     })
-    mostrarMensaje(`Estado actualizado → ${estado}`)
+    const data = await res.json().catch(() => ({}))
+    mostrarMensaje(res.ok ? `Estado actualizado → ${estado}` : (data.error || 'No se pudo cambiar el estado'))
     cargar()
     window.dispatchEvent(new Event('vitalora:actualizar-badges'))
   }
@@ -98,6 +102,8 @@ export default function PedidosPage() {
   // Filtrado
   const lista = pedidos.filter(p => {
     if (filtroEstado !== 'todos' && p.estado !== filtroEstado) return false
+    // Los abandonados solo se ven con su filtro
+    if (filtroEstado === 'todos' && p.estado === 'abandonado') return false
     if (desde && p.created_at < desde) return false
     if (hasta) {
       const hastaFin = hasta + 'T23:59:59'
@@ -161,7 +167,7 @@ export default function PedidosPage() {
         <div style={{ display: 'flex', gap: '4px', background: '#fff', padding: '4px', borderRadius: '6px', border: '1px solid #E8E4DA', marginBottom: '16px', flexWrap: 'wrap' }}>
           <button onClick={() => setFiltroEstado('todos')} className={`ped-filtro${filtroEstado === 'todos' ? ' activo' : ''}`}>
             Todos
-            <span style={{ marginLeft: '6px', padding: '1px 6px', borderRadius: '100px', fontSize: '10px', background: filtroEstado === 'todos' ? 'rgba(201,169,97,0.2)' : 'rgba(0,0,0,0.06)', color: filtroEstado === 'todos' ? '#C9A961' : '#6B6B6B' }}>{pedidos.length}</span>
+            <span style={{ marginLeft: '6px', padding: '1px 6px', borderRadius: '100px', fontSize: '10px', background: filtroEstado === 'todos' ? 'rgba(201,169,97,0.2)' : 'rgba(0,0,0,0.06)', color: filtroEstado === 'todos' ? '#C9A961' : '#6B6B6B' }}>{pedidos.filter(p => p.estado !== 'abandonado').length}</span>
           </button>
           {ESTADOS.map(e => {
             const count = pedidos.filter(p => p.estado === e.value).length
@@ -275,10 +281,15 @@ export default function PedidosPage() {
 
                       {/* Estado */}
                       <td style={{ padding: '14px 16px', verticalAlign: 'middle' }}>
+                        {/* Solo el estado actual y a los que se puede pasar a mano */}
                         <select value={p.estado} onChange={e => actualizarEstado(p.id, e.target.value)}
                           className="ped-estado-select"
+                          disabled={!(TRANSICIONES_MANUALES[p.estado]?.length)}
+                          title={TRANSICIONES_MANUALES[p.estado]?.length ? undefined : 'Este estado no se cambia a mano'}
                           style={{ borderLeft: `3px solid ${info.color}` }}>
-                          {ESTADOS.map(e => <option key={e.value} value={e.value}>{e.label}</option>)}
+                          {ESTADOS.filter(e => e.value === p.estado || (TRANSICIONES_MANUALES[p.estado] ?? []).includes(e.value))
+                            .map(e => <option key={e.value} value={e.value}>{e.label}</option>)}
+                          {!ESTADOS.some(e => e.value === p.estado) && <option value={p.estado}>{p.estado}</option>}
                         </select>
                       </td>
 

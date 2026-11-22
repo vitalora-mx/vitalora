@@ -19,6 +19,7 @@ export async function GET(req: NextRequest) {
       pedido_items (producto_id, nombre, marca, precio, cantidad, variante_nombre)
     `)
     .eq('user_id', auth.cliente.id)
+    .neq('estado', 'abandonado') // pedidos que nunca se pagaron: no se le muestran al cliente
     .order('created_at', { ascending: false })
 
   if (error) return NextResponse.json({ error: 'No se pudieron cargar los pedidos' }, { status: 500 })

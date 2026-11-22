@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useCartStore } from '@/store/cartStore'
+import { borrarPedidoPendiente } from '@/lib/pedido-pendiente'
+import { borrarBorradorCheckout } from '@/lib/checkout-borrador'
 
 export default function GraciasPage() {
   const { vaciarCarrito } = useCartStore()
@@ -11,6 +13,8 @@ export default function GraciasPage() {
   useEffect(() => {
     setMounted(true)
     vaciarCarrito()
+    borrarPedidoPendiente()
+    borrarBorradorCheckout()
   }, [])
 
   if (!mounted) return null

@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import { Resend } from 'resend'
 import { formatearNumeroPedido } from '@/lib/utils'
 import { requireAdmin } from '@/lib/admin-auth'
+import { avisoYaEnviadoHTML } from '@/lib/correoPedido'
 
 const supabaseAdmin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 const resend = new Resend(process.env.RESEND_API_KEY)
@@ -89,6 +90,7 @@ export async function POST(req: NextRequest) {
         Si el rastreo no carga automáticamente, copia tu número de guía y pégalo en la página de ${pedido.paqueteria}. La información puede tardar unas horas en aparecer desde que se genera la guía.
       </p>
     </div>
+    ${avisoYaEnviadoHTML()}
   </div>
 
   <div style="background:#0E0E0E;padding:24px;text-align:center;">
