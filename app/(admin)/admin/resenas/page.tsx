@@ -47,7 +47,7 @@ export default function AdminResenasPage() {
     })
     const data = await res.json()
     if (data.error) setMensaje('Error: ' + data.error)
-    else { setMensaje(estado === 'aprobada' ? 'Reseña aprobada y publicada' : estado === 'rechazada' ? 'Reseña rechazada' : 'Reseña actualizada'); cargar() }
+    else { setMensaje(estado === 'aprobada' ? 'Reseña aprobada y publicada' : estado === 'rechazada' ? 'Reseña rechazada' : 'Reseña actualizada'); cargar(); window.dispatchEvent(new Event('vitalora:actualizar-badges')) }
     setTimeout(() => setMensaje(''), 3000)
   }
 

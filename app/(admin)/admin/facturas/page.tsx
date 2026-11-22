@@ -19,6 +19,11 @@ interface Factura {
   cp_fiscal: string | null
   uso_cfdi: string | null
   email_facturacion: string | null
+  factura_pdf_path: string | null
+  factura_xml_path: string | null
+  factura_enviada_at: string | null
+  factura_enviada_a: string | null
+  factura_envios: number | null
   vence: string
   diasRestantes: number
 }
@@ -57,34 +62,133 @@ function iniciales(nombre: string): string {
 }
 
 // ─── Modal detalle de factura ─────────────────────────────────────────────────
-function ModalDetalle({ factura, onClose, onCambiarEstado }: {
+function fechaHora(iso: string): string {
+  return new Date(iso).toLocaleString('es-MX', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+}
+
+function ModalDetalle({ factura, onClose, onActualizado }: {
   factura: Factura
   onClose: () => void
-  onCambiarEstado: (id: number, estado: string) => Promise<void>
+  onActualizado: () => Promise<void>
 }) {
-  const [guardando, setGuardando] = useState(false)
   const nombreCliente = [factura.nombre, factura.apellido].filter(Boolean).join(' ') || 'Cliente'
-  const emailCliente = factura.email_facturacion ?? factura.email ?? '—'
   const esPendiente = !factura.factura_estado || factura.factura_estado === 'pendiente'
-  const fmt = (n: number) => new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', minimumFractionDigits: 0 }).format(n)
+  const enviada = !!factura.factura_enviada_at
+  const tieneArchivos = !!factura.factura_pdf_path && !!factura.factura_xml_path
 
-  const marcarEmitida = async () => {
-    setGuardando(true)
-    await onCambiarEstado(factura.id, 'emitida')
-    setGuardando(false)
-    onClose()
+  const [error, setError] = useState('')
+  const [aviso, setAviso] = useState('')
+  const [subiendo, setSubiendo] = useState<'pdf' | 'xml' | null>(null)
+  const [enviando, setEnviando] = useState(false)
+  const [guardando, setGuardando] = useState(false)
+  const [editandoCorreo, setEditandoCorreo] = useState(false)
+  const [correo, setCorreo] = useState(factura.email_facturacion ?? factura.email ?? '')
+  const ocupado = !!subiendo || enviando || guardando
+
+  async function subir(tipo: 'pdf' | 'xml', file: File) {
+    setError(''); setAviso(''); setSubiendo(tipo)
+    try {
+      const form = new FormData()
+      form.append('pedidoId', String(factura.id))
+      form.append('tipo', tipo)
+      form.append('file', file)
+      const res = await fetch('/api/admin/facturas/archivo', { method: 'POST', body: form })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) setError(data.error || 'No se pudo subir el archivo')
+      else { if (data.aviso) setAviso(data.aviso); await onActualizado() }
+    } catch { setError('No se pudo subir el archivo') }
+    setSubiendo(null)
   }
 
-  const marcarPendiente = async () => {
-    setGuardando(true)
-    await onCambiarEstado(factura.id, 'pendiente')
+  async function ver(tipo: 'pdf' | 'xml') {
+    setError('')
+    const ventana = window.open('', '_blank')
+    const res = await fetch(`/api/admin/facturas/archivo?pedidoId=${factura.id}&tipo=${tipo}`)
+    const data = await res.json().catch(() => ({}))
+    if (res.ok && data.url && ventana) ventana.location.href = data.url
+    else { ventana?.close(); setError(data.error || 'No se pudo abrir el archivo') }
+  }
+
+  async function enviar(reenviar: boolean) {
+    if (enviando) return
+    const destino = factura.email_facturacion ?? ''
+    if (reenviar && !confirm(`¿Reenviar la factura a ${destino}?`)) return
+    setError(''); setAviso(''); setEnviando(true)
+    try {
+      const res = await fetch('/api/admin/facturas/enviar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pedidoId: factura.id, reenviar }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) setError(data.error || 'No se pudo enviar la factura')
+      else {
+        setAviso(reenviar ? `Factura reenviada a ${data.enviadaA}` : `Factura enviada a ${data.enviadaA}`)
+        await onActualizado()
+        window.dispatchEvent(new Event('vitalora:actualizar-badges'))
+      }
+    } catch { setError('No se pudo enviar la factura') }
+    setEnviando(false)
+  }
+
+  async function guardarCorreo() {
+    const limpio = correo.trim().toLowerCase()
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(limpio) || limpio.length > 200) { setError('El correo no es válido'); return }
+    setError(''); setGuardando(true)
+    const res = await fetch('/api/admin/facturas', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pedidoId: factura.id, emailFacturacion: limpio }),
+    })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) setError(data.error || 'No se pudo guardar el correo')
+    else { setEditandoCorreo(false); setAviso('Correo de envío actualizado'); await onActualizado() }
     setGuardando(false)
-    onClose()
+  }
+
+  async function regresarAPendiente() {
+    if (!confirm('¿Regresar a pendiente? Podrás reemplazar el PDF y el XML y enviarla de nuevo.')) return
+    setError(''); setGuardando(true)
+    const res = await fetch('/api/admin/facturas', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pedidoId: factura.id, estado: 'pendiente' }),
+    })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) setError(data.error || 'No se pudo regresar a pendiente')
+    else { await onActualizado(); window.dispatchEvent(new Event('vitalora:actualizar-badges')) }
+    setGuardando(false)
+  }
+
+  const etiqueta: React.CSSProperties = { fontSize: '12px', color: '#6B6B6B', flexShrink: 0, marginRight: '16px' }
+  const botonChico: React.CSSProperties = { padding: '5px 10px', border: '1px solid #E8E4DA', borderRadius: '5px', background: '#fff', fontSize: '12px', cursor: 'pointer', color: '#2C2C2C', fontFamily: 'inherit' }
+
+  // Se llama como función (no como <Componente/>) para que el input no se vuelva a montar en cada render
+  function archivo(tipo: 'pdf' | 'xml') {
+    const ruta = tipo === 'pdf' ? factura.factura_pdf_path : factura.factura_xml_path
+    const nombre = `${formatearNumeroPedido(factura.id)}.${tipo}`
+    return (
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', border: `1px ${ruta ? 'solid' : 'dashed'} ${ruta ? 'rgba(168,181,160,0.5)' : '#E8E4DA'}`, borderRadius: '6px', background: ruta ? 'rgba(168,181,160,0.08)' : '#FAFAF7' }}>
+        <span style={{ fontSize: '13px', color: ruta ? '#3A5A3A' : '#A8A8A8', fontWeight: 500 }}>
+          {ruta ? `✓ ${nombre}` : `${tipo.toUpperCase()} sin adjuntar`}
+        </span>
+        <span style={{ display: 'flex', gap: '6px' }}>
+          {ruta && <button style={botonChico} onClick={() => ver(tipo)}>Ver</button>}
+          {!enviada && (
+            <label style={{ ...botonChico, opacity: ocupado ? 0.5 : 1, cursor: ocupado ? 'not-allowed' : 'pointer' }}>
+              {subiendo === tipo ? 'Subiendo…' : ruta ? 'Reemplazar' : `Subir ${tipo.toUpperCase()}`}
+              <input type="file" accept={tipo === 'pdf' ? '.pdf,application/pdf' : '.xml,application/xml,text/xml'} disabled={ocupado} style={{ display: 'none' }}
+                onChange={e => { const f = e.target.files?.[0]; e.target.value = ''; if (f) subir(tipo, f) }} />
+            </label>
+          )}
+        </span>
+      </div>
+    )
   }
 
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(14,14,14,0.55)', backdropFilter: 'blur(4px)' }}>
-      <div style={{ background: '#fff', borderRadius: '12px', width: '100%', maxWidth: '500px', margin: '0 16px', overflow: 'hidden', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
+      <div style={{ background: '#fff', borderRadius: '12px', width: '100%', maxWidth: '520px', margin: '0 16px', overflow: 'hidden', boxShadow: '0 20px 60px rgba(0,0,0,0.2)', maxHeight: '92vh', overflowY: 'auto' }}>
 
         {/* Header */}
         <div style={{ padding: '24px 24px 20px', borderBottom: '1px solid #E8E4DA', background: '#FAFAF7' }}>
@@ -94,19 +198,19 @@ function ModalDetalle({ factura, onClose, onCambiarEstado }: {
               <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '22px', fontWeight: 600, color: '#0E0E0E' }}>
                 Pedido {formatearNumeroPedido(factura.id)}
               </h2>
-              <p style={{ fontSize: '12px', color: '#A8A8A8', marginTop: '4px' }}>{fechaRelativa(factura.created_at)}</p>
+              <p style={{ fontSize: '12px', color: '#A8A8A8', marginTop: '4px' }}>Solicitada {fechaRelativa(factura.factura_solicitada_at ?? factura.created_at).toLowerCase()}</p>
             </div>
             <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#A8A8A8', fontSize: '20px', padding: '2px' }}>✕</button>
           </div>
         </div>
 
         {/* Datos fiscales */}
-        <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: '0' }}>
+        <div style={{ padding: '20px 24px 8px' }}>
           <p style={{ fontSize: '10px', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#A8B5A0', marginBottom: '14px', fontWeight: 600 }}>Datos fiscales del cliente</p>
 
           {[
             { label: 'Cliente', valor: nombreCliente },
-            { label: 'Email', valor: emailCliente },
+            { label: 'Correo del pedido', valor: factura.email ?? '—' },
             { label: 'RFC', valor: factura.rfc ?? '—', mono: true },
             { label: 'Razón social', valor: factura.razon_social ?? '—' },
             { label: 'Uso CFDI', valor: factura.uso_cfdi ?? '—' },
@@ -114,8 +218,8 @@ function ModalDetalle({ factura, onClose, onCambiarEstado }: {
             { label: 'Código postal', valor: factura.cp_fiscal ?? '—' },
             { label: 'Total a facturar', valor: new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(factura.total), destacado: true },
           ].map((f, i) => (
-            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 0', borderBottom: i < 7 ? '1px solid #F0EDE5' : 'none' }}>
-              <span style={{ fontSize: '12px', color: '#6B6B6B', flexShrink: 0, marginRight: '16px' }}>{f.label}</span>
+            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 0', borderBottom: '1px solid #F0EDE5' }}>
+              <span style={etiqueta}>{f.label}</span>
               <span style={{
                 fontSize: f.destacado ? '16px' : '13px',
                 fontFamily: f.mono ? 'monospace' : f.destacado ? "'Cormorant Garamond', serif" : 'inherit',
@@ -125,30 +229,88 @@ function ModalDetalle({ factura, onClose, onCambiarEstado }: {
               }}>{f.valor}</span>
             </div>
           ))}
+
+          {/* Correo de envío (editable) */}
+          <div style={{ padding: '9px 0' }}>
+            {editandoCorreo ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <span style={etiqueta}>Correo de envío</span>
+                <input type="email" value={correo} onChange={e => setCorreo(e.target.value)} maxLength={200} autoFocus
+                  style={{ padding: '8px 10px', border: '1px solid #E8E4DA', borderRadius: '6px', fontSize: '13px', fontFamily: 'inherit' }} />
+                <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
+                  <button style={botonChico} disabled={guardando} onClick={() => { setEditandoCorreo(false); setCorreo(factura.email_facturacion ?? ''); setError('') }}>Cancelar</button>
+                  <button style={{ ...botonChico, background: '#0E0E0E', color: '#C9A961', border: 'none' }} disabled={guardando} onClick={guardarCorreo}>{guardando ? 'Guardando…' : 'Guardar'}</button>
+                </div>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={etiqueta}>Correo de envío</span>
+                <span style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <span style={{ fontSize: '13px', fontWeight: 500, color: '#0E0E0E' }}>{factura.email_facturacion ?? '—'}</span>
+                  <button style={botonChico} disabled={ocupado} onClick={() => { setCorreo(factura.email_facturacion ?? ''); setEditandoCorreo(true) }}>Editar</button>
+                </span>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Alerta vencimiento */}
         {esPendiente && factura.diasRestantes <= 5 && factura.diasRestantes >= 0 && (
-          <div style={{ margin: '0 24px', padding: '10px 14px', background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.3)', borderRadius: '6px', fontSize: '12px', color: '#D97706', display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <div style={{ margin: '0 24px 12px', padding: '10px 14px', background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.3)', borderRadius: '6px', fontSize: '12px', color: '#D97706', display: 'flex', gap: '8px', alignItems: 'center' }}>
             <span>⚠️</span>
             <span>Esta factura {factura.diasRestantes === 0 ? 'vence hoy' : factura.diasRestantes === 1 ? 'vence mañana' : `vence en ${factura.diasRestantes} días`}. El SAT permite hasta el último día del mes siguiente a la compra.</span>
           </div>
         )}
 
+        {/* Archivos y envío */}
+        <div style={{ padding: '8px 24px 0' }}>
+          <p style={{ fontSize: '10px', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#A8B5A0', marginBottom: '10px', fontWeight: 600 }}>Factura</p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {archivo('pdf')}
+            {archivo('xml')}
+          </div>
+          {enviada && (
+            <p style={{ fontSize: '11px', color: '#A8A8A8', marginTop: '8px' }}>Los archivos quedan bloqueados después de enviar. Usa “Regresar a pendiente” para corregirlos.</p>
+          )}
+
+          {error && <div style={{ marginTop: '12px', padding: '10px 12px', background: '#FFF5F5', border: '1px solid #F0C0C0', borderRadius: '6px', fontSize: '12px', color: '#C0392B' }}>{error}</div>}
+          {aviso && <div style={{ marginTop: '12px', padding: '10px 12px', background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.3)', borderRadius: '6px', fontSize: '12px', color: '#8A5A00' }}>{aviso}</div>}
+
+          <div style={{ marginTop: '16px' }}>
+            {enviada ? (
+              <button disabled style={{ width: '100%', padding: '12px', border: 'none', borderRadius: '6px', background: '#6A8A62', color: '#fff', fontSize: '13px', fontFamily: 'inherit', fontWeight: 600, cursor: 'default' }}>
+                ✓ Enviada
+              </button>
+            ) : (
+              <button onClick={() => enviar(false)} disabled={!tieneArchivos || ocupado}
+                style={{ width: '100%', padding: '12px', border: 'none', borderRadius: '6px', background: !tieneArchivos || ocupado ? '#A8A8A8' : '#0E0E0E', color: '#C9A961', fontSize: '13px', fontFamily: 'inherit', fontWeight: 600, cursor: !tieneArchivos || ocupado ? 'not-allowed' : 'pointer' }}>
+                {enviando ? 'Enviando…' : tieneArchivos ? 'Enviar factura' : 'Adjunta el PDF y el XML para enviar'}
+              </button>
+            )}
+            {enviada && (
+              <div style={{ textAlign: 'center', marginTop: '8px' }}>
+                <p style={{ fontSize: '12px', color: '#6B6B6B' }}>
+                  Enviada el {fechaHora(factura.factura_enviada_at!)} a {factura.factura_enviada_a ?? factura.email_facturacion}
+                  {(factura.factura_envios ?? 0) > 1 ? ` · ${factura.factura_envios} envíos` : ''}
+                </p>
+                <button onClick={() => enviar(true)} disabled={ocupado}
+                  style={{ marginTop: '4px', background: 'none', border: 'none', padding: 0, fontSize: '12px', color: ocupado ? '#A8A8A8' : '#C9A961', textDecoration: 'underline', cursor: ocupado ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}>
+                  {enviando ? 'Reenviando…' : 'Reenviar'}
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
         {/* Acciones */}
         <div style={{ padding: '20px 24px 24px', display: 'flex', gap: '8px' }}>
-          <button onClick={onClose}
+          <button onClick={onClose} disabled={enviando}
             style={{ flex: 1, padding: '10px', border: '1px solid #E8E4DA', borderRadius: '6px', background: '#FAFAF7', fontSize: '13px', cursor: 'pointer', color: '#6B6B6B', fontFamily: 'inherit', fontWeight: 500 }}>
             Cerrar
           </button>
-          {esPendiente ? (
-            <button onClick={marcarEmitida} disabled={guardando}
-              style={{ flex: 2, padding: '10px', border: 'none', borderRadius: '6px', background: guardando ? '#A8A8A8' : '#0E0E0E', color: '#C9A961', fontSize: '13px', cursor: guardando ? 'not-allowed' : 'pointer', fontFamily: 'inherit', fontWeight: 600 }}>
-              {guardando ? 'Guardando…' : '✓ Marcar como emitida'}
-            </button>
-          ) : (
-            <button onClick={marcarPendiente} disabled={guardando}
-              style={{ flex: 2, padding: '10px', border: '1px solid #E8E4DA', borderRadius: '6px', background: '#fff', color: '#6B6B6B', fontSize: '13px', cursor: guardando ? 'not-allowed' : 'pointer', fontFamily: 'inherit', fontWeight: 500 }}>
+          {(enviada || !esPendiente) && (
+            <button onClick={regresarAPendiente} disabled={ocupado}
+              style={{ flex: 2, padding: '10px', border: '1px solid #E8E4DA', borderRadius: '6px', background: '#fff', color: '#6B6B6B', fontSize: '13px', cursor: ocupado ? 'not-allowed' : 'pointer', fontFamily: 'inherit', fontWeight: 500 }}>
               {guardando ? 'Guardando…' : 'Regresar a pendiente'}
             </button>
           )}
@@ -165,7 +327,7 @@ export default function FacturasPage() {
   const [filtro, setFiltro] = useState<Filtro>('pendientes')
   const [busqueda, setBusqueda] = useState('')
   const [cargando, setCargando] = useState(true)
-  const [detalle, setDetalle] = useState<Factura | null>(null)
+  const [detalleId, setDetalleId] = useState<number | null>(null)
 
   const cargar = useCallback(async () => {
     setCargando(true)
@@ -180,14 +342,17 @@ export default function FacturasPage() {
 
   useEffect(() => { cargar() }, [cargar])
 
-  const cambiarEstado = async (pedidoId: number, estado: string) => {
-    await fetch('/api/admin/facturas', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ pedidoId, estado }),
-    })
-    await cargar()
-  }
+  const recargar = useCallback(async () => {
+    try {
+      const res = await fetch('/api/admin/facturas')
+      const data = await res.json()
+      setFacturas(data.facturas ?? [])
+      setStats(data.stats ?? null)
+    } catch { /* silencioso */ }
+  }, [])
+
+  // El modal lee siempre la versión más reciente de la solicitud
+  const detalle = detalleId != null ? facturas.find(f => f.id === detalleId) ?? null : null
 
   const lista = facturas.filter(f => {
     const esPendiente = !f.factura_estado || f.factura_estado === 'pendiente'
@@ -309,7 +474,7 @@ export default function FacturasPage() {
                   const init = iniciales(nombreCliente)
 
                   return (
-                    <tr key={f.id} className="fac-row" onClick={() => setDetalle(f)}
+                    <tr key={f.id} className="fac-row" onClick={() => setDetalleId(f.id)}
                       style={{ borderBottom: '1px solid #F0EDE5', transition: 'background 0.15s' }}>
 
                       {/* Pedido */}
@@ -346,7 +511,7 @@ export default function FacturasPage() {
 
                       {/* Solicitada */}
                       <td style={{ padding: '14px 16px', verticalAlign: 'middle', fontSize: '12px', color: '#6B6B6B', whiteSpace: 'nowrap' }}>
-                        {fechaRelativa(f.created_at)}
+                        {fechaRelativa(f.factura_solicitada_at ?? f.created_at)}
                       </td>
 
                       {/* Vence */}
@@ -361,7 +526,12 @@ export default function FacturasPage() {
 
                       {/* Estado */}
                       <td style={{ padding: '14px 16px', verticalAlign: 'middle' }}>
-                        {esPendiente ? (
+                        {esPendiente && f.factura_pdf_path && f.factura_xml_path ? (
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '4px 10px', borderRadius: '100px', fontSize: '11px', fontWeight: 500, background: 'rgba(91,124,153,0.1)', color: '#5B7C99' }}>
+                            <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#5B7C99' }} />
+                            Lista para enviar
+                          </span>
+                        ) : esPendiente ? (
                           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '4px 10px', borderRadius: '100px', fontSize: '11px', fontWeight: 500, background: 'rgba(245,158,11,0.1)', color: '#D97706' }}>
                             <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#F59E0B' }} />
                             Pendiente
@@ -369,7 +539,7 @@ export default function FacturasPage() {
                         ) : (
                           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '4px 10px', borderRadius: '100px', fontSize: '11px', fontWeight: 500, background: 'rgba(168,181,160,0.18)', color: '#6A8A62' }}>
                             <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#8A9882' }} />
-                            Emitida
+                            Enviada
                           </span>
                         )}
                       </td>
@@ -377,9 +547,9 @@ export default function FacturasPage() {
                       {/* Acción */}
                       <td style={{ padding: '14px 16px', verticalAlign: 'middle' }} onClick={e => e.stopPropagation()}>
                         {esPendiente ? (
-                          <button className="fac-btn-primary" onClick={() => setDetalle(f)}>Ver datos</button>
+                          <button className="fac-btn-primary" onClick={() => setDetalleId(f.id)}>Ver datos</button>
                         ) : (
-                          <button className="fac-btn" onClick={() => setDetalle(f)}>Ver</button>
+                          <button className="fac-btn" onClick={() => setDetalleId(f.id)}>Ver</button>
                         )}
                       </td>
                     </tr>
@@ -400,8 +570,8 @@ export default function FacturasPage() {
       {detalle && (
         <ModalDetalle
           factura={detalle}
-          onClose={() => setDetalle(null)}
-          onCambiarEstado={cambiarEstado}
+          onClose={() => setDetalleId(null)}
+          onActualizado={recargar}
         />
       )}
     </>

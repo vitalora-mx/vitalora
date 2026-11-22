@@ -37,7 +37,7 @@ export default function FacturacionPage() {
   const [pedidoInfo, setPedidoInfo] = useState<{ id: number; total: number; forma_pago: string; fuera_de_mes: boolean } | null>(null)
 
   // Paso 2 (datos fiscales)
-  const [fiscal, setFiscal] = useState({ rfc: '', razonSocial: '', cpFiscal: '', regimenFiscal: '', usoCfdi: '' })
+  const [fiscal, setFiscal] = useState({ rfc: '', razonSocial: '', cpFiscal: '', regimenFiscal: '', usoCfdi: '', emailFactura: '' })
   const [enviando, setEnviando] = useState(false)
   const [enviado, setEnviado] = useState(false)
 
@@ -64,6 +64,8 @@ export default function FacturacionPage() {
       const data = await res.json()
       if (res.ok && data.ok) {
         setPedidoInfo(data.pedido)
+        // Prellenar el correo para recibir la factura con el del pedido (editable)
+        setFiscal(f => ({ ...f, emailFactura: f.emailFactura || email.trim() }))
         setPaso(2)
       } else {
         setError(data.error || 'No pudimos verificar tu pedido.')
@@ -76,8 +78,12 @@ export default function FacturacionPage() {
 
   async function enviarSolicitud() {
     setError('')
-    if (!fiscal.rfc.trim() || !fiscal.razonSocial.trim() || !fiscal.cpFiscal.trim() || !fiscal.regimenFiscal || !fiscal.usoCfdi) {
+    if (!fiscal.rfc.trim() || !fiscal.razonSocial.trim() || !fiscal.cpFiscal.trim() || !fiscal.regimenFiscal || !fiscal.usoCfdi || !fiscal.emailFactura.trim()) {
       setError('Por favor llena todos los datos fiscales.')
+      return
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(fiscal.emailFactura.trim())) {
+      setError('Revisa el correo para recibir la factura.')
       return
     }
     setEnviando(true)
@@ -96,6 +102,7 @@ export default function FacturacionPage() {
           cpFiscal: fiscal.cpFiscal,
           regimenFiscal: fiscal.regimenFiscal,
           usoCfdi: fiscal.usoCfdi,
+          emailFactura: fiscal.emailFactura.trim(),
         }),
       })
       if (res.ok) {
@@ -200,6 +207,11 @@ export default function FacturacionPage() {
                     <option value="">Selecciona...</option>
                     {USOS_CFDI.map(u => <option key={u.codigo} value={`${u.codigo} — ${u.descripcion}`}>{u.codigo} — {u.descripcion}</option>)}
                   </select>
+                </div>
+                <div style={{ marginBottom: '24px' }}>
+                  <label style={labelStyle}>Correo para recibir la factura *</label>
+                  <input type="email" value={fiscal.emailFactura} onChange={e => setFiscal({ ...fiscal, emailFactura: e.target.value })} placeholder="correo@ejemplo.com" maxLength={200} style={inputStyle} />
+                  <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '6px' }}>Te enviaremos aquí el PDF y el XML de tu factura.</p>
                 </div>
 
                 {error && <div style={{ marginBottom: '20px', padding: '12px 16px', background: '#FFF5F5', border: '1px solid #F0C0C0', borderRadius: '8px', fontSize: '13px', color: '#C0392B' }}>{error}</div>}

@@ -82,12 +82,18 @@ function Sidebar({ usuario, onNavigate, onLogout }: { usuario: AdminUser; onNavi
   const [badges, setBadges] = useState<{ pedidos: number; resenas: number; facturas: number }>({ pedidos: 0, resenas: 0, facturas: 0 })
 
   useEffect(() => {
-    fetch('/api/admin/dashboard')
-      .then(r => r.json())
-      .then(d => {
-        if (d.alertas) setBadges({ pedidos: d.alertas.esperandoGuia || 0, resenas: d.alertas.resenasPendientes || 0, facturas: d.alertas.facturasPendientes || 0 })
-      })
-      .catch(() => {})
+    const cargarBadges = () => {
+      fetch('/api/admin/dashboard')
+        .then(r => r.json())
+        .then(d => {
+          if (d.alertas) setBadges({ pedidos: d.alertas.esperandoGuia || 0, resenas: d.alertas.resenasPendientes || 0, facturas: d.alertas.facturasPendientes || 0 })
+        })
+        .catch(() => {})
+    }
+    cargarBadges()
+    // Las páginas avisan cuando cambian algo que afecta los contadores (sin cambiar de URL)
+    window.addEventListener('vitalora:actualizar-badges', cargarBadges)
+    return () => window.removeEventListener('vitalora:actualizar-badges', cargarBadges)
   }, [pathname])
 
   function esActivo(href: string) {

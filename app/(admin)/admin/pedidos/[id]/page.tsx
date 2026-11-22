@@ -43,6 +43,9 @@ interface Pedido {
   factura_uso_cfdi: string | null
   factura_regimen: string | null
   factura_cp: string | null
+  factura_pdf_path: string | null
+  factura_xml_path: string | null
+  factura_enviada_at: string | null
   factura_estado: string | null
   forma_pago: string | null
   created_at: string
@@ -167,18 +170,6 @@ export default function PedidoDetallePage() {
       setPaqueteriaInput(pedido.paqueteria || '')
     }
     setMostrarGuiaInput(true)
-  }
-
-  async function subirFactura(file: File) {
-    const formData = new FormData()
-    formData.append('file', file)
-    formData.append('pedido_id', String(params.id))
-    const res = await fetch('/api/admin/pedidos/factura', { method: 'POST', body: formData })
-    const data = await res.json()
-    if (data.url) {
-      mostrarMsg('Factura subida correctamente')
-      cargar()
-    }
   }
 
   async function reembolsar() {
@@ -443,11 +434,6 @@ export default function PedidoDetallePage() {
                     </div>
                   ))}
                 </div>
-                {pedido.factura_url && (
-                  <div style={{ padding: '12px 20px', borderTop: '1px solid #F0EDE5' }}>
-                    <a href={pedido.factura_url} target="_blank" style={{ fontSize: '13px', color: '#C9A961', textDecoration: 'none', fontWeight: 500 }}>📄 Ver factura →</a>
-                  </div>
-                )}
               </div>
             )}
 
@@ -588,22 +574,26 @@ export default function PedidoDetallePage() {
               </div>
             </div>
 
-            {/* Factura */}
+            {/* Factura: se gestiona en Admin › Facturas (bucket privado) */}
             <div style={{ background: '#fff', border: '1px solid #E8E4DA', borderRadius: '8px', overflow: 'hidden' }}>
               <div style={{ padding: '14px 18px', borderBottom: '1px solid #E8E4DA', background: '#FAFAF7' }}>
                 <p style={{ fontSize: '10px', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#6B6B6B', fontWeight: 600 }}>Factura</p>
               </div>
               <div style={{ padding: '16px 18px' }}>
-                {pedido.factura_url ? (
-                  <a href={pedido.factura_url} target="_blank"
-                    style={{ display: 'block', padding: '10px 16px', background: 'rgba(168,181,160,0.12)', border: '1px solid rgba(168,181,160,0.3)', borderRadius: '6px', fontSize: '13px', color: '#6A8A62', textDecoration: 'none', fontWeight: 500, textAlign: 'center' }}>
-                    📄 Ver factura →
-                  </a>
+                {!pedido.requiere_factura ? (
+                  <p style={{ fontSize: '12px', color: '#A8A8A8', textAlign: 'center' }}>El cliente no ha solicitado factura</p>
                 ) : (
-                  <label style={{ display: 'block', padding: '10px 16px', background: '#FAFAF7', border: '1px dashed #E8E4DA', borderRadius: '6px', fontSize: '12px', color: '#A8A8A8', cursor: 'pointer', textAlign: 'center' }}>
-                    📄 Subir PDF o XML
-                    <input type="file" accept=".pdf,.xml" style={{ display: 'none' }} onChange={e => { if (e.target.files?.[0]) subirFactura(e.target.files[0]) }} />
-                  </label>
+                  <>
+                    <p style={{ fontSize: '13px', fontWeight: 500, textAlign: 'center', marginBottom: '10px', color: pedido.factura_enviada_at ? '#6A8A62' : (pedido.factura_pdf_path && pedido.factura_xml_path) ? '#5B7C99' : '#D97706' }}>
+                      {pedido.factura_enviada_at
+                        ? `✓ Enviada el ${new Date(pedido.factura_enviada_at).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' })}`
+                        : (pedido.factura_pdf_path && pedido.factura_xml_path) ? 'Lista para enviar' : '⏳ Pendiente de emitir'}
+                    </p>
+                    <a href="/admin/facturas"
+                      style={{ display: 'block', padding: '10px 16px', background: '#FAFAF7', border: '1px solid #E8E4DA', borderRadius: '6px', fontSize: '12px', color: '#C9A961', textDecoration: 'none', fontWeight: 500, textAlign: 'center' }}>
+                      Gestionar en Facturas →
+                    </a>
+                  </>
                 )}
               </div>
             </div>

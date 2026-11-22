@@ -78,6 +78,7 @@ export default function PedidosPage() {
     })
     mostrarMensaje(`Estado actualizado → ${estado}`)
     cargar()
+    window.dispatchEvent(new Event('vitalora:actualizar-badges'))
   }
 
   function mostrarMensaje(msg: string) {

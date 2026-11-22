@@ -28,6 +28,7 @@ export async function GET(
         factura_url,
         requiere_factura, factura_rfc:rfc, factura_razon_social:razon_social, factura_uso_cfdi:uso_cfdi,
         factura_regimen:regimen_fiscal, factura_cp:cp_fiscal, factura_solicitada_at, factura_estado,
+        factura_pdf_path, factura_xml_path, factura_enviada_at,
         user_id,
         pedido_items (
           producto_id, variante_id, nombre, marca, precio, cantidad, variante_nombre

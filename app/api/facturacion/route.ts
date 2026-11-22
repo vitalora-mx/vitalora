@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { Resend } from 'resend'
 import { createServiceClient } from '@/lib/supabase/service'
 import { formatearNumeroPedido } from '@/lib/utils'
+import { esCorreoValido } from '@/lib/facturas'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
@@ -81,6 +82,7 @@ export async function POST(req: NextRequest) {
       const cpFiscal = String(body.cpFiscal ?? '').trim()
       const regimenFiscal = String(body.regimenFiscal ?? '').trim().slice(0, 200)
       const usoCfdi = String(body.usoCfdi ?? '').trim().slice(0, 200)
+      const emailFactura = String(body.emailFactura ?? '').trim().toLowerCase()
 
       if (!rfc || !razonSocial || !cpFiscal || !regimenFiscal || !usoCfdi) {
         return NextResponse.json({ error: 'Faltan datos fiscales obligatorios.' }, { status: 400 })
@@ -90,6 +92,9 @@ export async function POST(req: NextRequest) {
       }
       if (!/^\d{5}$/.test(cpFiscal)) {
         return NextResponse.json({ error: 'El código postal fiscal debe tener 5 dígitos.' }, { status: 400 })
+      }
+      if (!esCorreoValido(emailFactura)) {
+        return NextResponse.json({ error: 'Revisa el correo para recibir la factura.' }, { status: 400 })
       }
 
       // Volver a verificar el pedido en el servidor (no confiar en el paso "buscar")
@@ -113,7 +118,7 @@ export async function POST(req: NextRequest) {
           regimen_fiscal: regimenFiscal,
           cp_fiscal: cpFiscal,
           uso_cfdi: usoCfdi,
-          email_facturacion: pedido.email,
+          email_facturacion: emailFactura,
         })
         .eq('id', pedido.id)
       if (errGuardar) {
@@ -139,6 +144,7 @@ export async function POST(req: NextRequest) {
         <p style="font-size:14px;color:#333;line-height:1.8;margin:0;">
           <strong>No. de Pedido:</strong> ${numero}<br>
           <strong>Correo del pedido:</strong> ${escapar(pedido.email)}<br>
+          <strong>Correo para la factura:</strong> ${escapar(emailFactura)}<br>
           <strong>Total:</strong> $${Number(pedido.total).toLocaleString()} MXN<br>
           <strong>Forma de pago:</strong> ${escapar(pedido.forma_pago || 'No especificada')}
         </p>
@@ -154,7 +160,7 @@ export async function POST(req: NextRequest) {
         </p>
       </div>
       <div style="padding:12px 16px;background:#E8F0E8;border-radius:6px;font-size:13px;color:#3A3;">
-        Emitir la factura a estos datos y enviarla al correo: <strong>${escapar(pedido.email)}</strong>
+        Emitir la factura a estos datos y enviarla al correo: <strong>${escapar(emailFactura)}</strong>
       </div>
     </div>
     <div style="background:#0E0E0E;padding:20px;text-align:center;">

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { requireAdmin } from '@/lib/admin-auth'
+import { esCorreoValido } from '@/lib/facturas'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -30,7 +31,12 @@ export async function GET(req: Request) {
         regimen_fiscal,
         cp_fiscal,
         uso_cfdi,
-        email_facturacion
+        email_facturacion,
+        factura_pdf_path,
+        factura_xml_path,
+        factura_enviada_at,
+        factura_enviada_a,
+        factura_envios
       `)
       .eq('requiere_factura', true)
       .order('factura_solicitada_at', { ascending: false, nullsFirst: false })
@@ -71,28 +77,47 @@ export async function PATCH(request: Request) {
 
   try {
     const body = await request.json()
-    const { pedidoId, estado } = body
-
-    if (!pedidoId || !estado) {
+    const pedidoId = Number(body?.pedidoId)
+    if (!Number.isInteger(pedidoId) || pedidoId <= 0) {
       return NextResponse.json({ error: 'Datos incompletos' }, { status: 400 })
     }
-    if (!['pendiente', 'emitida'].includes(estado)) {
-      return NextResponse.json({ error: 'Estado de factura no válido' }, { status: 400 })
+
+    // A) Editar el correo de envío (se usa en "Enviar" y en "Reenviar")
+    if (body.emailFacturacion !== undefined) {
+      const correo = String(body.emailFacturacion || '').trim().toLowerCase()
+      if (!esCorreoValido(correo)) {
+        return NextResponse.json({ error: 'El correo no es válido' }, { status: 400 })
+      }
+      const { data, error } = await supabase
+        .from('pedidos')
+        .update({ email_facturacion: correo })
+        .eq('id', pedidoId)
+        .eq('requiere_factura', true)
+        .select('id')
+      if (error) throw error
+      if (!data || data.length === 0) return NextResponse.json({ error: 'Ese pedido no tiene solicitud de factura' }, { status: 404 })
+      return NextResponse.json({ ok: true, emailFacturacion: correo })
     }
 
-    const { data, error } = await supabase
-      .from('pedidos')
-      .update({ factura_estado: estado })
-      .eq('id', pedidoId)
-      .eq('requiere_factura', true)
-      .select('id')
-
-    if (error) throw error
-    if (!data || data.length === 0) {
-      return NextResponse.json({ error: 'Ese pedido no tiene solicitud de factura' }, { status: 404 })
+    // B) Regresar a pendiente: desbloquea los archivos para corregirlos y enviar de nuevo.
+    //    'emitida' solo se pone al enviar la factura (/api/admin/facturas/enviar).
+    if (body.estado === 'pendiente') {
+      const limite = new Date(Date.now() - 2 * 60 * 1000).toISOString()
+      const { data, error } = await supabase
+        .from('pedidos')
+        .update({ factura_estado: 'pendiente', factura_enviada_at: null })
+        .eq('id', pedidoId)
+        .eq('requiere_factura', true)
+        .or(`factura_enviando_desde.is.null,factura_enviando_desde.lt.${limite}`)
+        .select('id')
+      if (error) throw error
+      if (!data || data.length === 0) {
+        return NextResponse.json({ error: 'No se pudo regresar a pendiente (¿se está enviando?)' }, { status: 409 })
+      }
+      return NextResponse.json({ ok: true })
     }
 
-    return NextResponse.json({ ok: true })
+    return NextResponse.json({ error: 'Acción no válida' }, { status: 400 })
   } catch (err) {
     console.error('Error facturas PATCH:', err)
     return NextResponse.json({ error: 'Error al actualizar estado' }, { status: 500 })
