@@ -170,9 +170,9 @@ export function calcularReembolso(pedido: any, seleccion: SeleccionItem[], inclu
 }
 
 // ── Efectos de un reembolso total o cancelación pagada ──
-async function efectosTotal(pedido: any, reembolsoId: number | null, motivo: string) {
+async function efectosTotal(pedido: any, reembolsoId: number | null, motivo: string, evento: 'cancelacion' | 'reembolso_total') {
   await restaurarPrimeraCompraSiAplica(pedido)
-  await ajustarComisionPorReembolso(pedido.id, { total: true, reembolsoId, motivo })
+  await ajustarComisionPorReembolso(pedido.id, { total: true, reembolsoId, motivo, evento })
 }
 
 async function marcarPiezasDevueltas(pedido: any, piezas: { pedido_item_id: number; cantidad: number }[]) {
@@ -294,8 +294,8 @@ export async function procesarReembolsoAdmin(pedidoId: number, admin: AdminQueOp
 
     // 7) Comisión y primera compra
     const motivoComision = `Reembolso ${quedaTotal ? 'total' : 'parcial'} del pedido ${formatearNumeroPedido(pedido.id)}`
-    if (quedaTotal) await efectosTotal(pedido, fila.id, motivoComision)
-    else await ajustarComisionPorReembolso(pedido.id, { total: false, piezas, reembolsoId: fila.id, motivo: motivoComision })
+    if (quedaTotal) await efectosTotal(pedido, fila.id, motivoComision, 'reembolso_total')
+    else await ajustarComisionPorReembolso(pedido.id, { total: false, piezas, reembolsoId: fila.id, motivo: motivoComision, evento: 'reembolso_parcial' })
 
     // 8) Correo al cliente
     await correoReembolsoCliente(pedido, { monto, parcial: !quedaTotal, metodo: esTransferencia ? 'transferencia' : 'mercadopago' })
@@ -429,7 +429,7 @@ export async function cancelarPedido(pedidoId: number, admin: AdminQueOpera, mot
     // (en 'revision_monto' o un pago que llegó a un pedido pendiente no se registró comisión
     //  ni se marcó la primera compra, así que no hay nada que revertir)
     const efectosAplicados = ['pagado', 'preparando', 'enviado', 'entregado', 'reembolso_parcial'].includes(pedido.estado)
-    if (huboPago && efectosAplicados) await efectosTotal(pedido, fila.id, `Pedido ${formatearNumeroPedido(pedido.id)} cancelado`)
+    if (huboPago && efectosAplicados) await efectosTotal(pedido, fila.id, `Pedido ${formatearNumeroPedido(pedido.id)} cancelado`, 'cancelacion')
 
     await correoCancelacionCliente(pedido, { monto: montoDevuelto, metodo, confirmado })
 
@@ -507,7 +507,7 @@ export async function sincronizarReembolsosMP(pedidoId: number, pago: any, orige
     await marcarPiezasDevueltas(pedido, todasLasPiezas(pedido))
     // Solo se revierte lo que el pago llegó a aplicar (no en 'revision_monto' ni 'pendiente')
     if (['pagado', 'preparando', 'enviado', 'entregado', 'reembolso_parcial'].includes(pedido.estado)) {
-      await efectosTotal(pedido, ultimaFila, `Reembolso total del pedido ${formatearNumeroPedido(pedido.id)} (Mercado Pago)`)
+      await efectosTotal(pedido, ultimaFila, `Reembolso total del pedido ${formatearNumeroPedido(pedido.id)} (Mercado Pago)`, 'reembolso_total')
     }
   }
 

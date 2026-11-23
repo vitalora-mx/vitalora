@@ -1,4 +1,7 @@
+import { Resend } from 'resend'
 import { createServiceClient } from '@/lib/supabase/service'
+import { formatearNumeroPedido } from '@/lib/utils'
+import { generarCorreoAjusteInfluencer, type EventoAjuste } from '@/lib/correoInfluencer'
 
 // ============================================================
 // Comisiones de embajadoras (SOLO SERVIDOR)
@@ -6,28 +9,44 @@ import { createServiceClient } from '@/lib/supabase/service'
 // Venta: una fila tipo 'venta' por pedido, con copia de cómo se calculó
 // (tipo_comision, comision_valor, unidades) para poder ajustarla después
 // aunque cambie la configuración de la embajadora.
+//  - Porcentaje: sobre lo realmente cobrado de productos = subtotal - descuento
+//    (sin envío). Esa base se guarda en subtotal_venta.
+//  - Monto fijo: por pieza.
 //
 // Reembolso:
 //  - Comisión "libre" (pendiente y sin pago_id): se reduce o se cancela en la misma fila.
 //  - Pagada o dentro de una solicitud de pago: se agrega una fila tipo 'ajuste'
 //    con monto negativo y estado 'pendiente', que se descuenta sola del siguiente pago.
+//  - Cada cambio real avisa por correo a la embajadora una sola vez (si el correo
+//    falla, el reembolso sigue su curso).
 // ============================================================
 
 const r2 = (n: number) => Math.round(n * 100) / 100
+const resend = new Resend(process.env.RESEND_API_KEY)
 
 export interface ComisionCalculada {
   influencerId: number
   montoComision: number
   tipoComision: 'porcentaje' | 'monto_fijo'
   comisionValor: number
-  subtotalVenta: number
+  subtotalVenta: number   // base de la comisión: subtotal - descuento, sin envío
   unidades: number
+}
+
+// Base de la comisión por porcentaje: lo cobrado de productos (subtotal - descuento), sin envío
+export function baseComision(subtotal: unknown, descuento: unknown): number {
+  return r2(Math.max(0, Number(subtotal || 0) - Number(descuento || 0)))
+}
+
+// Monto de la comisión de una venta (función pura, sin base de datos)
+export function calcularComisionVenta(tipo: string, valor: number, base: number, unidades: number): number {
+  return tipo === 'monto_fijo' ? r2(unidades * valor) : r2(base * (valor / 100))
 }
 
 // Registra la comisión de la venta si el pedido usó un código de embajadora.
 // Devuelve los datos si la creó; null si no aplica o ya existía.
 export async function registrarComisionVenta(pedido: {
-  id: number; codigo_descuento?: string | null; subtotal?: number | null; user_id?: string | null
+  id: number; codigo_descuento?: string | null; subtotal?: number | null; descuento?: number | null; user_id?: string | null
 }): Promise<ComisionCalculada | null> {
   if (!pedido.codigo_descuento) return null
   const db = createServiceClient()
@@ -63,11 +82,9 @@ export async function registrarComisionVenta(pedido: {
   const { data: items } = await db.from('pedido_items').select('cantidad').eq('pedido_id', pedido.id)
   const unidades = (items || []).reduce((s, it) => s + (it.cantidad || 0), 0)
 
-  // La comisión se calcula sobre el subtotal SIN envío
-  const subtotalVenta = Number(pedido.subtotal || 0)
-  const montoComision = tipoComision === 'monto_fijo'
-    ? r2(unidades * comisionValor)
-    : r2(subtotalVenta * (comisionValor / 100))
+  // Porcentaje sobre lo cobrado de productos (subtotal - descuento), SIN envío
+  const subtotalVenta = baseComision(pedido.subtotal, pedido.descuento)
+  const montoComision = calcularComisionVenta(tipoComision, comisionValor, subtotalVenta, unidades)
 
   const { error } = await db.from('influencer_comisiones').insert({
     influencer_id: codigo.influencer_id,
@@ -88,20 +105,36 @@ export async function registrarComisionVenta(pedido: {
   return { influencerId: codigo.influencer_id, montoComision, tipoComision, comisionValor, subtotalVenta, unidades }
 }
 
-export interface PiezaDevuelta { precio: number; cantidad: number }
+export interface PiezaDevuelta { precio: number; cantidad: number; pedido_item_id?: number }
 
-// Ajusta la comisión del pedido por un reembolso.
+// Reducción de la comisión por las piezas devueltas (función pura, sin base de datos).
+//  - Monto fijo: piezas × valor.
+//  - Porcentaje: precio de cada pieza ya con su parte del descuento × valor%.
+//    factorCobrado = subtotal_venta / subtotal del pedido, o sea (subtotal - descuento) / subtotal
+//    en comisiones nuevas; 1 en las registradas antes sobre el subtotal bruto.
+export function calcularReduccionParcial(
+  tipo: string, valor: number, piezas: PiezaDevuelta[], factorCobrado: number,
+): number {
+  if (tipo === 'monto_fijo') return r2(piezas.reduce((s, p) => s + p.cantidad, 0) * valor)
+  const bruto = piezas.reduce((s, p) => s + p.precio * p.cantidad, 0)
+  return r2(bruto * factorCobrado * (valor / 100))
+}
+
+// Ajusta la comisión del pedido por un reembolso o una cancelación.
 //  - total: deja la comisión vigente en 0
 //  - parcial: la reduce según las piezas devueltas (el envío nunca cuenta)
 // Devuelve el monto reducido (0 si no había comisión o nada que reducir).
+// Si hubo un cambio real, avisa a la embajadora: como el aviso va ligado al cambio
+// (y los flujos de reembolso corren con candado), sale una sola vez por reembolso o
+// cancelación. Si el correo falla, solo se registra en el log.
 export async function ajustarComisionPorReembolso(
   pedidoId: number,
-  opciones: { total: boolean; piezas?: PiezaDevuelta[]; reembolsoId?: number | null; motivo: string },
+  opciones: { total: boolean; piezas?: PiezaDevuelta[]; reembolsoId?: number | null; motivo: string; evento: EventoAjuste },
 ): Promise<number> {
   const db = createServiceClient()
   const { data: venta } = await db
     .from('influencer_comisiones')
-    .select('id, influencer_id, monto_comision, estado, pago_id, tipo_comision, comision_valor')
+    .select('id, influencer_id, monto_comision, estado, pago_id, tipo_comision, comision_valor, subtotal_venta')
     .eq('pedido_id', pedidoId)
     .eq('tipo', 'venta')
     .maybeSingle()
@@ -129,13 +162,18 @@ export async function ajustarComisionPorReembolso(
       tipo = inf?.tipo_comision === 'monto_fijo' ? 'monto_fijo' : 'porcentaje'
       valor = inf?.comision_valor != null ? Number(inf.comision_valor) : 5
     }
-    const piezas = opciones.piezas || []
-    reduccion = tipo === 'monto_fijo'
-      ? r2(piezas.reduce((s, p) => s + p.cantidad, 0) * valor)
-      : r2(piezas.reduce((s, p) => s + p.precio * p.cantidad, 0) * (valor / 100))
-    reduccion = Math.min(reduccion, vigente)
+    let factorCobrado = 1
+    if (tipo !== 'monto_fijo') {
+      const { data: ped } = await db.from('pedidos').select('subtotal').eq('id', pedidoId).maybeSingle()
+      const subtotal = Number(ped?.subtotal || 0)
+      const baseVenta = Number(venta.subtotal_venta || 0)
+      if (subtotal > 0 && baseVenta > 0) factorCobrado = Math.min(1, baseVenta / subtotal)
+    }
+    reduccion = Math.min(calcularReduccionParcial(tipo, valor, opciones.piezas || [], factorCobrado), vigente)
   }
   if (reduccion <= 0) return 0
+
+  let aplicadoEnLaVenta = false
 
   // Comisión libre: se modifica la misma fila (solo si sigue libre en este instante)
   if (venta.estado === 'pendiente' && venta.pago_id == null && (ajustes || []).length === 0) {
@@ -150,24 +188,84 @@ export async function ajustarComisionPorReembolso(
       .eq('estado', 'pendiente')
       .is('pago_id', null)
       .select('id')
-    if ((actualizada?.length ?? 0) > 0) return reduccion
+    aplicadoEnLaVenta = (actualizada?.length ?? 0) > 0
     // Si entró a una solicitud de pago justo ahora, se registra como ajuste
   }
 
-  const { error } = await db.from('influencer_comisiones').insert({
-    influencer_id: venta.influencer_id,
-    pedido_id: pedidoId,
-    subtotal_venta: 0,
-    monto_comision: -reduccion,
-    estado: 'pendiente',
-    tipo: 'ajuste',
-    comision_origen_id: venta.id,
-    reembolso_id: opciones.reembolsoId ?? null,
-    motivo: opciones.motivo,
-  })
-  if (error) {
-    console.error('Error registrando ajuste de comisión:', error)
-    return 0
+  if (!aplicadoEnLaVenta) {
+    const { error } = await db.from('influencer_comisiones').insert({
+      influencer_id: venta.influencer_id,
+      pedido_id: pedidoId,
+      subtotal_venta: 0,
+      monto_comision: -reduccion,
+      estado: 'pendiente',
+      tipo: 'ajuste',
+      comision_origen_id: venta.id,
+      reembolso_id: opciones.reembolsoId ?? null,
+      motivo: opciones.motivo,
+    })
+    if (error) {
+      console.error('Error registrando ajuste de comisión:', error)
+      return 0
+    }
+  }
+
+  // Aviso a la embajadora (nunca rompe el reembolso)
+  try {
+    await avisarAjusteEmbajadora({
+      pedidoId,
+      influencerId: venta.influencer_id,
+      evento: opciones.evento,
+      antes: vigente,
+      despues: r2(vigente - reduccion),
+      reduccion,
+      comoAjuste: !aplicadoEnLaVenta,
+      piezas: opciones.total ? [] : (opciones.piezas || []),
+    })
+  } catch (e) {
+    console.error('Error avisando a la embajadora del ajuste de comisión:', e)
   }
   return reduccion
+}
+
+// Correo a la embajadora por cancelación o reembolso (del cliente solo se muestra la ciudad)
+async function avisarAjusteEmbajadora(d: {
+  pedidoId: number; influencerId: number; evento: EventoAjuste
+  antes: number; despues: number; reduccion: number; comoAjuste: boolean; piezas: PiezaDevuelta[]
+}) {
+  const db = createServiceClient()
+  const { data: inf } = await db.from('influencers').select('nombre, email').eq('id', d.influencerId).maybeSingle()
+  if (!inf?.email) return
+  const { data: pedido } = await db.from('pedidos').select('ciudad, codigo_descuento').eq('id', d.pedidoId).maybeSingle()
+
+  // Piezas devueltas (solo en parcial), con su nombre
+  let piezasCorreo: { nombre: string; marca: string | null; variante_nombre: string | null; cantidad: number }[] = []
+  const ids = d.piezas.map(p => p.pedido_item_id).filter((x): x is number => Number.isInteger(x))
+  if (ids.length > 0) {
+    const { data: items } = await db.from('pedido_items').select('id, nombre, marca, variante_nombre').in('id', ids)
+    const porId = new Map((items || []).map((it: any) => [Number(it.id), it]))
+    piezasCorreo = d.piezas.map(p => {
+      const it: any = p.pedido_item_id != null ? porId.get(p.pedido_item_id) : null
+      return { nombre: it?.nombre || 'Producto', marca: it?.marca ?? null, variante_nombre: it?.variante_nombre ?? null, cantidad: p.cantidad }
+    })
+  }
+
+  const correo = generarCorreoAjusteInfluencer({
+    nombreInfluencer: inf.nombre || 'Embajadora',
+    codigo: pedido?.codigo_descuento || '',
+    numeroPedido: formatearNumeroPedido(d.pedidoId),
+    ciudad: pedido?.ciudad || '',
+    evento: d.evento,
+    antes: d.antes,
+    despues: d.despues,
+    reduccion: d.reduccion,
+    comoAjuste: d.comoAjuste,
+    piezas: piezasCorreo,
+  })
+  await resend.emails.send({
+    from: 'Vitalora <hola@vitalora.com.mx>',
+    to: inf.email,
+    subject: correo.asunto,
+    html: correo.html,
+  })
 }
