@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { requireAdmin } from '@/lib/admin-auth'
 import { optimizarImagen, rutasDeImagen, SUFIJO_MINIATURA } from '@/lib/optimizar-imagen'
+import { bloqueoPorArchivado, productoDeVariante } from '@/lib/productos-admin'
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -23,6 +24,8 @@ export async function POST(req: NextRequest) {
     if (!file || !Number.isInteger(varianteNum) || varianteNum <= 0) {
       return NextResponse.json({ error: 'Archivo y variante_id requeridos' }, { status: 400 })
     }
+    const bloqueo = await bloqueoPorArchivado(await productoDeVariante(varianteNum))
+    if (bloqueo) return bloqueo
 
     const opt = await optimizarImagen(await file.arrayBuffer())
     if (!opt.ok) return NextResponse.json({ error: opt.error }, { status: 400 })
@@ -73,11 +76,14 @@ export async function DELETE(req: NextRequest) {
   const id = searchParams.get('id')
   if (!id) return NextResponse.json({ error: 'ID requerido' }, { status: 400 })
 
-  const { data: img } = await supabaseAdmin.from('variante_imagenes').select('url, url_miniatura').eq('id', id).single()
-  if (img) {
-    const rutas = rutasDeImagen(img, 'productos')
-    if (rutas.length) await supabaseAdmin.storage.from('productos').remove(rutas)
-  }
+  const { data: img } = await supabaseAdmin.from('variante_imagenes').select('url, url_miniatura, variante_id').eq('id', id).single()
+  if (!img) return NextResponse.json({ error: 'Imagen no encontrada' }, { status: 404 })
+  // Las fotos de un producto archivado son historial: no se tocan
+  const bloqueo = await bloqueoPorArchivado(await productoDeVariante(Number(img.variante_id)))
+  if (bloqueo) return bloqueo
+
+  const rutas = rutasDeImagen(img, 'productos')
+  if (rutas.length) await supabaseAdmin.storage.from('productos').remove(rutas)
 
   const { error } = await supabaseAdmin.from('variante_imagenes').delete().eq('id', id)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })

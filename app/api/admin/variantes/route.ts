@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { requireAdmin } from '@/lib/admin-auth'
 import { rutasDeImagen } from '@/lib/optimizar-imagen'
+import { bloqueoPorArchivado, productoDeVariante } from '@/lib/productos-admin'
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -34,6 +35,8 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json()
+    const bloqueo = await bloqueoPorArchivado(Number(body?.producto_id))
+    if (bloqueo) return bloqueo
     const { data, error } = await supabaseAdmin
       .from('producto_variantes')
       .insert({
@@ -64,6 +67,8 @@ export async function PUT(req: NextRequest) {
     const body = await req.json()
     const { id, ...campos } = body
     if (!id) return NextResponse.json({ error: 'ID requerido' }, { status: 400 })
+    const bloqueo = await bloqueoPorArchivado(await productoDeVariante(Number(id)))
+    if (bloqueo) return bloqueo
 
     const { data, error } = await supabaseAdmin
       .from('producto_variantes')
@@ -93,6 +98,8 @@ export async function DELETE(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   const id = searchParams.get('id')
   if (!id) return NextResponse.json({ error: 'ID requerido' }, { status: 400 })
+  const bloqueo = await bloqueoPorArchivado(await productoDeVariante(Number(id)))
+  if (bloqueo) return bloqueo
 
   // Borrar imagenes del storage
   const { data: imagenes } = await supabaseAdmin.from('variante_imagenes').select('url, url_miniatura').eq('variante_id', id)
