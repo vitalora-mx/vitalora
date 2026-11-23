@@ -4,8 +4,9 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
 import { useIsMobile } from '@/hooks/useIsMobile'
+import { SUPLEMENTOS_ACTIVO } from '@/lib/tienda'
 
-const slides = [
+const todosLosSlides = [
   {
     id: 1,
     desktop: '/images/hero/slide-1-desktop.png',
@@ -78,6 +79,11 @@ const slides = [
     promo: true,
   },
 ]
+
+// Con los suplementos pausados (lib/tienda.ts) se oculta el slide que lleva a /suplementos
+const slides = SUPLEMENTOS_ACTIVO
+  ? todosLosSlides
+  : todosLosSlides.filter(s => (s.boton as { href?: string } | null)?.href !== '/suplementos')
 
 const botonBase: React.CSSProperties = {
   background: 'var(--gold)',

@@ -6,6 +6,7 @@ import Header from '@/components/store/Header'
 import Footer from '@/components/store/Footer'
 import LoraChat from '@/components/store/LoraChat'
 import { useIsMobile } from '@/hooks/useIsMobile'
+import { SUPLEMENTOS_ACTIVO } from '@/lib/tienda'
 
 interface FAQ {
   pregunta: string
@@ -23,10 +24,12 @@ const secciones: Seccion[] = [
     titulo: 'Sobre Vitalora',
     icono: '✦',
     preguntas: [
-      { pregunta: '¿Qué es Vitalora?', respuesta: 'Vitalora es una tienda en línea mexicana especializada en cosméticos coreanos (K-Beauty) auténticos y suplementos alimenticios de alta pureza. Todos nuestros productos son importados directamente y verificados para garantizar su autenticidad.' },
+      { pregunta: '¿Qué es Vitalora?', respuesta: `Vitalora es una tienda en línea mexicana especializada en cosméticos coreanos (K-Beauty) auténticos${SUPLEMENTOS_ACTIVO ? ' y suplementos alimenticios de alta pureza' : ''}. Todos nuestros productos son importados directamente y verificados para garantizar su autenticidad.` },
       { pregunta: '¿En qué país están ubicados?', respuesta: 'Estamos ubicados en México. Operamos exclusivamente en territorio mexicano.' },
       { pregunta: '¿Hacen envíos al extranjero?', respuesta: 'No, por el momento solo realizamos envíos dentro de la República Mexicana. No ofrecemos envíos internacionales.' },
-      { pregunta: '¿Sus productos son auténticos?', respuesta: 'Sí, el 100% de nuestros productos son auténticos e importados directamente de Corea del Sur (cosméticos) y de fabricantes certificados (suplementos). Cada producto cuenta con certificados de autenticidad y verificación de lote.' },
+      { pregunta: '¿Sus productos son auténticos?', respuesta: SUPLEMENTOS_ACTIVO
+        ? 'Sí, el 100% de nuestros productos son auténticos e importados directamente de Corea del Sur (cosméticos) y de fabricantes certificados (suplementos). Cada producto cuenta con certificados de autenticidad y verificación de lote.'
+        : 'Sí, el 100% de nuestros productos son auténticos e importados directamente de Corea del Sur. Cada producto cuenta con certificados de autenticidad y verificación de lote.' },
       { pregunta: '¿Cómo puedo contactarlos?', respuesta: 'Puedes contactarnos por correo electrónico a hola@vitalora.com.mx o a través del formulario de ayuda en tu cuenta. Nuestro horario de atención es de lunes a viernes de 9:00 AM a 6:00 PM.' },
     ]
   },
@@ -35,7 +38,7 @@ const secciones: Seccion[] = [
     icono: '🧴',
     preguntas: [
       { pregunta: '¿Los cosméticos coreanos son seguros para todo tipo de piel?', respuesta: 'Los cosméticos coreanos son conocidos por sus fórmulas suaves y efectivas. Sin embargo, cada piel es diferente. Te recomendamos revisar la lista de ingredientes de cada producto y, si tienes piel sensible o alguna condición dermatológica, consultar con tu dermatólogo antes de usar un producto nuevo.' },
-      { pregunta: '¿Los suplementos alimenticios requieren receta médica?', respuesta: 'No, nuestros suplementos alimenticios no requieren receta médica ya que son de venta libre. Sin embargo, recomendamos consultar a tu médico antes de consumir cualquier suplemento, especialmente si estás embarazada, en periodo de lactancia, tomas medicamentos o tienes alguna condición médica.' },
+      ...(SUPLEMENTOS_ACTIVO ? [{ pregunta: '¿Los suplementos alimenticios requieren receta médica?', respuesta: 'No, nuestros suplementos alimenticios no requieren receta médica ya que son de venta libre. Sin embargo, recomendamos consultar a tu médico antes de consumir cualquier suplemento, especialmente si estás embarazada, en periodo de lactancia, tomas medicamentos o tienes alguna condición médica.' }] : []),
       { pregunta: '¿Cómo sé qué productos son adecuados para mí?', respuesta: 'Puedes chatear con Lora, nuestra asesora de bienestar con inteligencia artificial, disponible en nuestra página. Lora puede ayudarte a encontrar la rutina perfecta según tu tipo de piel y necesidades. También puedes contactarnos directamente para asesoría personalizada.' },
       { pregunta: '¿Los productos tienen fecha de caducidad?', respuesta: 'Sí, todos nuestros productos tienen fecha de caducidad visible en el empaque. Garantizamos que al momento de la entrega, cada producto tiene al menos 6 meses de vigencia restante.' },
       { pregunta: '¿Puedo ver los ingredientes de un producto antes de comprarlo?', respuesta: 'Sí, cada página de producto incluye la lista completa de ingredientes en la pestaña "Ingredientes". Si necesitas información adicional, no dudes en contactarnos.' },

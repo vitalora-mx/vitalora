@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import MetodosPago from '@/components/store/MetodosPago'
+import { SUPLEMENTOS_ACTIVO } from '@/lib/tienda'
 
 export default function Footer() {
   const isMobile = useIsMobile()
@@ -38,7 +39,9 @@ export default function Footer() {
               maxWidth: '320px',
               marginBottom: '24px',
             }}>
-              K-Beauty auténtica y suplementos de alta pureza, curados con cuidado para tu ritual de bienestar.
+              {SUPLEMENTOS_ACTIVO
+                ? 'K-Beauty auténtica y suplementos de alta pureza, curados con cuidado para tu ritual de bienestar.'
+                : 'K-Beauty auténtica, curada con cuidado para tu ritual de belleza y bienestar.'}
             </p>
             {/* Redes */}
             <div style={{ display: 'flex', gap: '12px' }}>
@@ -91,7 +94,7 @@ export default function Footer() {
             <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '12px', padding: 0, margin: 0 }}>
               {[
                 { label: 'Cosméticos', href: '/cosmeticos' },
-                { label: 'Suplementos', href: '/suplementos' },
+                ...(SUPLEMENTOS_ACTIVO ? [{ label: 'Suplementos', href: '/suplementos' }] : []),
                 { label: 'Nosotros', href: '/nosotros' },
               ].map((item) => (
                 <li key={item.label}>

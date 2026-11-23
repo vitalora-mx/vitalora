@@ -5,6 +5,7 @@ import RitualBanner from '@/components/store/ritual/RitualBanner'
 import RitualVideos from '@/components/store/ritual/RitualVideos'
 import Footer from '@/components/store/Footer'
 import LoraChat from '@/components/store/LoraChat'
+import { SUPLEMENTOS_ACTIVO, FILTRO_SIN_SUPLEMENTOS } from '@/lib/tienda'
 
 export const revalidate = 3600
 
@@ -30,11 +31,15 @@ export const metadata: Metadata = {
 }
 
 async function obtenerDatos() {
+  let videosQuery = supabase
+    .from('ritual_videos')
+    .select('*, ritual_temas(nombre)')
+    .eq('activo', true)
+  // Suplementos pausados (lib/tienda.ts): sin videos de tipo suplemento
+  if (!SUPLEMENTOS_ACTIVO) videosQuery = videosQuery.or(FILTRO_SIN_SUPLEMENTOS)
+
   const [videosRes, temasRes] = await Promise.all([
-    supabase
-      .from('ritual_videos')
-      .select('*, ritual_temas(nombre)')
-      .eq('activo', true)
+    videosQuery
       .order('posicion', { ascending: true, nullsFirst: false })
       .order('created_at', { ascending: false })
       .limit(12),

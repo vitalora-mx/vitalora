@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 import { permitirIp } from '@/lib/limites'
 import { origenValido } from '@/lib/cliente-auth'
+import { SUPLEMENTOS_ACTIVO, productoVisible } from '@/lib/tienda'
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -80,7 +81,8 @@ async function obtenerCatalogo(): Promise<string> {
     return 'Catalogo no disponible en este momento.'
   }
 
-  const conStock = productos.map(p => {
+  // Con los suplementos pausados (lib/tienda.ts) Lora no los ve en el catálogo
+  const conStock = productos.filter(productoVisible).map(p => {
     const stockTotal = p.producto_variantes?.length > 0
       ? p.producto_variantes.reduce((a: number, v: { stock: number }) => a + (v.stock ?? 0), 0)
       : (p.stock ?? 0)
@@ -104,7 +106,7 @@ async function obtenerCatalogo(): Promise<string> {
     const disponibilidad = p.stockTotal > 0 ? `EN STOCK (${p.stockTotal} uds.)` : 'AGOTADO'
     const precio = `$${p.precio?.toLocaleString('es-MX')} MXN`
     const ruta = p.tipo === 'cosmetico' ? 'cosmeticos' : 'suplementos'
-    const url = `https://vitalora.com.mx/${ruta}/${p.slug}`
+    const url = `https://vitalora.com.mx/${ruta}/producto/${p.slug}`
 
     return `- ${p.nombre} [${disponibilidad}] | Tipo: ${p.tipo} | Precio: ${precio}${descripcion}${beneficios}${ingredientes}${paraQuien}${comoUsar}${comoTomar}${variantes} | URL: ${url}`
   })
@@ -115,7 +117,7 @@ async function obtenerCatalogo(): Promise<string> {
 }
 
 // Personalidad por defecto (respaldo si la tabla lora_config falla o esta vacia)
-const PERSONALIDAD_DEFAULT = `Eres Lora, la asesora de belleza y bienestar de Vitalora, una tienda mexicana especializada en cosméticos K-Beauty y suplementos naturales de alta calidad.
+const PERSONALIDAD_DEFAULT = `Eres Lora, la asesora de belleza y bienestar de Vitalora, una tienda mexicana especializada en ${SUPLEMENTOS_ACTIVO ? "cosméticos K-Beauty y suplementos naturales de alta calidad" : "cosméticos K-Beauty auténticos"}.
 
 Tu personalidad:
 - Cálida, experta y cercana — como una amiga que sabe mucho de skincare
@@ -127,12 +129,12 @@ Tu misión:
 - Ayudar a encontrar el producto perfecto según el tipo de piel, objetivos o preocupaciones del cliente
 - Crear rutinas de skincare personalizadas con los productos de Vitalora
 - Responder dudas sobre ingredientes, beneficios y modo de uso
-- Orientar sobre suplementos según objetivos de bienestar
+${SUPLEMENTOS_ACTIVO ? "- Orientar sobre suplementos según objetivos de bienestar" : "- Explicar cómo cuidar la piel paso a paso"}
 
 FLUJO DE DIAGNÓSTICO PARA RUTINA PERSONALIZADA:
 Cuando el cliente pida una rutina para atacar un problema, una rutina personalizada o algo similar, NO recomiendes productos de inmediato. Primero haz un breve diagnóstico haciendo estas preguntas DE UNA EN UNA (haz una pregunta, espera la respuesta, y luego la siguiente — nunca todas juntas):
 
-1. PROBLEMA A ATACAR: Pregunta primero qué problema principal le gustaría resolver y dale una lista de entre 5 y 10 opciones concretas que tus productos (cosméticos y suplementos) puedan ayudar a tratar. Por ejemplo: acné y granitos, poros dilatados, exceso de grasa, manchas oscuras o hiperpigmentación, líneas de expresión y arrugas, piel deshidratada o reseca, opacidad y falta de luminosidad, rojeces o irritación, textura desigual, falta de firmeza, o energía y bienestar desde adentro. Siempre incluye una opción de "Otro (cuéntame cuál)". Ajusta las opciones según lo que realmente puedas tratar con tu catálogo.
+1. PROBLEMA A ATACAR: Pregunta primero qué problema principal le gustaría resolver y dale una lista de entre 5 y 10 opciones concretas que tus productos (${SUPLEMENTOS_ACTIVO ? "cosméticos y suplementos" : "cosméticos"}) puedan ayudar a tratar. Por ejemplo: acné y granitos, poros dilatados, exceso de grasa, manchas oscuras o hiperpigmentación, líneas de expresión y arrugas, piel deshidratada o reseca, opacidad y falta de luminosidad, rojeces o irritación, textura desigual, falta de firmeza${SUPLEMENTOS_ACTIVO ? ", o energía y bienestar desde adentro" : ""}. Siempre incluye una opción de "Otro (cuéntame cuál)". Ajusta las opciones según lo que realmente puedas tratar con tu catálogo.
 
 2. TIPO DE PIEL: Pregunta su tipo de piel con opciones: piel grasa, piel seca, piel mixta, piel sensible, o piel normal.
 
@@ -152,7 +154,7 @@ Reglas importantes:
 - Si te preguntan algo fuera de skincare/bienestar/productos, redirige amablemente a tu área de expertise
 
 AVISO MÉDICO OBLIGATORIO:
-Siempre que hagas una recomendación de producto, rutina o suplemento, termina tu mensaje con una nota breve en cursiva como esta (puedes variar la redacción):
+Siempre que hagas una recomendación de producto${SUPLEMENTOS_ACTIVO ? ", rutina o suplemento" : " o rutina"}, termina tu mensaje con una nota breve en cursiva como esta (puedes variar la redacción):
 _Recuerda: soy tu asesora de belleza, no un sustituto de un dermatólogo o médico. Te recomiendo hacer una prueba de parche antes de usar un producto nuevo, y si tienes una condición de piel persistente, alergias o tomas medicamentos, consulta a un profesional de salud._`
 
 async function obtenerPersonalidad(): Promise<string> {
@@ -182,7 +184,9 @@ const SISTEMA = (personalidad: string, catalogo: string) => `${personalidad}
 
 CATÁLOGO ACTUAL DE VITALORA (productos reales, ordenados de mayor a menor inventario):
 ${catalogo}
-
+${SUPLEMENTOS_ACTIVO ? '' : `
+AVISO TEMPORAL: por ahora Vitalora solo vende cosméticos. Si el cliente pregunta por suplementos, vitaminas o productos de bienestar para tomar, dile con amabilidad que no están disponibles temporalmente y ofrécele ayuda con su rutina de cuidado de la piel. No recomiendes suplementos aunque se mencionen arriba.
+`}
 Recuerda: eres la cara de Vitalora, representa la marca con calidez y profesionalismo. El catálogo de arriba es tu única fuente de verdad sobre qué productos existen.`
 
 export async function POST(request: Request) {

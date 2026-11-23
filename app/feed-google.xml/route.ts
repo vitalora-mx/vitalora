@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import { SUPLEMENTOS_ACTIVO, productoVisible } from '@/lib/tienda'
 
 const BASE = 'https://vitalora.com.mx'
 
@@ -40,7 +41,7 @@ export async function GET() {
       .select('kit_id')
     const idsKits = new Set((kitsData ?? []).map((k: any) => k.kit_id))
 
-    const items = (productos ?? []).map((p) => {
+    const items = (productos ?? []).filter(productoVisible).map((p) => {
       // Ruta segun tipo
       const ruta = p.tipo === 'suplemento' ? 'suplementos' : 'cosmeticos'
       const link = `${BASE}/${ruta}/producto/${p.slug}`
@@ -125,7 +126,7 @@ export async function GET() {
   <channel>
     <title>Vitalora</title>
     <link>${BASE}</link>
-    <description>Catálogo de productos Vitalora — K-Beauty y suplementos</description>
+    <description>${SUPLEMENTOS_ACTIVO ? 'Catálogo de productos Vitalora — K-Beauty y suplementos' : 'Catálogo de productos Vitalora — K-Beauty'}</description>
 ${items.join('\n')}
   </channel>
 </rss>`

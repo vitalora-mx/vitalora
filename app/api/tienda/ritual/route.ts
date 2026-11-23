@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { SUPLEMENTOS_ACTIVO, FILTRO_SIN_SUPLEMENTOS, productoVisible, videoVisible } from '@/lib/tienda'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -23,7 +24,7 @@ export async function GET(req: NextRequest) {
       .eq('activo', true)
       .single()
 
-    if (error || !video) {
+    if (error || !video || !videoVisible(video)) {
       return NextResponse.json({ error: 'Video no encontrado' }, { status: 404 })
     }
 
@@ -34,10 +35,10 @@ export async function GET(req: NextRequest) {
       .eq('video_id', video.id)
       .order('posicion', { ascending: true })
 
-    // Solo productos activos y no archivados
+    // Solo productos activos, no archivados y visibles (sin suplementos si están pausados)
     const productos = (relaciones || [])
-      .map((r: { productos: unknown }) => r.productos as { activo?: boolean; archivado?: boolean } | null)
-      .filter(p => p && p.activo && !p.archivado)
+      .map((r: { productos: unknown }) => r.productos as { activo?: boolean; archivado?: boolean; tipo?: string | null } | null)
+      .filter(p => p && p.activo && !p.archivado && productoVisible(p))
 
     return NextResponse.json({ ...video, productos })
   }
@@ -47,6 +48,8 @@ export async function GET(req: NextRequest) {
     .from('ritual_videos')
     .select('*, ritual_temas(nombre)')
     .eq('activo', true)
+  // Suplementos pausados (lib/tienda.ts): sin videos de tipo suplemento
+  if (!SUPLEMENTOS_ACTIVO) query = query.or(FILTRO_SIN_SUPLEMENTOS)
 
   if (todos) {
     // Todos, mas recientes primero (para la pagina Ver mas estilo Netflix)

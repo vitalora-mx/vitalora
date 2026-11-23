@@ -9,9 +9,10 @@ const nextConfig: NextConfig = {
         permanent: true,
       },
       {
+        // Temporal mientras los suplementos estén pausados (lib/tienda.ts)
         source: '/suplementos/kits',
-        destination: '/suplementos',
-        permanent: true,
+        destination: '/cosmeticos',
+        permanent: false,
       },
     ]
   },

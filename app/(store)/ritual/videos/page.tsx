@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { createClient } from '@supabase/supabase-js'
 import RitualVideosCliente from './RitualVideosCliente'
+import { videoVisible } from '@/lib/tienda'
 
 export const revalidate = 3600
 
@@ -32,7 +33,8 @@ async function obtenerVideos() {
     .eq('activo', true)
     .order('created_at', { ascending: false })
   if (error || !data) return []
-  return data
+  // Suplementos pausados (lib/tienda.ts): sin videos de tipo suplemento
+  return data.filter(videoVisible)
 }
 
 export default async function RitualTodosVideosPage() {

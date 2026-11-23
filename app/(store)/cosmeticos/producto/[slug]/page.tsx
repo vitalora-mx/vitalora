@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { createClient } from '@supabase/supabase-js'
 import { construirProductSchema } from '@/lib/structured-data'
+import { productoVisible } from '@/lib/tienda'
 import ProductoCosmeticoCliente from './ProductoCosmeticoCliente'
 
 export const revalidate = 3600
@@ -35,6 +36,8 @@ async function obtenerProducto(slug: string) {
     .eq('activo', true)
     .single()
   if (error || !data) return null
+  // Un suplemento no debe abrirse por la URL de cosméticos mientras estén pausados
+  if (!productoVisible(data)) return null
   return data
 }
 

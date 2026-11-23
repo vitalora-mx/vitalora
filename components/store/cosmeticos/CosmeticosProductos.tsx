@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useIsMobile } from '@/hooks/useIsMobile'
+import { SUPLEMENTOS_ACTIVO } from '@/lib/tienda'
 
 interface Producto {
   id: number; slug: string; marca: string; categoria: string; nombre: string
@@ -131,7 +132,7 @@ export default function CosmeticosProductos({ rutinaActiva, productosIniciales }
             </div>
           </form>
           <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '10px' : '16px' }}>
-            {!isMobile && <Link href="/suplementos" style={{ padding: '8px 20px', border: '1px solid var(--gold)', borderRadius: '100px', color: 'var(--gold)', textDecoration: 'none', fontSize: '11px', letterSpacing: '0.15em', textTransform: 'uppercase', fontWeight: 500 }}>Suplementos →</Link>}
+            {SUPLEMENTOS_ACTIVO && !isMobile && <Link href="/suplementos" style={{ padding: '8px 20px', border: '1px solid var(--gold)', borderRadius: '100px', color: 'var(--gold)', textDecoration: 'none', fontSize: '11px', letterSpacing: '0.15em', textTransform: 'uppercase', fontWeight: 500 }}>Suplementos →</Link>}
             {!isMobile && <span style={{ fontSize: '12px', letterSpacing: '0.1em', textTransform: 'uppercase', color: '#6B6B6B' }}>Ordenar:</span>}
             <select value={orden} onChange={e => setOrden(e.target.value)} style={{ padding: isMobile ? '8px 12px' : '8px 16px', border: '1px solid #E8E0D5', borderRadius: '100px', background: 'white', fontSize: isMobile ? '11px' : '12px', color: '#2C2C2C', fontFamily: 'inherit', cursor: 'pointer', outline: 'none' }}>
               <option value="relevancia">Relevancia</option>

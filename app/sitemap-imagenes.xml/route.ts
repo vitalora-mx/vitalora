@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import { productoVisible } from '@/lib/tienda'
 
 const BASE = 'https://vitalora.com.mx'
 
@@ -30,7 +31,7 @@ export async function GET() {
 
     if (data) {
       entradas = data
-        .filter((p: any) => p.producto_imagenes && p.producto_imagenes.length > 0)
+        .filter((p: any) => productoVisible(p) && p.producto_imagenes && p.producto_imagenes.length > 0)
         .map((p: any) => {
           const ruta = p.tipo === 'suplemento' ? 'suplementos' : 'cosmeticos'
           const url = `${BASE}/${ruta}/producto/${p.slug}`

@@ -2,6 +2,15 @@ import type { Metadata, Viewport } from 'next'
 import { Cormorant_Garamond, Italiana } from 'next/font/google'
 import Script from 'next/script'
 import './globals.css'
+import { SUPLEMENTOS_ACTIVO } from '@/lib/tienda'
+
+// Textos que cambian según el interruptor de suplementos (lib/tienda.ts)
+const DESCRIPCION_SITIO = SUPLEMENTOS_ACTIVO
+  ? 'Cosméticos coreanos auténticos y suplementos de alta pureza para México. Envío nacional, productos originales importados de Corea.'
+  : 'Cosméticos coreanos auténticos para México. Envío nacional, productos originales importados de Corea.'
+const DESCRIPCION_CORTA = SUPLEMENTOS_ACTIVO
+  ? 'Cosméticos coreanos auténticos y suplementos de alta pureza para México.'
+  : 'Cosméticos coreanos auténticos para México.'
 
 const cormorant = Cormorant_Garamond({
   subsets: ['latin'],
@@ -24,12 +33,12 @@ export const metadata: Metadata = {
     template: '%s | Vitalora',
   },
   description:
-    'Cosméticos coreanos auténticos y suplementos de alta pureza para México. Envío nacional, productos originales importados de Corea.',
+    DESCRIPCION_SITIO,
   keywords: [
     'cosméticos coreanos',
     'k-beauty México',
     'skincare coreano',
-    'suplementos',
+    ...(SUPLEMENTOS_ACTIVO ? ['suplementos'] : []),
     'cuidado de la piel',
     'productos coreanos originales',
   ],
@@ -44,7 +53,7 @@ export const metadata: Metadata = {
     siteName: 'Vitalora',
     title: 'Vitalora — K-Beauty & Bienestar Auténtico',
     description:
-      'Cosméticos coreanos auténticos y suplementos de alta pureza para México.',
+      DESCRIPCION_CORTA,
     images: [
       {
         url: '/images/logo/logo-footer.png',
@@ -58,7 +67,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Vitalora — K-Beauty & Bienestar Auténtico',
     description:
-      'Cosméticos coreanos auténticos y suplementos de alta pureza para México.',
+      DESCRIPCION_CORTA,
     images: ['/images/logo/logo-footer.png'],
   },
   robots: {

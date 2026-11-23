@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { productoVisible } from '@/lib/tienda'
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -15,7 +16,7 @@ export async function GET(req: NextRequest) {
       .eq('slug', slug)
       .eq('activo', true)
       .single()
-    if (error) return NextResponse.json({ error: 'Producto no encontrado' }, { status: 404 })
+    if (error || !productoVisible(data)) return NextResponse.json({ error: 'Producto no encontrado' }, { status: 404 })
     return NextResponse.json(data)
   }
   let query = supabase
@@ -26,5 +27,5 @@ export async function GET(req: NextRequest) {
   if (tipo) query = query.eq('tipo', tipo)
   const { data, error } = await query
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  return NextResponse.json(data)
+  return NextResponse.json((data || []).filter(productoVisible))
 }

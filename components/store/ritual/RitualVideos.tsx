@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useState, useRef, useEffect } from 'react'
 import { useIsMobile } from '@/hooks/useIsMobile'
+import { SUPLEMENTOS_ACTIVO } from '@/lib/tienda'
 
 const SAGE = '#A8B5A0'
 
@@ -122,12 +123,12 @@ export default function RitualVideos({ videosIniciales, temasIniciales }: Props)
           {/* Botones Cosmeticos / Suplementos + Orden */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
             <Link href="/cosmeticos" style={{ padding: '8px 20px', border: `1px solid ${SAGE}`, borderRadius: '100px', color: SAGE, textDecoration: 'none', fontSize: '11px', letterSpacing: '0.15em', textTransform: 'uppercase', fontWeight: 500 }}>Cosméticos</Link>
-            <Link href="/suplementos" style={{ padding: '8px 20px', border: `1px solid ${SAGE}`, borderRadius: '100px', color: SAGE, textDecoration: 'none', fontSize: '11px', letterSpacing: '0.15em', textTransform: 'uppercase', fontWeight: 500 }}>Suplementos</Link>
+            {SUPLEMENTOS_ACTIVO && <Link href="/suplementos" style={{ padding: '8px 20px', border: `1px solid ${SAGE}`, borderRadius: '100px', color: SAGE, textDecoration: 'none', fontSize: '11px', letterSpacing: '0.15em', textTransform: 'uppercase', fontWeight: 500 }}>Suplementos</Link>}
             <span style={{ fontSize: '12px', letterSpacing: '0.1em', textTransform: 'uppercase', color: '#888780' }}>Ver:</span>
             <select value={orden} onChange={e => setOrden(e.target.value)} style={{ padding: '8px 16px', border: '1px solid rgba(168,181,160,0.25)', borderRadius: '100px', background: '#161616', fontSize: '12px', color: '#E8E4DA', fontFamily: 'inherit', cursor: 'pointer', outline: 'none' }}>
               <option value="relevancia">Relevancia</option>
               <option value="cosmetico">Videos de Cosméticos</option>
-              <option value="suplemento">Videos de Suplementos</option>
+              {SUPLEMENTOS_ACTIVO && <option value="suplemento">Videos de Suplementos</option>}
             </select>
           </div>
         </div>

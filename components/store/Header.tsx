@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useCartStore } from '@/store/cartStore'
 import { useIsMobile } from '@/hooks/useIsMobile'
+import { SUPLEMENTOS_ACTIVO } from '@/lib/tienda'
 
 const CarritoDrawer = dynamic(() => import('@/components/store/CarritoDrawer'), { ssr: false })
 
@@ -55,7 +56,7 @@ export default function Header() {
           ) : (
             <nav style={{ display: 'flex', gap: '32px', fontSize: '13px', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
               <Link href="/cosmeticos" style={{ color: 'var(--text)', textDecoration: 'none' }}>Cosméticos</Link>
-              <Link href="/suplementos" style={{ color: 'var(--text)', textDecoration: 'none' }}>Suplementos</Link>
+              {SUPLEMENTOS_ACTIVO && <Link href="/suplementos" style={{ color: 'var(--text)', textDecoration: 'none' }}>Suplementos</Link>}
               <Link href="/ritual" style={{ color: 'var(--text)', textDecoration: 'none' }}>Ritual</Link>
             </nav>
           )}
@@ -116,7 +117,7 @@ export default function Header() {
               />
             </div>
             <Link href="/cosmeticos" onClick={() => setMenuAbierto(false)} style={{ color: 'var(--text)', textDecoration: 'none', fontSize: '14px', letterSpacing: '0.1em', textTransform: 'uppercase', padding: '14px 0', borderBottom: '1px solid var(--line-soft)' }}>Cosméticos</Link>
-            <Link href="/suplementos" onClick={() => setMenuAbierto(false)} style={{ color: 'var(--text)', textDecoration: 'none', fontSize: '14px', letterSpacing: '0.1em', textTransform: 'uppercase', padding: '14px 0', borderBottom: '1px solid var(--line-soft)' }}>Suplementos</Link>
+            {SUPLEMENTOS_ACTIVO && <Link href="/suplementos" onClick={() => setMenuAbierto(false)} style={{ color: 'var(--text)', textDecoration: 'none', fontSize: '14px', letterSpacing: '0.1em', textTransform: 'uppercase', padding: '14px 0', borderBottom: '1px solid var(--line-soft)' }}>Suplementos</Link>}
             <Link href="/ritual" onClick={() => setMenuAbierto(false)} style={{ color: 'var(--text)', textDecoration: 'none', fontSize: '14px', letterSpacing: '0.1em', textTransform: 'uppercase', padding: '14px 0', borderBottom: '1px solid var(--line-soft)' }}>Ritual</Link>
             <Link href="/cuenta" onClick={() => setMenuAbierto(false)} style={{ display: 'flex', alignItems: 'center', gap: '10px', color: 'var(--text)', textDecoration: 'none', fontSize: '14px', letterSpacing: '0.1em', textTransform: 'uppercase', padding: '14px 0' }}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>

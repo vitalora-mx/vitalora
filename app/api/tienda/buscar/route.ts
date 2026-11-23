@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { productoVisible } from '@/lib/tienda'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -111,5 +112,5 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Error en la búsqueda' }, { status: 500 })
   }
 
-  return NextResponse.json(completos || [])
+  return NextResponse.json((completos || []).filter(productoVisible))
 }

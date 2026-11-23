@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { PROGRAMA_EMBAJADORAS_ACTIVO, MENSAJE_PROGRAMA_SUSPENDIDO } from '@/lib/inscripciones'
+import { SUPLEMENTOS_ACTIVO } from '@/lib/tienda'
 
 // Primera capa (rápida, sin red) para las APIs del panel:
 // si no hay cookie de sesión del admin, se rechaza de inmediato.
@@ -22,6 +23,14 @@ const PAGINA_SUSPENDIDO = `<!DOCTYPE html>
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
+
+  // ── Suplementos pausados (lib/tienda.ts): redirección temporal a cosméticos ──
+  if (!SUPLEMENTOS_ACTIVO && (pathname === '/suplementos' || pathname.startsWith('/suplementos/'))) {
+    const destino = request.nextUrl.clone()
+    destino.pathname = '/cosmeticos'
+    destino.search = ''
+    return NextResponse.redirect(destino, 307)
+  }
 
   // ── Programa de embajadoras suspendido ──
   if (!PROGRAMA_EMBAJADORAS_ACTIVO) {
@@ -54,5 +63,5 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/api/admin/:path*', '/api/influencer/:path*', '/influencer/portal/:path*'],
+  matcher: ['/suplementos', '/suplementos/:path*', '/api/admin/:path*', '/api/influencer/:path*', '/influencer/portal/:path*'],
 }

@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { useIsMobile } from '@/hooks/useIsMobile'
+import { SUPLEMENTOS_ACTIVO } from '@/lib/tienda'
 
 export default function Categories() {
   const isMobile = useIsMobile()
@@ -43,7 +44,7 @@ export default function Categories() {
         marginBottom: isMobile ? '48px' : '80px',
         letterSpacing: '0.02em',
       }}>
-        Dos mundos,{' '}
+        {SUPLEMENTOS_ACTIVO ? 'Dos mundos,' : 'Belleza coreana,'}{' '}
         <em style={{
           fontFamily: 'var(--font-cormorant), serif',
           fontStyle: 'italic',
@@ -55,8 +56,10 @@ export default function Categories() {
 
       <div style={{
         display: 'grid',
-        gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
+        gridTemplateColumns: isMobile || !SUPLEMENTOS_ACTIVO ? '1fr' : '1fr 1fr',
         gap: '24px',
+        // Con una sola colección la tarjeta va centrada con el ancho de media cuadrícula
+        ...(SUPLEMENTOS_ACTIVO ? {} : { maxWidth: '700px', margin: '0 auto' }),
       }}>
         {/* Cosméticos */}
         <Link href="/cosmeticos" style={{ textDecoration: 'none', display: 'block' }}>
@@ -82,6 +85,7 @@ export default function Categories() {
         </Link>
 
         {/* Suplementos */}
+        {SUPLEMENTOS_ACTIVO && (
         <Link href="/suplementos" style={{ textDecoration: 'none', display: 'block' }}>
           <div style={{
             position: 'relative',
@@ -103,6 +107,7 @@ export default function Categories() {
             />
           </div>
         </Link>
+        )}
       </div>
     </section>
   )

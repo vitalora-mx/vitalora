@@ -9,6 +9,7 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { obtenerCliente } from '@/lib/cliente-auth'
 import { calcularEnvio } from '@/lib/envio'
 import { validarCodigo, montoPrimeraCompra, puedeUsarPrimeraCompra, etiquetaDescuento } from '@/lib/descuentos'
+import { productoVisible } from '@/lib/tienda'
 
 const MAX_LINEAS = 50
 const MAX_CANTIDAD = 99
@@ -149,7 +150,7 @@ export async function calcularPedido(req: NextRequest, body: any): Promise<Resul
   const ids = [...new Set([...agrupados.values()].map(i => i.productoId))]
   const { data: productos, error: errProd } = await supabaseAdmin
     .from('productos')
-    .select('id, nombre, marca, precio, stock, activo, producto_variantes(id, producto_id, nombre, precio, stock)')
+    .select('id, nombre, marca, precio, stock, activo, tipo, producto_variantes(id, producto_id, nombre, precio, stock)')
     .in('id', ids)
   if (errProd) {
     console.error('Checkout: error leyendo productos', errProd)
@@ -162,6 +163,10 @@ export async function calcularPedido(req: NextRequest, body: any): Promise<Resul
     const prod: any = porId.get(it.productoId)
     if (!prod || !prod.activo) {
       return error(400, `${prod?.nombre ? `"${prod.nombre}"` : 'Un producto de tu carrito'} ya no está disponible. Quítalo del carrito para continuar.`)
+    }
+    // Suplementos pausados (lib/tienda.ts): no se pueden comprar
+    if (!productoVisible(prod)) {
+      return error(400, `"${prod.nombre}" (suplemento) no está disponible por ahora. Quítalo del carrito para continuar.`)
     }
     const variantes: any[] = prod.producto_variantes || []
     let precio = Number(prod.precio)

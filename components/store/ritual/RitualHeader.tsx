@@ -5,6 +5,7 @@ import dynamic from 'next/dynamic'
 import { useState, useEffect } from 'react'
 import { useCartStore } from '@/store/cartStore'
 import { useIsMobile } from '@/hooks/useIsMobile'
+import { SUPLEMENTOS_ACTIVO } from '@/lib/tienda'
 
 const CarritoDrawer = dynamic(() => import('@/components/store/CarritoDrawer'), { ssr: false })
 
@@ -36,7 +37,7 @@ export default function RitualHeader() {
           {/* Nav izquierda */}
           <nav style={{ display: isMobile ? 'none' : 'flex', gap: '32px', alignItems: 'center' }}>
             <Link href="/cosmeticos" style={{ fontSize: '13px', letterSpacing: '0.1em', textTransform: 'uppercase', color: '#E8E4DA', textDecoration: 'none' }}>Cosméticos</Link>
-            <Link href="/suplementos" style={{ fontSize: '13px', letterSpacing: '0.1em', textTransform: 'uppercase', color: '#E8E4DA', textDecoration: 'none' }}>Suplementos</Link>
+            {SUPLEMENTOS_ACTIVO && <Link href="/suplementos" style={{ fontSize: '13px', letterSpacing: '0.1em', textTransform: 'uppercase', color: '#E8E4DA', textDecoration: 'none' }}>Suplementos</Link>}
             <Link href="/ritual" style={{ fontSize: '13px', letterSpacing: '0.1em', textTransform: 'uppercase', color: SAGE, textDecoration: 'none', fontWeight: 500 }}>Ritual</Link>
           </nav>
 

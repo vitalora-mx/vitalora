@@ -11,11 +11,14 @@ import Trust from '@/components/store/Trust'
 import Newsletter from '@/components/store/Newsletter'
 import Footer from '@/components/store/Footer'
 import LoraChat from '@/components/store/LoraChat'
+import { SUPLEMENTOS_ACTIVO } from '@/lib/tienda'
 
 export const metadata: Metadata = {
   title: { absolute: 'Vitalora — K-Beauty & Bienestar Auténtico' },
   description:
-    'Cosméticos coreanos auténticos y suplementos de alta pureza para México. Envío nacional, productos originales importados de Corea.',
+    SUPLEMENTOS_ACTIVO
+      ? 'Cosméticos coreanos auténticos y suplementos de alta pureza para México. Envío nacional, productos originales importados de Corea.'
+      : 'Cosméticos coreanos auténticos para México. Envío nacional, productos originales importados de Corea.',
   alternates: { canonical: 'https://vitalora.com.mx' },
   robots: { index: true, follow: true },
 }
@@ -29,7 +32,7 @@ export default function HomePage() {
       <Marquee />
       <Categories />
       <CategoriasCarrusel />
-      <SuplementosCarrusel />
+      {SUPLEMENTOS_ACTIVO && <SuplementosCarrusel />}
       <Editorial />
       <Trust />
       <Newsletter />

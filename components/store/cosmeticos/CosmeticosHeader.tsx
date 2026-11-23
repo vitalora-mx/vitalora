@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useCartStore } from '@/store/cartStore'
 import { useIsMobile } from '@/hooks/useIsMobile'
+import { SUPLEMENTOS_ACTIVO } from '@/lib/tienda'
 
 const CarritoDrawer = dynamic(() => import('@/components/store/CarritoDrawer'), { ssr: false })
 
@@ -40,9 +41,11 @@ export default function CosmeticosHeader() {
               <span style={{ cursor: 'pointer', color: 'var(--gold)', letterSpacing: '0.1em' }} onClick={() => document.getElementById('loraFab')?.click()}>
                 ✦ Chatea con <strong>Lora</strong> y descubre tu rutina ideal
               </span>
-              <Link href="/suplementos" style={{ padding: '6px 16px', border: '1px solid var(--gold)', borderRadius: '100px', color: 'var(--gold)', textDecoration: 'none', fontSize: '11px', letterSpacing: '0.15em', textTransform: 'uppercase', fontWeight: 500 }}>
-                Suplementos →
-              </Link>
+              {SUPLEMENTOS_ACTIVO && (
+                <Link href="/suplementos" style={{ padding: '6px 16px', border: '1px solid var(--gold)', borderRadius: '100px', color: 'var(--gold)', textDecoration: 'none', fontSize: '11px', letterSpacing: '0.15em', textTransform: 'uppercase', fontWeight: 500 }}>
+                  Suplementos →
+                </Link>
+              )}
             </div>
           </>
         )}
@@ -115,7 +118,7 @@ export default function CosmeticosHeader() {
         {isMobile && menuAbierto && (
           <nav style={{ borderTop: '1px solid #E8E0D5', padding: '8px 16px 16px', display: 'flex', flexDirection: 'column' }}>
             <Link href="/cosmeticos" onClick={() => setMenuAbierto(false)} style={{ color: '#2C2C2C', textDecoration: 'none', fontSize: '14px', letterSpacing: '0.1em', textTransform: 'uppercase', padding: '14px 0', borderBottom: '1px solid #F5F0E8' }}>Cosméticos</Link>
-            <Link href="/suplementos" onClick={() => setMenuAbierto(false)} style={{ color: '#2C2C2C', textDecoration: 'none', fontSize: '14px', letterSpacing: '0.1em', textTransform: 'uppercase', padding: '14px 0', borderBottom: '1px solid #F5F0E8' }}>Suplementos</Link>
+            {SUPLEMENTOS_ACTIVO && <Link href="/suplementos" onClick={() => setMenuAbierto(false)} style={{ color: '#2C2C2C', textDecoration: 'none', fontSize: '14px', letterSpacing: '0.1em', textTransform: 'uppercase', padding: '14px 0', borderBottom: '1px solid #F5F0E8' }}>Suplementos</Link>}
             <Link href="/ritual" onClick={() => setMenuAbierto(false)} style={{ color: '#2C2C2C', textDecoration: 'none', fontSize: '14px', letterSpacing: '0.1em', textTransform: 'uppercase', padding: '14px 0', borderBottom: '1px solid #F5F0E8' }}>Ritual</Link>
             <Link href="/cosmeticos/kits" onClick={() => setMenuAbierto(false)} style={{ color: '#2C2C2C', textDecoration: 'none', fontSize: '14px', letterSpacing: '0.1em', textTransform: 'uppercase', padding: '14px 0', borderBottom: '1px solid #F5F0E8' }}>Kits de Rutina</Link>
             <Link href="/cuenta" onClick={() => setMenuAbierto(false)} style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#2C2C2C', textDecoration: 'none', fontSize: '14px', letterSpacing: '0.1em', textTransform: 'uppercase', padding: '14px 0' }}>

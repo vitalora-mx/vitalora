@@ -4,6 +4,7 @@ import Header from '@/components/store/Header'
 import Footer from '@/components/store/Footer'
 import Link from 'next/link'
 import { useIsMobile } from '@/hooks/useIsMobile'
+import { SUPLEMENTOS_ACTIVO } from '@/lib/tienda'
 
 const valores = [
   {
@@ -49,7 +50,7 @@ export default function NosotrosPage() {
             La belleza coreana revolucionó el mundo del skincare con fórmulas innovadoras, ingredientes icónicos y una filosofía de cuidado constante y amable. Pero en México, conseguir productos originales, de marcas confiables y con buena información, no siempre es fácil.
           </p>
           <p style={{ fontSize: isMobile ? '14px' : '16px', color: 'var(--text-muted)', lineHeight: 1.8, margin: 0 }}>
-            Creamos Vitalora para cambiar eso: traer a México lo mejor del K-Beauty y los suplementos de bienestar, con la garantía de que cada producto es auténtico, está bien cuidado y llega acompañado de la información que necesitas para usarlo con confianza.
+            Creamos Vitalora para cambiar eso: traer a México lo mejor del K-Beauty{SUPLEMENTOS_ACTIVO ? ' y los suplementos de bienestar' : ''}, con la garantía de que cada producto es auténtico, está bien cuidado y llega acompañado de la información que necesitas para usarlo con confianza.
           </p>
         </div>
 

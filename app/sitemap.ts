@@ -1,5 +1,6 @@
 import { MetadataRoute } from 'next'
 import { createClient } from '@supabase/supabase-js'
+import { SUPLEMENTOS_ACTIVO, productoVisible, videoVisible } from '@/lib/tienda'
 
 const BASE = 'https://vitalora.com.mx'
 
@@ -8,7 +9,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const paginasFijas: MetadataRoute.Sitemap = [
     { url: `${BASE}/`, changeFrequency: 'daily', priority: 1 },
     { url: `${BASE}/cosmeticos`, changeFrequency: 'daily', priority: 0.9 },
-    { url: `${BASE}/suplementos`, changeFrequency: 'daily', priority: 0.9 },
+    ...(SUPLEMENTOS_ACTIVO ? [{ url: `${BASE}/suplementos`, changeFrequency: 'daily' as const, priority: 0.9 }] : []),
     { url: `${BASE}/ritual`, changeFrequency: 'weekly', priority: 0.7 },
     { url: `${BASE}/ritual/videos`, changeFrequency: 'weekly', priority: 0.6 },
     { url: `${BASE}/nosotros`, changeFrequency: 'monthly', priority: 0.5 },
@@ -33,7 +34,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       .eq('activo', true)
 
     if (data) {
-      paginasProductos = data.map((p) => {
+      paginasProductos = data.filter(productoVisible).map((p) => {
         const ruta = p.tipo === 'suplemento' ? 'suplementos' : 'cosmeticos'
         return {
           url: `${BASE}/${ruta}/producto/${p.slug}`,
@@ -51,11 +52,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   try {
     const { data } = await supabase
       .from('ritual_videos')
-      .select('slug, created_at')
+      .select('slug, created_at, tipo')
       .eq('activo', true)
 
     if (data) {
-      paginasVideos = data.map((v) => ({
+      paginasVideos = data.filter(videoVisible).map((v) => ({
         url: `${BASE}/ritual/${v.slug}`,
         lastModified: v.created_at ? new Date(v.created_at) : undefined,
         changeFrequency: 'monthly' as const,

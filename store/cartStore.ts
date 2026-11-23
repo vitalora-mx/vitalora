@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { productoVisible } from '@/lib/tienda'
 
 export interface CartItem {
   id: number
@@ -39,6 +40,8 @@ export const useCartStore = create<CartStore>()(
       items: [],
       isOpen: false,
       agregarItem: (item) => {
+        // Suplementos pausados (lib/tienda.ts): no se agregan al carrito
+        if (!productoVisible(item)) return
         const items = get().items
         const clave = claveItem(item.id, item.varianteId)
         const existe = items.find(i => claveItem(i.id, i.varianteId) === clave)
@@ -78,6 +81,17 @@ export const useCartStore = create<CartStore>()(
       total: () => get().items.reduce((sum, i) => sum + i.precio * i.cantidad, 0),
       totalItems: () => get().items.reduce((sum, i) => sum + i.cantidad, 0),
     }),
-    { name: 'vitalora-carrito' }
+    {
+      name: 'vitalora-carrito',
+      // Al cargar el carrito guardado, se quitan los suplementos si están pausados
+      merge: (guardado, actual) => {
+        const g = (guardado ?? {}) as Partial<CartStore>
+        return {
+          ...actual,
+          ...g,
+          items: Array.isArray(g.items) ? g.items.filter(productoVisible) : actual.items,
+        }
+      },
+    }
   )
 )

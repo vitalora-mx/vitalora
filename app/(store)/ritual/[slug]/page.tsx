@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { createClient } from '@supabase/supabase-js'
 import RitualVideoCliente from './RitualVideoCliente'
+import { productoVisible, videoVisible } from '@/lib/tienda'
 
 export const revalidate = 3600
 
@@ -30,6 +31,8 @@ async function obtenerVideo(slug: string) {
     .single()
 
   if (error || !video) return null
+  // Suplementos pausados (lib/tienda.ts): los videos de suplemento dan 404
+  if (!videoVisible(video)) return null
 
   const { data: relaciones } = await supabase
     .from('ritual_video_productos')
@@ -38,8 +41,10 @@ async function obtenerVideo(slug: string) {
     .order('posicion', { ascending: true })
 
   const productos = (relaciones || [])
-    .map((r: { productos: unknown }) => r.productos)
-    .filter(Boolean)
+    // Igual que /api/tienda/ritual: solo activos, no archivados y visibles.
+    // Los agotados que siguen activos se mantienen; el video nunca se oculta por esto.
+    .map((r: { productos: unknown }) => r.productos as { activo?: boolean; archivado?: boolean; tipo?: string | null } | null)
+    .filter(p => p && p.activo && !p.archivado && productoVisible(p))
 
   return { ...video, productos }
 }
