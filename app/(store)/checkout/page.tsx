@@ -99,7 +99,7 @@ export default function CheckoutPage() {
   // Si cambia algo que afecta el total, el aviso anterior del servidor ya no aplica
   useEffect(() => { setAvisoTotal(null); setErrorPago('') }, [items, codigoAplicado, form.ciudad, metodoPago, descuentoPrimeraCompra])
 
-  // ── Avance guardado (sessionStorage): se recupera al volver, p. ej. desde "Editar carrito" ──
+  // ── Avance guardado (localStorage, caduca a las 2 h): se recupera al volver, p. ej. desde "Editar carrito" o la app de Mercado Pago ──
   // Va ANTES de la carga del perfil para que el perfil solo llene lo que esté vacío.
   const borradorRestaurado = useRef(false)
   const borrador = useRef<BorradorCheckout | null>(null)
