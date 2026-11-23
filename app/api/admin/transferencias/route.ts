@@ -4,7 +4,7 @@ import { Resend } from 'resend'
 import { requireAdmin } from '@/lib/admin-auth'
 import { formatearNumeroPedido } from '@/lib/utils'
 import { filaDescuentoHTML, resumenInternoHTML, avisoCancelacionHTML } from '@/lib/correoPedido'
-import { registrarComisionVenta } from '@/lib/comisiones'
+import { registrarComisionYAvisar } from '@/lib/comisiones'
 import { descontarStockUnaVez } from '@/lib/inventario'
 import { correoRechazoTransferencia } from '@/lib/correoTransferencia'
 import { HORAS_TRAS_RECHAZO } from '@/lib/datos-transferencia'
@@ -119,8 +119,8 @@ export async function POST(req: NextRequest) {
       // 2) Descontar stock (una sola vez)
       await descontarStockUnaVez(pedido.id)
 
-      // 3) Comisión de embajadora (misma regla que en Mercado Pago)
-      try { await registrarComisionVenta(pedido) } catch (e) { console.error('Error al procesar comisión de influencer:', e) }
+      // 3) Comisión de embajadora y correo de venta (igual que en Mercado Pago; una sola vez, nunca falla la aprobación)
+      await registrarComisionYAvisar(pedido)
 
       // 4) Primera compra
       if (pedido.user_id && pedido.descuento_tipo === 'primera_compra') {

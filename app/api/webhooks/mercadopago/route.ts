@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { generarCorreoInfluencer } from '@/lib/correoInfluencer'
 import { createClient } from '@supabase/supabase-js'
 import { MercadoPagoConfig, Payment } from 'mercadopago'
 import { Resend } from 'resend'
 import { formatearNumeroPedido } from '@/lib/utils'
 import { filaDescuentoHTML, resumenInternoHTML } from '@/lib/correoPedido'
 import { sincronizarReembolsosMP, reembolsarPagoEnCancelado } from '@/lib/reembolsos'
-import { registrarComisionVenta } from '@/lib/comisiones'
+import { registrarComisionYAvisar } from '@/lib/comisiones'
 import { descontarStockUnaVez } from '@/lib/inventario'
 import { avisoCancelacionHTML } from '@/lib/correoPedido'
 
@@ -265,59 +264,7 @@ ${fila('Estado anterior del pedido', info.estadoAnterior)}
 //   2. Avisar a la embajadora por correo
 // ============================================================
 async function procesarComisionInfluencer(pedido: any) {
-  try {
-    const comision = await registrarComisionVenta(pedido)
-    if (!comision) return
-
-    try {
-      const { data: inf } = await supabaseAdmin
-        .from('influencers')
-        .select('nombre, email')
-        .eq('id', comision.influencerId)
-        .maybeSingle()
-
-      if (inf && inf.email) {
-        const { data: itemsCorreo } = await supabaseAdmin
-          .from('pedido_items')
-          .select('nombre, marca, precio, cantidad, variante_nombre')
-          .eq('pedido_id', pedido.id)
-
-        const listaItems = itemsCorreo || []
-        const totalPiezas = listaItems.reduce((s, it) => s + (it.cantidad || 0), 0)
-        const costoEnvioPedido = pedido.costo_envio != null ? Number(pedido.costo_envio) : 0
-        const totalPedido = pedido.total != null ? Number(pedido.total) : (comision.subtotalVenta + costoEnvioPedido)
-
-        const correo = generarCorreoInfluencer({
-          nombreInfluencer: inf.nombre || 'Embajadora',
-          codigo: pedido.codigo_descuento,
-          numeroPedido: formatearNumeroPedido(pedido.id),
-          items: listaItems,
-          totalPiezas,
-          subtotal: Number(pedido.subtotal || 0),
-          descuento: Number(pedido.descuento || 0),
-          baseComision: comision.subtotalVenta,
-          costoEnvio: costoEnvioPedido,
-          total: totalPedido,
-          ciudad: pedido.ciudad || '',
-          montoComision: comision.montoComision,
-          tipoComision: comision.tipoComision,
-          comisionValor: comision.comisionValor,
-        })
-
-        await resend.emails.send({
-          from: 'Vitalora <hola@vitalora.com.mx>',
-          to: inf.email,
-          subject: correo.asunto,
-          html: correo.html,
-        })
-      }
-    } catch (correoInfError) {
-      console.error('Error enviando correo al influencer:', correoInfError)
-    }
-
-  } catch (e) {
-    console.error('Error al procesar comisión de influencer:', e)
-  }
+  await registrarComisionYAvisar(pedido)
 }
 
 async function enviarEmails(pedido: any) {

@@ -1,7 +1,7 @@
 import { Resend } from 'resend'
 import { createServiceClient } from '@/lib/supabase/service'
 import { formatearNumeroPedido } from '@/lib/utils'
-import { generarCorreoAjusteInfluencer, type EventoAjuste } from '@/lib/correoInfluencer'
+import { generarCorreoInfluencer, generarCorreoAjusteInfluencer, type EventoAjuste } from '@/lib/correoInfluencer'
 
 // ============================================================
 // Comisiones de embajadoras (SOLO SERVIDOR)
@@ -103,6 +103,65 @@ export async function registrarComisionVenta(pedido: {
     return null
   }
   return { influencerId: codigo.influencer_id, montoComision, tipoComision, comisionValor, subtotalVenta, unidades }
+}
+
+// Registra la comisión de la venta y, si se creó en esta llamada, avisa a la embajadora.
+// La usan el webhook de Mercado Pago y la aprobación de transferencias.
+// Una sola vez: registrarComisionVenta devuelve null si la comisión ya existía,
+// así que un webhook repetido o una segunda aprobación no reenvían el correo.
+// Nunca lanza error: si el registro o el correo fallan, solo se anota en el log.
+export async function registrarComisionYAvisar(pedido: any): Promise<void> {
+  let comision: ComisionCalculada | null = null
+  try {
+    comision = await registrarComisionVenta(pedido)
+  } catch (e) {
+    console.error('Error al procesar comisión de influencer:', e)
+    return
+  }
+  if (!comision) return
+  try {
+    await avisarVentaEmbajadora(pedido, comision)
+  } catch (e) {
+    console.error('Error enviando correo al influencer:', e)
+  }
+}
+
+async function avisarVentaEmbajadora(pedido: any, comision: ComisionCalculada) {
+  const db = createServiceClient()
+  const { data: inf } = await db.from('influencers').select('nombre, email').eq('id', comision.influencerId).maybeSingle()
+  if (!inf?.email) return
+
+  const { data: itemsCorreo } = await db
+    .from('pedido_items')
+    .select('nombre, marca, precio, cantidad, variante_nombre')
+    .eq('pedido_id', pedido.id)
+  const listaItems = itemsCorreo || []
+  const totalPiezas = listaItems.reduce((s, it) => s + (it.cantidad || 0), 0)
+  const costoEnvioPedido = pedido.costo_envio != null ? Number(pedido.costo_envio) : 0
+  const totalPedido = pedido.total != null ? Number(pedido.total) : (comision.subtotalVenta + costoEnvioPedido)
+
+  const correo = generarCorreoInfluencer({
+    nombreInfluencer: inf.nombre || 'Embajadora',
+    codigo: pedido.codigo_descuento,
+    numeroPedido: formatearNumeroPedido(pedido.id),
+    items: listaItems,
+    totalPiezas,
+    subtotal: Number(pedido.subtotal || 0),
+    descuento: Number(pedido.descuento || 0),
+    baseComision: comision.subtotalVenta,
+    costoEnvio: costoEnvioPedido,
+    total: totalPedido,
+    ciudad: pedido.ciudad || '',
+    montoComision: comision.montoComision,
+    tipoComision: comision.tipoComision,
+    comisionValor: comision.comisionValor,
+  })
+  await resend.emails.send({
+    from: 'Vitalora <hola@vitalora.com.mx>',
+    to: inf.email,
+    subject: correo.asunto,
+    html: correo.html,
+  })
 }
 
 export interface PiezaDevuelta { precio: number; cantidad: number; pedido_item_id?: number }

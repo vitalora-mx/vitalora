@@ -93,6 +93,6 @@ export async function correoRechazoTransferencia(pedido: PedidoCorreo, limiteISO
     ${conEnlace
       ? boton('Subir mi comprobante', enlacePedidoTransferencia(pedido.id, pedido.acceso_token!))
       : `<p style="font-size:14px;color:#555;line-height:1.7;margin:16px 0;">Responde a este correo o escríbenos por WhatsApp con tu comprobante y lo revisamos.</p>`}
-    <p style="font-size:14px;color:#555;line-height:1.7;margin:0;">Si tienes dudas, escríbenos a <a href="mailto:hola@vitalora.com.mx" style="color:#C9A961;">hola@vitalora.com.mx</a> o por <a href="${WHATSAPP_URL}" style="color:#C9A961;">WhatsApp</a>. En algunos casos podríamos contactarte para ayudarte a resolverlo.</p>`
+    <p style="font-size:14px;color:#555;line-height:1.7;margin:0;">En algunos casos podríamos contactarte para ayudarte a resolverlo.</p>`
   await enviar(pedido.email, `Necesitamos tu comprobante — Pedido ${numero}`, marco('No pudimos confirmar tu pago', contenido))
 }
