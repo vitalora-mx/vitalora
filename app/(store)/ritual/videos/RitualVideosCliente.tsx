@@ -55,7 +55,7 @@ export default function RitualVideosCliente({ videosIniciales }: { videosInicial
                         onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.04)' }}
                         onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)' }}>
                         <div style={{ aspectRatio: '16/9', background: '#000', position: 'relative', overflow: 'hidden' }}>
-                          <img src={`https://img.youtube.com/vi/${video.youtube_id}/hqdefault.jpg`} alt={video.titulo} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          <img src={`https://img.youtube.com/vi/${video.youtube_id}/hqdefault.jpg`} alt={video.titulo} loading="lazy" decoding="async" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                           <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.15)' }}>
                             <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'rgba(232,228,218,0.92)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                               <svg width="18" height="18" viewBox="0 0 24 24" fill="#0E0E0E"><path d="M8 5v14l11-7z"/></svg>

@@ -103,6 +103,8 @@ export default function CategoriasCarrusel() {
                   src={cat.img}
                   alt={cat.nombre}
                   className="cat-img"
+                  loading="lazy"
+                  decoding="async"
                   style={{
                     width: '100%',
                     height: '100%',

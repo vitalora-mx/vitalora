@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { requireAdmin } from '@/lib/admin-auth'
+import { rutasDeImagen } from '@/lib/optimizar-imagen'
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -94,12 +95,11 @@ export async function DELETE(req: NextRequest) {
   if (!id) return NextResponse.json({ error: 'ID requerido' }, { status: 400 })
 
   // Borrar imagenes del storage
-  const { data: imagenes } = await supabaseAdmin.from('variante_imagenes').select('url').eq('variante_id', id)
+  const { data: imagenes } = await supabaseAdmin.from('variante_imagenes').select('url, url_miniatura').eq('variante_id', id)
   if (imagenes) {
-    for (const img of imagenes) {
-      const path = img.url.split('/productos/')[1]
-      if (path) await supabaseAdmin.storage.from('productos').remove([decodeURIComponent(path)])
-    }
+    // Imagen y su miniatura (si tiene)
+    const rutas = imagenes.flatMap(img => rutasDeImagen(img, 'productos'))
+    if (rutas.length) await supabaseAdmin.storage.from('productos').remove(rutas)
   }
 
   // Borrar la variante (las filas de variante_imagenes se borran solas por el ON DELETE CASCADE)

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
+import { reducirSiEsMuyPesada } from '@/lib/reducir-imagen-cliente'
 
 interface VarianteImagen { id: number; url: string; posicion: number }
 interface Variante {
@@ -57,12 +58,18 @@ function EditarProductoInner() {
   const [nuevaMarca, setNuevaMarca] = useState('')
   const [variantes, setVariantes] = useState<Variante[]>([])
   const [varianteMsg, setVarianteMsg] = useState('')
+  // Estado del producto que se edita: 'archivado' y 'no_encontrado' bloquean el formulario
+  const [estadoCarga, setEstadoCarga] = useState<'ok' | 'archivado' | 'no_encontrado' | 'error'>('ok')
+  const [archivadoInfo, setArchivadoInfo] = useState<{ nombre: string; imagenes: string[] } | null>(null)
+  const [restaurando, setRestaurando] = useState(false)
 
   useEffect(() => {
     async function init() {
-      const [resProd, resMarcas] = await Promise.all([
+      // El producto a editar se pide por id: la lista general NO trae los archivados
+      const [resProd, resMarcas, resUno] = await Promise.all([
         fetch('/api/admin/productos'),
         fetch('/api/admin/marcas'),
+        editingId ? fetch(`/api/admin/productos?id=${editingId}`) : Promise.resolve(null),
       ])
       const dataProd = await resProd.json()
       const dataMarcas = await resMarcas.json()
@@ -70,8 +77,19 @@ function EditarProductoInner() {
       setProductos(listaProd)
       setMarcas(Array.isArray(dataMarcas) ? dataMarcas : [])
 
-      if (editingId) {
-        const p = listaProd.find(x => x.id === editingId)
+      if (editingId && resUno) {
+        if (resUno.status === 404) { setEstadoCarga('no_encontrado'); setLoadingInicial(false); return }
+        const p = (await resUno.json().catch(() => null)) as (Producto & { archivado?: boolean; error?: string }) | null
+        if (!resUno.ok || !p || p.error) { setEstadoCarga('error'); setLoadingInicial(false); return }
+        if (p.archivado) {
+          setArchivadoInfo({
+            nombre: p.nombre,
+            imagenes: (p.producto_imagenes || []).slice().sort((a, b) => a.posicion - b.posicion).map(img => img.url),
+          })
+          setEstadoCarga('archivado')
+          setLoadingInicial(false)
+          return
+        }
         if (p) {
           setForm({
             nombre: p.nombre, marca: p.marca, categoria: p.categoria, tipo: p.tipo,
@@ -288,13 +306,18 @@ function EditarProductoInner() {
     if (!v.id) { setVarianteMsg('Guarda la variante antes de subir fotos'); return }
     const files = Array.from(e.target.files || [])
     const startPos = v.variante_imagenes?.length || 0
+    const fallidas: string[] = []
     for (let k = 0; k < files.length; k++) {
       const fd = new FormData()
-      fd.append('file', files[k]); fd.append('variante_id', String(v.id)); fd.append('posicion', String(startPos + k))
-      await fetch('/api/admin/upload-variante', { method: 'POST', body: fd })
+      fd.append('file', await reducirSiEsMuyPesada(files[k])); fd.append('variante_id', String(v.id)); fd.append('posicion', String(startPos + k))
+      const res = await fetch('/api/admin/upload-variante', { method: 'POST', body: fd })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        fallidas.push(`${files[k].name}: ${data.error || 'no se pudo subir'}`)
+      }
     }
     await cargarVariantes(editingId!)
-    setVarianteMsg('✓ Fotos subidas')
+    setVarianteMsg(fallidas.length ? `Algunas fotos no se subieron — ${fallidas.join(' · ')}` : '✓ Fotos subidas')
   }
   async function quitarFotoVariante(imgId: number) {
     await fetch(`/api/admin/upload-variante?id=${imgId}`, { method: 'DELETE' })
@@ -336,11 +359,25 @@ function EditarProductoInner() {
       if (producto.error) { setMensaje('Error: ' + producto.error); setSaving(false); return }
 
       const startPos = imagenesExistentes.length
+      const fallidas: string[] = []
       for (let i = 0; i < imagenesNuevas.length; i++) {
-        const fd = new FormData(); fd.append('file', imagenesNuevas[i]); fd.append('producto_id', String(editingId || producto.id)); fd.append('posicion', String(startPos + i))
-        await fetch('/api/admin/upload', { method: 'POST', body: fd })
+        const fd = new FormData(); fd.append('file', await reducirSiEsMuyPesada(imagenesNuevas[i])); fd.append('producto_id', String(editingId || producto.id)); fd.append('posicion', String(startPos + i))
+        const res = await fetch('/api/admin/upload', { method: 'POST', body: fd })
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}))
+          fallidas.push(`${imagenesNuevas[i].name}: ${data.error || 'no se pudo subir'}`)
+        }
       }
 
+      if (fallidas.length) {
+        // El producto sí se guardó; solo faltan esas fotos
+        setMensaje(`Producto guardado, pero algunas fotos no se subieron — ${fallidas.join(' · ')}`)
+        setImagenesNuevas([]); setPreviewsNuevas([])
+        setSaving(false)
+        // Producto nuevo: pasar a modo edición para reintentar las fotos sin crearlo dos veces
+        if (!editingId && producto.id) setTimeout(() => router.replace(`/admin/productos/editar?id=${producto.id}`), 4000)
+        return
+      }
       setMensaje(editingId ? '✓ Producto actualizado. Puedes cerrar esta pestaña.' : '✓ Producto creado. Puedes cerrar esta pestaña.')
       setImagenesNuevas([]); setPreviewsNuevas([])
       if (!editingId && producto.id) {
@@ -355,6 +392,51 @@ function EditarProductoInner() {
   const esKit = form.categoria === 'Kits'
 
   if (loadingInicial) return <main style={{ padding: '60px', textAlign: 'center', color: '#888', fontFamily: 'system-ui, sans-serif' }}>Cargando...</main>
+
+  async function restaurarProducto() {
+    if (!editingId) return
+    if (!confirm('¿Restaurar este producto? Quedará inactivo (no se verá en la tienda) hasta que lo actives.')) return
+    setRestaurando(true); setMensaje('')
+    try {
+      const res = await fetch('/api/admin/productos', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: editingId, accion: 'restaurar' }) })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok || data.error) { setMensaje('Error: ' + (data.error || 'No se pudo restaurar')); setRestaurando(false); return }
+      window.location.reload() // vuelve a cargar ya como producto editable
+    } catch { setMensaje('Error al restaurar'); setRestaurando(false) }
+  }
+
+  // Producto archivado, inexistente o con error de carga: nunca se muestra el formulario
+  // (antes se mostraba vacío y al guardar sobrescribía el producto)
+  if (editingId && estadoCarga !== 'ok') {
+    const caja: React.CSSProperties = { padding: '32px', background: '#FFF8E8', border: '1px solid #E8D5A0', borderRadius: '10px', color: '#5C4A1E' }
+    return (
+      <main style={{ padding: '32px', maxWidth: '760px', margin: '0 auto', fontFamily: 'system-ui, sans-serif' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+          <h1 style={{ fontSize: '24px', fontWeight: 700, color: '#111', margin: 0 }}>✏️ Editar Producto</h1>
+          <a href="/admin/productos" style={{ fontSize: '13px', color: '#888', textDecoration: 'none' }}>← Volver a la lista</a>
+        </div>
+        {mensaje && <div style={{ padding: '12px 16px', background: '#FEE', border: '1px solid #FAA', borderRadius: '6px', marginBottom: '16px', fontSize: '14px', color: '#A33' }}>{mensaje}</div>}
+        {estadoCarga === 'archivado' && archivadoInfo ? (
+          <div style={caja}>
+            <div style={{ fontSize: '18px', fontWeight: 700, marginBottom: '8px' }}>Este producto está archivado</div>
+            <p style={{ fontSize: '14px', lineHeight: 1.6, margin: '0 0 6px' }}><strong>#{editingId} · {archivadoInfo.nombre}</strong></p>
+            <p style={{ fontSize: '14px', lineHeight: 1.6, margin: '0 0 20px' }}>Se archivó porque tiene ventas o reseñas, así que se conserva como historial y no se puede editar. Si lo necesitas de nuevo, restáuralo: quedará <strong>inactivo</strong> y podrás editarlo y activarlo.</p>
+            {archivadoInfo.imagenes.length > 0 && (
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '20px' }}>
+                {archivadoInfo.imagenes.map((u, i) => <img key={i} src={u} alt="" loading="lazy" decoding="async" style={{ width: '72px', height: '72px', objectFit: 'contain', background: 'white', border: '1px solid #E8D5A0', borderRadius: '6px' }} />)}
+              </div>
+            )}
+            <button onClick={restaurarProducto} disabled={restaurando} style={{ padding: '12px 24px', background: restaurando ? '#888' : '#111', color: 'white', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: 600, cursor: restaurando ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}>{restaurando ? 'Restaurando...' : 'Restaurar producto'}</button>
+          </div>
+        ) : (
+          <div style={caja}>
+            <div style={{ fontSize: '18px', fontWeight: 700, marginBottom: '8px' }}>{estadoCarga === 'no_encontrado' ? 'Producto no encontrado' : 'No se pudo cargar el producto'}</div>
+            <p style={{ fontSize: '14px', lineHeight: 1.6, margin: 0 }}>{estadoCarga === 'no_encontrado' ? `No existe un producto con el id ${editingId}.` : 'Recarga la página para intentarlo de nuevo.'} Para crear uno nuevo usa <a href="/admin/productos/editar" style={{ color: '#111' }}>+ Nuevo Producto</a>.</p>
+          </div>
+        )}
+      </main>
+    )
+  }
 
   return (
     <main style={{ padding: '32px', maxWidth: '1000px', margin: '0 auto', fontFamily: 'system-ui, sans-serif' }}>

@@ -7,10 +7,11 @@ import RitualHeader from '@/components/store/ritual/RitualHeader'
 import Footer from '@/components/store/Footer'
 import LoraChat from '@/components/store/LoraChat'
 import { useCartStore } from '@/store/cartStore'
+import { miniatura } from '@/lib/imagenes'
 
 const SAGE = '#A8B5A0'
 
-interface ProductoImagen { url: string; posicion: number }
+interface ProductoImagen { url: string; url_miniatura?: string | null; posicion: number }
 interface Producto {
   id: number; slug: string; nombre: string; marca: string; tipo: string
   precio: number; precio_original: number | null
@@ -30,7 +31,7 @@ export default function RitualVideoCliente({ video }: { video: Video }) {
 
   function getImagen(p: Producto): string {
     const imgs = p.producto_imagenes?.slice().sort((a, b) => a.posicion - b.posicion)
-    return imgs?.[0]?.url || ''
+    return imgs?.[0] ? miniatura(imgs[0]) : ''  // miniatura: tarjeta y carrito la muestran chica
   }
 
   function handleAgregar(p: Producto) {
@@ -125,7 +126,7 @@ export default function RitualVideoCliente({ video }: { video: Video }) {
                       onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none' }}>
                       <div style={{ aspectRatio: '1', background: '#F5F0E8', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
                         {getImagen(p) ? (
-                          <img src={getImagen(p)} alt={p.nombre} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                          <img src={getImagen(p)} alt={p.nombre} loading="lazy" decoding="async" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                         ) : (
                           <div style={{ fontFamily: 'var(--font-italiana), serif', fontSize: '32px', color: 'rgba(0,0,0,0.2)' }}>V</div>
                         )}

@@ -56,7 +56,7 @@ export default function CarritoDrawer() {
               <div key={`${item.id}-${item.varianteId ?? 'base'}`} style={{ display: 'flex', gap: '16px', padding: '16px', background: 'white', borderRadius: '4px', border: '1px solid var(--line)' }}>
                 <div style={{ width: '80px', height: '80px', background: 'var(--bg-cream-deep)', borderRadius: '4px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
                   {item.imagen ? (
-                    <img src={item.imagen} alt={item.nombre} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                    <img src={item.imagen} alt={item.nombre} loading="lazy" decoding="async" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                   ) : (
                     <span style={{ fontFamily: 'var(--font-italiana), serif', fontSize: '24px', color: 'var(--text-muted)' }}>V</span>
                   )}

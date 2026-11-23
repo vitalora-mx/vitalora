@@ -4,12 +4,13 @@ import Link from 'next/link'
 import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useIsMobile } from '@/hooks/useIsMobile'
+import { miniatura } from '@/lib/imagenes'
 import { SUPLEMENTOS_ACTIVO } from '@/lib/tienda'
 
 interface Producto {
   id: number; slug: string; marca: string; categoria: string; nombre: string
   precio: number; precio_original: number | null; tag: string; stock: number
-  producto_imagenes: { url: string; posicion: number }[]
+  producto_imagenes: { url: string; url_miniatura?: string | null; posicion: number }[]
 }
 
 interface Props {
@@ -84,12 +85,12 @@ export default function CosmeticosProductos({ rutinaActiva, productosIniciales }
 
   function getImagen(p: Producto) {
     const imgs = p.producto_imagenes?.sort((a, b) => a.posicion - b.posicion)
-    return imgs?.[0]?.url || null
+    return imgs?.[0] ? miniatura(imgs[0]) : null
   }
 
   function getSegundaImagen(p: Producto) {
     const imgs = p.producto_imagenes?.sort((a, b) => a.posicion - b.posicion)
-    return imgs?.[1]?.url || null
+    return imgs?.[1] ? miniatura(imgs[1]) : null
   }
 
   return (
@@ -175,9 +176,9 @@ export default function CosmeticosProductos({ rutinaActiva, productosIniciales }
                     {producto.stock === 0 && <div style={{ position: 'absolute', top: '12px', left: '12px', padding: '5px 12px', background: '#C0392B', color: 'white', fontSize: '10px', letterSpacing: '0.1em', borderRadius: '2px', zIndex: 3, fontWeight: 700, textTransform: 'uppercase' }}>Agotado</div>}
                     {getImagen(producto) ? (
                       <>
-                        <img src={getImagen(producto)!} alt={producto.nombre} className="prod-img-principal" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', opacity: producto.stock === 0 ? 0.45 : 1, filter: producto.stock === 0 ? 'grayscale(60%)' : 'none', transition: 'opacity 0.4s ease' }} />
+                        <img src={getImagen(producto)!} alt={producto.nombre} loading="lazy" decoding="async" className="prod-img-principal" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', opacity: producto.stock === 0 ? 0.45 : 1, filter: producto.stock === 0 ? 'grayscale(60%)' : 'none', transition: 'opacity 0.4s ease' }} />
                         {getSegundaImagen(producto) && producto.stock !== 0 && (
-                          <img src={getSegundaImagen(producto)!} alt={producto.nombre} className="prod-img-secundaria" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', opacity: 0, transition: 'opacity 0.4s ease' }} />
+                          <img src={getSegundaImagen(producto)!} alt={producto.nombre} loading="lazy" decoding="async" className="prod-img-secundaria" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', opacity: 0, transition: 'opacity 0.4s ease' }} />
                         )}
                       </>
                     ) : (

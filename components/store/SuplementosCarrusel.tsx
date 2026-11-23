@@ -99,6 +99,7 @@ export default function SuplementosCarrusel() {
                   alt={cat.nombre}
                   className="cat-sup-img"
                   loading="lazy"
+                  decoding="async"
                   style={{
                     width: '100%',
                     height: '100%',

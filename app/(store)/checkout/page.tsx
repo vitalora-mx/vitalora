@@ -722,7 +722,7 @@ export default function CheckoutPage() {
                 {items.map((item) => (
                   <div key={item.id} style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
                     <div style={{ width: '56px', height: '56px', background: 'var(--bg-cream-deep)', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, overflow: 'hidden' }}>
-                      {item.imagen ? <img src={item.imagen} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain' }} /> : <span style={{ fontFamily: 'var(--font-italiana), serif', fontSize: '20px', color: 'var(--text-muted)' }}>V</span>}
+                      {item.imagen ? <img src={item.imagen} alt="" loading="lazy" decoding="async" style={{ width: '100%', height: '100%', objectFit: 'contain' }} /> : <span style={{ fontFamily: 'var(--font-italiana), serif', fontSize: '20px', color: 'var(--text-muted)' }}>V</span>}
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: '13px', fontWeight: 500, color: 'var(--black)', lineHeight: 1.3 }}>{item.nombre}</div>

@@ -1,6 +1,8 @@
 'use client'
 
 import { useState } from 'react'
+import { miniaturaResena } from '@/lib/imagenes'
+import { reducirSiEsMuyPesada } from '@/lib/reducir-imagen-cliente'
 
 interface Props {
   productoId: number
@@ -27,7 +29,7 @@ export default function FormularioResena({ productoId, productoNombre, onCerrar,
     setSubiendoFoto(true)
     try {
       const formData = new FormData()
-      formData.append('file', file)
+      formData.append('file', await reducirSiEsMuyPesada(file))
       formData.append('producto_id', String(productoId))
       const res = await fetch('/api/resenas/upload', {
         method: 'POST',
@@ -126,7 +128,7 @@ export default function FormularioResena({ productoId, productoNombre, onCerrar,
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
             {fotos.map((foto, i) => (
               <div key={i} style={{ position: 'relative' }}>
-                <img src={foto} alt={`Foto ${i + 1}`} style={{ width: '64px', height: '64px', objectFit: 'cover', borderRadius: '8px', border: '1px solid var(--line)' }} />
+                <img src={miniaturaResena(foto)} alt={`Foto ${i + 1}`} decoding="async" style={{ width: '64px', height: '64px', objectFit: 'cover', borderRadius: '8px', border: '1px solid var(--line)' }} />
                 <button onClick={() => quitarFoto(foto)} style={{ position: 'absolute', top: '-6px', right: '-6px', width: '20px', height: '20px', borderRadius: '50%', background: 'var(--black)', color: 'white', border: 'none', fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}>×</button>
               </div>
             ))}

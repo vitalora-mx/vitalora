@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { miniaturaResena } from '@/lib/imagenes'
 
 interface Resena {
   id: number
@@ -121,8 +122,10 @@ export default function ResenasProducto({ productoId }: Props) {
               {r.fotos.map((foto, i) => (
                 <img
                   key={i}
-                  src={foto}
+                  src={miniaturaResena(foto)}
                   alt={`Foto de reseña ${i + 1}`}
+                  loading="lazy"
+                  decoding="async"
                   onClick={() => setFotoAmpliada(foto)}
                   style={{ width: '72px', height: '72px', objectFit: 'cover', borderRadius: '8px', cursor: 'pointer', border: '1px solid var(--line)' }}
                 />

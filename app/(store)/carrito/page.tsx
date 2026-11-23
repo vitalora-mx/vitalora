@@ -36,7 +36,7 @@ export default function CarritoPage() {
               <div key={`${item.id}-${item.varianteId ?? 'base'}`} style={{ display: 'flex', gap: '20px', padding: '24px 0', borderBottom: '1px solid var(--line)' }}>
                 <div style={{ width: '100px', height: '100px', background: 'var(--bg-cream-deep)', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 }}>
                   {item.imagen ? (
-                    <img src={item.imagen} alt={item.nombre} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                    <img src={item.imagen} alt={item.nombre} loading="lazy" decoding="async" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                   ) : (
                     <span style={{ fontFamily: 'var(--font-italiana), serif', fontSize: '28px', color: 'var(--text-muted)' }}>V</span>
                   )}

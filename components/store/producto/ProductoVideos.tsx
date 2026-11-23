@@ -99,6 +99,8 @@ export default function ProductoVideos({ videos }: Props) {
                     <div style={{ position: 'relative', borderRadius: '4px', overflow: 'hidden', aspectRatio: '16/9', background: '#1A1A1A', border: '1px solid rgba(255,255,255,0.1)' }}>
                       <img
                         src={`https://img.youtube.com/vi/${ytId}/hqdefault.jpg`}
+                        loading="lazy"
+                        decoding="async"
                         alt={video.titulo}
                         style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.8 }}
                       />

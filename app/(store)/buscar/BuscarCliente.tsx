@@ -7,11 +7,12 @@ import Header from '@/components/store/Header'
 import Footer from '@/components/store/Footer'
 import LoraChat from '@/components/store/LoraChat'
 import { useIsMobile } from '@/hooks/useIsMobile'
+import { miniatura } from '@/lib/imagenes'
 
 interface Producto {
   id: number; slug: string; nombre: string; marca: string; categoria: string; tipo: string
   precio: number; precio_original: number | null; tag: string; stock: number
-  producto_imagenes: { id: number; url: string; posicion: number }[]
+  producto_imagenes: { id: number; url: string; url_miniatura?: string | null; posicion: number }[]
   producto_variantes: { stock: number }[]
 }
 
@@ -94,7 +95,7 @@ export default function BuscarCliente() {
                         <div style={{ position: 'absolute', top: '10px', right: '10px', padding: '4px 10px', background: '#C0392B', color: 'white', fontSize: '9px', letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 700, borderRadius: '2px', zIndex: 2 }}>Agotado</div>
                       )}
                       {img ? (
-                        <img src={img.url} alt={p.nombre} style={{ width: '100%', height: '100%', objectFit: 'contain', opacity: agotado ? 0.45 : 1, filter: agotado ? 'grayscale(60%)' : 'none' }} />
+                        <img src={miniatura(img)} alt={p.nombre} loading="lazy" decoding="async" style={{ width: '100%', height: '100%', objectFit: 'contain', opacity: agotado ? 0.45 : 1, filter: agotado ? 'grayscale(60%)' : 'none' }} />
                       ) : (
                         <span style={{ fontFamily: 'var(--font-italiana), serif', fontSize: '40px', color: 'rgba(0,0,0,0.1)' }}>V</span>
                       )}

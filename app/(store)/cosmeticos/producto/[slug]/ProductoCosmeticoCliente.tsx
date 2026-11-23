@@ -7,12 +7,13 @@ import ProductoVideos from '@/components/store/producto/ProductoVideos'
 import Footer from '@/components/store/Footer'
 import LoraChat from '@/components/store/LoraChat'
 import { useCartStore } from '@/store/cartStore'
+import { miniatura } from '@/lib/imagenes'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import MetodosPago from '@/components/store/MetodosPago'
 import ResenasProducto from '@/components/store/producto/ResenasProducto'
 
 interface ProductoVideo { id: number; youtube_url: string; titulo: string; posicion: number }
-interface VarianteImagen { id: number; url: string; posicion: number }
+interface VarianteImagen { id: number; url: string; url_miniatura?: string | null; posicion: number }
 interface Variante {
   id: number; nombre: string; tipo: string | null; sku: string | null
   codigo_barras: string | null; stock: number; precio: number | null; posicion: number
@@ -24,7 +25,7 @@ interface Producto {
   precio: number; precio_original: number | null; tag: string; descripcion: string
   ingredientes: string; como_usar: string; video_url: string; stock: number
   seo_title: string | null; seo_description: string | null
-  producto_imagenes: { id: number; url: string; posicion: number }[]
+  producto_imagenes: { id: number; url: string; url_miniatura?: string | null; posicion: number }[]
   producto_videos: ProductoVideo[]
   producto_variantes: Variante[]
 }
@@ -56,7 +57,7 @@ export default function ProductoCosmeticoCliente({ producto }: { producto: Produ
   const variante = tieneVariantes ? (variantes.find(v => v.id === varianteSel) || variantes[0]) : null
 
   const imagenesVariante = variante && variante.variante_imagenes?.length > 0
-    ? variante.variante_imagenes.slice().sort((a, b) => a.posicion - b.posicion).map(img => ({ id: img.id, url: img.url, posicion: img.posicion }))
+    ? variante.variante_imagenes.slice().sort((a, b) => a.posicion - b.posicion).map(img => ({ id: img.id, url: img.url, url_miniatura: img.url_miniatura, posicion: img.posicion }))
     : null
   const imagenes = imagenesVariante || (producto.producto_imagenes?.slice().sort((a, b) => a.posicion - b.posicion) || [])
 
@@ -95,7 +96,7 @@ export default function ProductoCosmeticoCliente({ producto }: { producto: Produ
           nombre: producto.nombre,
           marca: producto.marca,
           precio: precioEfectivo,
-          imagen: imagenes[0]?.url || '',
+          imagen: imagenes[0] ? miniatura(imagenes[0]) : '',
           tipo: 'cosmetico',
           varianteId: variante.id,
           varianteNombre: variante.tipo ? `${variante.tipo}: ${variante.nombre}` : variante.nombre,
@@ -110,7 +111,7 @@ export default function ProductoCosmeticoCliente({ producto }: { producto: Produ
           nombre: producto.nombre,
           marca: producto.marca,
           precio: producto.precio,
-          imagen: imagenes[0]?.url || '',
+          imagen: imagenes[0] ? miniatura(imagenes[0]) : '',
           tipo: 'cosmetico',
         })
       }
@@ -149,7 +150,7 @@ export default function ProductoCosmeticoCliente({ producto }: { producto: Produ
                 {imagenes.map((img, i) => (
                   <button key={img.id} onClick={() => setSeleccionada(i)}
                     style={{ width: '72px', height: '72px', border: '2px solid', borderColor: seleccionada === i ? 'var(--gold)' : '#E8E0D5', borderRadius: '4px', cursor: 'pointer', padding: 0, overflow: 'hidden', flexShrink: 0 }}>
-                    <img src={img.url} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                    <img src={miniatura(img)} alt="" loading="lazy" decoding="async" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                   </button>
                 ))}
               </div>
