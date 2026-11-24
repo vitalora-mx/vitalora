@@ -16,6 +16,15 @@ export interface CartItem {
   varianteNombre?: string | null
 }
 
+// Las fotos de producto originales ({producto}/{ts}.png o .jpg) se migraron a WebP
+// ({producto}/{ts}-q90.webp y su miniatura {ts}-q90-600.webp) y los originales se
+// borraron del bucket. Un carrito guardado antes de la migración conserva la URL vieja:
+// se cambia por la miniatura nueva. Cualquier otra URL se deja igual.
+const RE_FOTO_ORIGINAL = /(\/storage\/v1\/object\/public\/productos\/\d+\/\d+)\.(png|jpe?g)$/i
+export function imagenMigrada(url: string): string {
+  return typeof url === 'string' ? url.replace(RE_FOTO_ORIGINAL, '$1-q90-600.webp') : url
+}
+
 // Identidad unica de una linea del carrito: producto + variante (si tiene)
 function claveItem(id: number, varianteId?: number | null): string {
   return `${id}__${varianteId ?? 'base'}`
@@ -84,12 +93,15 @@ export const useCartStore = create<CartStore>()(
     {
       name: 'vitalora-carrito',
       // Al cargar el carrito guardado, se quitan los suplementos si están pausados
+      // y se actualizan las fotos guardadas antes de la migración a WebP
       merge: (guardado, actual) => {
         const g = (guardado ?? {}) as Partial<CartStore>
         return {
           ...actual,
           ...g,
-          items: Array.isArray(g.items) ? g.items.filter(productoVisible) : actual.items,
+          items: Array.isArray(g.items)
+            ? g.items.filter(productoVisible).map(i => ({ ...i, imagen: imagenMigrada(i.imagen) }))
+            : actual.items,
         }
       },
     }
