@@ -35,7 +35,10 @@
 }
 html {
   scroll-behavior: smooth;
+  /* clip (no hidden) para no romper position: sticky del encabezado y la barra de filtros;
+     hidden queda como respaldo en navegadores que no conocen clip (Safari < 16) */
   overflow-x: hidden;
+  overflow-x: clip;
   max-width: 100%;
 }
 body {
@@ -44,6 +47,7 @@ body {
   line-height: 1.6;
   font-weight: 300;
   overflow-x: hidden;
+  overflow-x: clip;
   max-width: 100%;
   width: 100%;
 }
