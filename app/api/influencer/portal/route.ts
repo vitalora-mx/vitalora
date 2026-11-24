@@ -15,7 +15,7 @@ const DATOS_FISCALES_VITALORA = {
   rfc: 'VIA210820163',
   regimen: '601 — General de Ley Personas Morales',
   cp: '37749',
-  domicilio: 'Circuito Luna 103, San Miguel de Allende, Guanajuato',
+  domicilio: 'Circuito Luna, Zirándaro, San Miguel de Allende, Guanajuato',
   uso_cfdi: 'G03 — Gastos en general',
   concepto: 'Servicios de publicidad / comisiones por ventas',
 }
