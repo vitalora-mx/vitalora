@@ -1,8 +1,8 @@
 // ============================================================
 // Optimización de imágenes al subirlas (SOLO SERVIDOR).
 // Cada foto se guarda en dos versiones WebP:
-//  - principal: máximo 1600 px por lado (calidad 80)
-//  - miniatura: máximo 600 px por lado (calidad 75), para listas, carrito, etc.
+//  - principal: máximo 1600 px por lado (calidad 90)
+//  - miniatura: máximo 600 px por lado (calidad 85), para listas, carrito, etc.
 // Corrige la rotación de las fotos de celular, no agranda las chicas y quita
 // los metadatos (EXIF, incluida la ubicación GPS).
 // ============================================================
@@ -10,8 +10,8 @@ import sharp from 'sharp'
 
 export const LADO_PRINCIPAL = 1600
 export const LADO_MINIATURA = 600
-export const CALIDAD_PRINCIPAL = 80
-export const CALIDAD_MINIATURA = 75
+export const CALIDAD_PRINCIPAL = 90
+export const CALIDAD_MINIATURA = 85
 export const SUFIJO_MINIATURA = '-600'
 
 // Formatos de entrada aceptados (HEIC/HEIF no: sharp no los lee)
