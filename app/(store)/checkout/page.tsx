@@ -375,7 +375,7 @@ export default function CheckoutPage() {
 
         <div style={{ textAlign: 'center', marginBottom: '48px' }}>
           <Link href="/" style={{ textDecoration: 'none' }}>
-            <img src="/images/logo/logo-header.png" alt="Vitalora" style={{ height: '40px', width: 'auto', display: 'block' }} />
+            <img src="/images/logo/logo-header.webp" alt="Vitalora" style={{ height: '40px', width: 'auto', display: 'block' }} />
           </Link>
           {logueado && (
             <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '8px' }}>
@@ -642,7 +642,7 @@ export default function CheckoutPage() {
                         <div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%' }}>
                             <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--black)' }}>Tarjeta o efectivo</div>
-                            <img src="/images/pagos/mercadopago.png" alt="Mercado Pago" style={{ height: '40px', width: 'auto', marginLeft: 'auto' }} />
+                            <img src="/images/pagos/mercadopago.webp" alt="Mercado Pago" style={{ height: '40px', width: 'auto', marginLeft: 'auto' }} />
                           </div>
                           <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Paga con tarjeta, OXXO o dinero en Mercado Pago. Inmediato.</div>
                         </div>
@@ -656,7 +656,7 @@ export default function CheckoutPage() {
                         <div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%' }}>
                             <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--black)' }}>Transferencia bancaria</div>
-                            <img src="/images/pagos/spei.png" alt="SPEI" style={{ height: '32px', width: 'auto', marginLeft: 'auto' }} />
+                            <img src="/images/pagos/spei.webp" alt="SPEI" style={{ height: '32px', width: 'auto', marginLeft: 'auto' }} />
                           </div>
                           <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Transfiere por SPEI y sube tu comprobante. Confirmacion manual.</div>
                         </div>

@@ -401,7 +401,7 @@ export default function PortalInfluencerPage() {
         <div style={{ minHeight: '100vh', background: '#F5F0E8', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px', fontFamily: 'system-ui, sans-serif' }}>
           <div style={{ background: 'white', maxWidth: '420px', width: '100%', padding: '48px 40px', borderRadius: '4px', border: '1px solid #E8E4DA' }}>
             <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-              <img src="/images/logo/logo-header.png" alt="Vitalora" style={{ height: '36px', width: 'auto', marginBottom: '16px' }} />
+              <img src="/images/logo/logo-header.webp" alt="Vitalora" style={{ height: '36px', width: 'auto', marginBottom: '16px' }} />
               <p style={{ fontSize: '11px', letterSpacing: '0.2em', textTransform: 'uppercase', color: '#C9A961', marginBottom: '8px' }}>Portal de embajadoras</p>
               <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '24px', fontWeight: 600, color: '#0E0E0E' }}>Inicia sesión</h1>
             </div>

@@ -7,8 +7,8 @@ export default function CosmeticosBanner() {
   const isMobile = useIsMobile()
 
   const src = isMobile
-    ? '/images/banner-cosmeticos-mobile.png'
-    : '/images/banner-cosmeticos-desktop.png'
+    ? '/images/banner-cosmeticos-mobile.webp'
+    : '/images/banner-cosmeticos-desktop.webp'
 
   return (
     <div style={{

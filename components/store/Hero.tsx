@@ -9,8 +9,8 @@ import { SUPLEMENTOS_ACTIVO } from '@/lib/tienda'
 const todosLosSlides = [
   {
     id: 1,
-    desktop: '/images/hero/slide-1-desktop.png',
-    mobile: '/images/hero/slide-1-mobile.png',
+    desktop: '/images/hero/slide-1-desktop.webp',
+    mobile: '/images/hero/slide-1-mobile.webp',
     width: 1942, height: 809,
     widthMobile: 936, heightMobile: 1681,
     alt: 'Vitalora — Tu rutina perfecta con ayuda de Lora',
@@ -27,8 +27,8 @@ const todosLosSlides = [
   },
   {
     id: 2,
-    desktop: '/images/hero/slide-2-desktop.png',
-    mobile: '/images/hero/slide-2-mobile.png',
+    desktop: '/images/hero/slide-2-desktop.webp',
+    mobile: '/images/hero/slide-2-mobile.webp',
     width: 1942, height: 809,
     widthMobile: 936, heightMobile: 1681,
     alt: 'Vitalora — Cosméticos Coreanos Auténticos',
@@ -44,8 +44,8 @@ const todosLosSlides = [
   },
   {
     id: 3,
-    desktop: '/images/hero/slide-3-desktop.png',
-    mobile: '/images/hero/slide-3-mobile.png',
+    desktop: '/images/hero/slide-3-desktop.webp',
+    mobile: '/images/hero/slide-3-mobile.webp',
     width: 1717, height: 916,
     widthMobile: 936, heightMobile: 1681,
     alt: 'Vitalora — Suplementos de Alta Pureza',
@@ -61,8 +61,8 @@ const todosLosSlides = [
   },
   {
     id: 4,
-    desktop: '/images/hero/slide-4-desktop.png',
-    mobile: '/images/hero/slide-4-mobile.png',
+    desktop: '/images/hero/slide-4-desktop.webp',
+    mobile: '/images/hero/slide-4-mobile.webp',
     width: 1774, height: 887,
     widthMobile: 936, heightMobile: 1681,
     alt: 'Vitalora — Belleza sin fronteras, sin complicaciones',
@@ -70,8 +70,8 @@ const todosLosSlides = [
   },
   {
     id: 5,
-    desktop: '/images/hero/slide-5-desktop.png',
-    mobile: '/images/hero/slide-5-mobile.png',
+    desktop: '/images/hero/slide-5-desktop.webp',
+    mobile: '/images/hero/slide-5-mobile.webp',
     width: 1942, height: 809,
     widthMobile: 936, heightMobile: 1681,
     alt: 'Vitalora - Descuentos todo el ano y 5% adicional en tu primera compra',
@@ -308,7 +308,7 @@ export default function Hero() {
           zIndex: 20,
         }}>
           <img
-            src="/images/logo/logo-footer.png"
+            src="/images/logo/logo-footer.webp"
             alt="Vitalora"
             className="promo-anim promo-d1"
             style={{

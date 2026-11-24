@@ -13,7 +13,7 @@ export default function Newsletter() {
       position: 'relative',
       overflow: 'hidden',
       backgroundColor: '#F6F1E8',
-      backgroundImage: "url('/images/fondos/fondo-newsletter.png')",
+      backgroundImage: "url('/images/fondos/fondo-newsletter.webp')",
       backgroundSize: 'cover',
       backgroundPosition: 'center left',
       backgroundRepeat: 'no-repeat',

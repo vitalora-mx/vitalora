@@ -3,20 +3,20 @@ import { useRef } from 'react'
 import { useIsMobile } from '@/hooks/useIsMobile'
 
 const CATEGORIAS = [
-  { nombre: 'Limpiador & Exfoliante', img: '/images/categorias/cat-limpiador.png' },
-  { nombre: 'Tónico & Mist', img: '/images/categorias/cat-tonico.png' },
-  { nombre: 'Sérum', img: '/images/categorias/cat-serum.png' },
-  { nombre: 'Crema & Balm', img: '/images/categorias/cat-crema.png' },
-  { nombre: 'Protector Solar', img: '/images/categorias/cat-protector.png' },
-  { nombre: 'Cuidado de Ojos', img: '/images/categorias/cat-ojos.png' },
-  { nombre: 'Mascarillas & Parche', img: '/images/categorias/cat-mascarillas.png' },
-  { nombre: 'Parches para Acné', img: '/images/categorias/cat-acne.png' },
-  { nombre: 'Labios', img: '/images/categorias/cat-labios.png' },
-  { nombre: 'Make Up', img: '/images/categorias/cat-makeup.png' },
-  { nombre: 'Cuidado del Cabello', img: '/images/categorias/cat-cabello.png' },
-  { nombre: 'Kits', img: '/images/categorias/cat-kits.png' },
-  { nombre: 'Mini Kits', img: '/images/categorias/cat-mini-kits.png' },
-  { nombre: 'Cuidado Corporal', img: '/images/categorias/cat-corporal.png' },
+  { nombre: 'Limpiador & Exfoliante', img: '/images/categorias/cat-limpiador.webp' },
+  { nombre: 'Tónico & Mist', img: '/images/categorias/cat-tonico.webp' },
+  { nombre: 'Sérum', img: '/images/categorias/cat-serum.webp' },
+  { nombre: 'Crema & Balm', img: '/images/categorias/cat-crema.webp' },
+  { nombre: 'Protector Solar', img: '/images/categorias/cat-protector.webp' },
+  { nombre: 'Cuidado de Ojos', img: '/images/categorias/cat-ojos.webp' },
+  { nombre: 'Mascarillas & Parche', img: '/images/categorias/cat-mascarillas.webp' },
+  { nombre: 'Parches para Acné', img: '/images/categorias/cat-acne.webp' },
+  { nombre: 'Labios', img: '/images/categorias/cat-labios.webp' },
+  { nombre: 'Make Up', img: '/images/categorias/cat-makeup.webp' },
+  { nombre: 'Cuidado del Cabello', img: '/images/categorias/cat-cabello.webp' },
+  { nombre: 'Kits', img: '/images/categorias/cat-kits.webp' },
+  { nombre: 'Mini Kits', img: '/images/categorias/cat-mini-kits.webp' },
+  { nombre: 'Cuidado Corporal', img: '/images/categorias/cat-corporal.webp' },
 ]
 
 interface Props {

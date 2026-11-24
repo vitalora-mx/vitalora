@@ -9,13 +9,13 @@ interface MetodosPagoProps {
 }
 
 const LOGOS = [
-  { src: '/images/pagos/visa.png', alt: 'Visa' },
-  { src: '/images/pagos/mastercard.png', alt: 'Mastercard' },
-  { src: '/images/pagos/amex.png', alt: 'American Express' },
-  { src: '/images/pagos/mercadopago.png', alt: 'Mercado Pago' },
-  { src: '/images/pagos/oxxo.png', alt: 'OXXO' },
-  { src: '/images/pagos/7eleven.png', alt: '7-Eleven' },
-  { src: '/images/pagos/spei.png', alt: 'SPEI' },
+  { src: '/images/pagos/visa.webp', alt: 'Visa' },
+  { src: '/images/pagos/mastercard.webp', alt: 'Mastercard' },
+  { src: '/images/pagos/amex.webp', alt: 'American Express' },
+  { src: '/images/pagos/mercadopago.webp', alt: 'Mercado Pago' },
+  { src: '/images/pagos/oxxo.webp', alt: 'OXXO' },
+  { src: '/images/pagos/7eleven.webp', alt: '7-Eleven' },
+  { src: '/images/pagos/spei.webp', alt: 'SPEI' },
 ]
 
 export default function MetodosPago({ variante = 'claro', titulo = 'Métodos de pago aceptados' }: MetodosPagoProps) {

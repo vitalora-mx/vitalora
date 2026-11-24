@@ -5,8 +5,8 @@ export default function RitualBanner() {
   const isMobile = useIsMobile()
 
   const src = isMobile
-    ? '/images/ritual/banner-ritual-mobile.png'
-    : '/images/ritual/banner-ritual-desktop.png'
+    ? '/images/ritual/banner-ritual-mobile.webp'
+    : '/images/ritual/banner-ritual-desktop.webp'
 
   return (
     <div style={{

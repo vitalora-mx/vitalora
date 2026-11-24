@@ -41,7 +41,7 @@ const MetodosPago = () => (
       {/* Mercado Pago */}
       <div style={{ ...badgeStyle, padding: '4px 12px', height: '44px' }} title="Mercado Pago">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/images/logos/mercadopago.png" alt="Mercado Pago" style={{ height: '34px', width: 'auto', display: 'block' }} />
+        <img src="/images/logos/mercadopago.webp" alt="Mercado Pago" style={{ height: '34px', width: 'auto', display: 'block' }} />
       </div>
 
       {/* Visa */}

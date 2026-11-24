@@ -7,8 +7,8 @@ export default function SuplementosBanner() {
   const isMobile = useIsMobile()
 
   const src = isMobile
-    ? '/images/banner-suplementos-mobile.png'
-    : '/images/banner-suplementos-desktop.png'
+    ? '/images/banner-suplementos-mobile.webp'
+    : '/images/banner-suplementos-desktop.webp'
 
   return (
     <div style={{

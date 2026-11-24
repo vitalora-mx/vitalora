@@ -76,7 +76,7 @@ function NuevaPasswordForm() {
   if (enlace === 'invalido') {
     return (
       <div style={{ textAlign: 'center' }}>
-        <img src="/images/logo/logo-header.png" alt="Vitalora" style={{ height: '36px', width: 'auto', marginBottom: '20px' }} />
+        <img src="/images/logo/logo-header.webp" alt="Vitalora" style={{ height: '36px', width: 'auto', marginBottom: '20px' }} />
         <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '26px', fontWeight: 600, color: '#0E0E0E', marginBottom: '12px' }}>Este enlace ya fue usado o expiró</h1>
         <p style={{ fontSize: '14px', color: '#6B6B6B', lineHeight: 1.7, marginBottom: '24px' }}>Los enlaces para cambiar la contraseña sirven una sola vez y duran 1 hora. Pide uno nuevo y te lo enviamos a tu correo.</p>
         <a href="/recuperar" style={{ display: 'inline-block', padding: '12px 28px', background: '#0E0E0E', color: '#C9A961', textDecoration: 'none', borderRadius: '3px', fontSize: '13px', fontWeight: 600, letterSpacing: '0.05em' }}>Pedir un enlace nuevo</a>
@@ -87,7 +87,7 @@ function NuevaPasswordForm() {
   return (
     <>
       <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-        <img src="/images/logo/logo-header.png" alt="Vitalora" style={{ height: '36px', width: 'auto', marginBottom: '20px' }} />
+        <img src="/images/logo/logo-header.webp" alt="Vitalora" style={{ height: '36px', width: 'auto', marginBottom: '20px' }} />
         <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '26px', fontWeight: 600, color: '#0E0E0E', marginBottom: '8px' }}>Crea tu nueva contraseña</h1>
       </div>
 

@@ -7,14 +7,14 @@ import { useIsMobile } from '@/hooks/useIsMobile'
 const SAGE = '#6B8F6B'
 
 const CATEGORIAS = [
-  { nombre: 'Energía y Rendimiento', img: '/images/categorias/cat-sup-energia.png' },
-  { nombre: 'Músculo y Recuperación', img: '/images/categorias/cat-sup-musculo.png' },
-  { nombre: 'Control de Peso', img: '/images/categorias/cat-sup-peso.png' },
-  { nombre: 'Sueño y Relajación', img: '/images/categorias/cat-sup-sueno.png' },
-  { nombre: 'Defensas e Inmunidad', img: '/images/categorias/cat-sup-inmunidad.png' },
-  { nombre: 'Digestión', img: '/images/categorias/cat-sup-digestion.png' },
-  { nombre: 'Belleza', img: '/images/categorias/cat-sup-belleza.png' },
-  { nombre: 'Vitaminas y Minerales', img: '/images/categorias/cat-sup-vitaminas.png' },
+  { nombre: 'Energía y Rendimiento', img: '/images/categorias/cat-sup-energia.webp' },
+  { nombre: 'Músculo y Recuperación', img: '/images/categorias/cat-sup-musculo.webp' },
+  { nombre: 'Control de Peso', img: '/images/categorias/cat-sup-peso.webp' },
+  { nombre: 'Sueño y Relajación', img: '/images/categorias/cat-sup-sueno.webp' },
+  { nombre: 'Defensas e Inmunidad', img: '/images/categorias/cat-sup-inmunidad.webp' },
+  { nombre: 'Digestión', img: '/images/categorias/cat-sup-digestion.webp' },
+  { nombre: 'Belleza', img: '/images/categorias/cat-sup-belleza.webp' },
+  { nombre: 'Vitaminas y Minerales', img: '/images/categorias/cat-sup-vitaminas.webp' },
 ]
 
 export default function SuplementosCarrusel() {

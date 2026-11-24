@@ -9,11 +9,11 @@ export default function Categories() {
   const isMobile = useIsMobile()
 
   const cosmeticosImg = isMobile
-    ? '/images/categoria-cosmeticos-mobile.png'
-    : '/images/categoria-cosmeticos-desktop.png'
+    ? '/images/categoria-cosmeticos-mobile.webp'
+    : '/images/categoria-cosmeticos-desktop.webp'
   const suplementosImg = isMobile
-    ? '/images/categoria-suplementos-mobile.png'
-    : '/images/categoria-suplementos-desktop.png'
+    ? '/images/categoria-suplementos-mobile.webp'
+    : '/images/categoria-suplementos-desktop.webp'
 
   return (
     <section style={{

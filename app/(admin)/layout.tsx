@@ -245,7 +245,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F5F0E8', fontFamily: 'system-ui, sans-serif' }}>
         <div style={{ background: 'white', padding: '48px', borderRadius: '12px', border: '1px solid #E5E5E5', boxShadow: '0 4px 20px rgba(0,0,0,0.08)', maxWidth: '400px', width: '100%', textAlign: 'center' }}>
-          <img src="/images/logo/logo-header.png" alt="Vitalora" style={{ height: '40px', width: 'auto', display: 'block', marginBottom: '8px', marginLeft: 'auto', marginRight: 'auto' }} />
+          <img src="/images/logo/logo-header.webp" alt="Vitalora" style={{ height: '40px', width: 'auto', display: 'block', marginBottom: '8px', marginLeft: 'auto', marginRight: 'auto' }} />
           <div style={{ fontSize: '10px', letterSpacing: '0.3em', color: '#C9A961', marginBottom: '32px' }}>PANEL DE ADMINISTRACIÓN</div>
           <input type="email" value={email} onChange={e => setEmail(e.target.value)} onKeyDown={handleKeyDown} placeholder="Correo electrónico"
             style={{ width: '100%', padding: '14px 16px', border: '1px solid #DDD', borderRadius: '8px', fontSize: '14px', fontFamily: 'inherit', outline: 'none', marginBottom: '12px', boxSizing: 'border-box', textAlign: 'center' }} autoFocus />

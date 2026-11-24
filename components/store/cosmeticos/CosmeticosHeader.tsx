@@ -85,7 +85,7 @@ export default function CosmeticosHeader() {
 
           {/* Logo */}
           <Link href="/" style={{ textDecoration: 'none' }}>
-            <img src="/images/logo/logo-header.png" alt="Vitalora" style={{ height: isMobile ? '30px' : '38px', width: 'auto', display: 'block', margin: '0 auto' }} />
+            <img src="/images/logo/logo-header.webp" alt="Vitalora" style={{ height: isMobile ? '30px' : '38px', width: 'auto', display: 'block', margin: '0 auto' }} />
             <div style={{ fontSize: '9px', letterSpacing: '0.3em', textTransform: 'uppercase', color: 'var(--gold)', textAlign: 'center', marginTop: '2px' }}>K-Beauty</div>
           </Link>
 

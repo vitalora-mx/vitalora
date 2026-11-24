@@ -42,7 +42,7 @@ export default function RecuperarPage() {
           ) : (
             <>
               <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-                <img src="/images/logo/logo-header.png" alt="Vitalora" style={{ height: '36px', width: 'auto', marginBottom: '20px' }} />
+                <img src="/images/logo/logo-header.webp" alt="Vitalora" style={{ height: '36px', width: 'auto', marginBottom: '20px' }} />
                 <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '26px', fontWeight: 600, color: '#0E0E0E', marginBottom: '8px' }}>Recupera tu contraseña</h1>
                 <p style={{ fontSize: '13px', color: '#6B6B6B', lineHeight: 1.6 }}>Ingresa tu correo y te enviaremos un enlace para crear una nueva.</p>
               </div>
