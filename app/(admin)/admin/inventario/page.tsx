@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { filtroPorPalabras } from '@/lib/busqueda'
 
 interface Variante {
   id: string
@@ -11,6 +12,7 @@ interface Variante {
 interface Producto {
   id: string
   nombre: string
+  marca: string | null
   slug: string
   sku: string | null
   categoria: string | null
@@ -164,14 +166,12 @@ export default function InventarioPage() {
 
   useEffect(() => { cargar() }, [cargar])
 
+  const coincide = filtroPorPalabras(busqueda)
   const lista = productos.filter(p => {
     const e = getEstado(p)
     if (filtro === 'bajo' && e !== 'bajo') return false
     if (filtro === 'sinstock' && e !== 'sinstock') return false
-    if (busqueda) {
-      const q = busqueda.toLowerCase()
-      return p.nombre.toLowerCase().includes(q) || (p.sku ?? '').toLowerCase().includes(q)
-    }
+    if (coincide) return coincide(p.nombre, p.marca, p.sku)
     return true
   })
 

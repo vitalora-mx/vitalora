@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
+import { filtroPorPalabras } from '@/lib/busqueda'
 
 interface Producto {
   id: number; slug: string; nombre: string; marca: string; categoria: string; tipo: string
@@ -118,17 +119,14 @@ export default function AdminProductosPage() {
 
   // --- Filtros y busqueda ---
   const productosFiltrados = useMemo(() => {
-    const q = busqueda.trim().toLowerCase()
+    const coincide = filtroPorPalabras(busqueda)
     return productos.filter(p => {
       const stockReal = valorStock(p)
       const porStock =
         filtroStock === 'todos' ? true :
         filtroStock === 'agotados' ? stockReal <= 0 :
         (stockReal >= 1 && stockReal <= 2)
-      const porBusqueda = q === '' ||
-        p.nombre.toLowerCase().includes(q) ||
-        (p.sku || '').toLowerCase().includes(q) ||
-        (p.codigo_barras || '').toLowerCase().includes(q)
+      const porBusqueda = !coincide || coincide(p.nombre, p.marca, p.sku, p.codigo_barras)
       return porStock && porBusqueda
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -161,7 +159,7 @@ export default function AdminProductosPage() {
       <div style={{ display: 'flex', gap: '12px', marginBottom: '20px', flexWrap: 'wrap', alignItems: 'center' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', border: '1px solid #DDD', borderRadius: '8px', padding: '10px 14px', background: 'white', flex: '1 1 320px' }}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#888" strokeWidth="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.35-4.35"/></svg>
-          <input value={busqueda} onChange={e => setBusqueda(e.target.value)} placeholder="Buscar por nombre, SKU o código de barras..." style={{ border: 'none', outline: 'none', fontSize: '14px', width: '100%', fontFamily: 'inherit' }} />
+          <input value={busqueda} onChange={e => setBusqueda(e.target.value)} placeholder="Buscar por nombre, marca, SKU o código de barras..." style={{ border: 'none', outline: 'none', fontSize: '14px', width: '100%', fontFamily: 'inherit' }} />
           {busqueda && <button onClick={() => setBusqueda('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#999', fontSize: '16px' }}>✕</button>}
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>

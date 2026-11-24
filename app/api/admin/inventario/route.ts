@@ -18,6 +18,7 @@ export async function GET(req: Request) {
       .select(`
         id,
         nombre,
+        marca,
         slug,
         sku,
         categoria,
