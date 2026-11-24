@@ -5,6 +5,7 @@ import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { miniatura } from '@/lib/imagenes'
+import Paginacion, { desplazarA } from '@/components/store/Paginacion'
 import { SUPLEMENTOS_ACTIVO } from '@/lib/tienda'
 
 interface Producto {
@@ -36,6 +37,8 @@ export default function CosmeticosProductos({ rutinaActiva, productosIniciales }
   const [loading, setLoading] = useState(!productosIniciales || productosIniciales.length === 0)
   const dropdownRef = useRef<HTMLDivElement>(null)
   const isMobile = useIsMobile()
+  const barraRef = useRef<HTMLDivElement>(null)
+  const listaRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     // Si ya llegaron productos desde el servidor, no hace falta pedir de nuevo
@@ -83,6 +86,13 @@ export default function CosmeticosProductos({ rutinaActiva, productosIniciales }
   const paginaSegura = Math.min(paginaActual, totalPaginas)
   const productosPagina = productosFiltrados.slice((paginaSegura - 1) * PRODUCTOS_POR_PAGINA, paginaSegura * PRODUCTOS_POR_PAGINA)
 
+  // Al cambiar de página, ir al inicio de la lista ("N productos encontrados"),
+  // dejando libres el encabezado fijo y la barra de filtros
+  function cambiarPagina(n: number) {
+    setPaginaActual(n)
+    desplazarA(listaRef.current, barraRef.current)
+  }
+
   function getImagen(p: Producto) {
     const imgs = p.producto_imagenes?.sort((a, b) => a.posicion - b.posicion)
     return imgs?.[0] ? miniatura(imgs[0]) : null
@@ -96,7 +106,7 @@ export default function CosmeticosProductos({ rutinaActiva, productosIniciales }
   return (
     <div style={{ background: '#F9F5F0', minHeight: '600px' }}>
       {/* Barra de filtros */}
-      <div style={{ background: 'white', borderBottom: '1px solid #E8E0D5', position: 'sticky', top: isMobile ? '61px' : '73px', zIndex: 90, padding: isMobile ? '12px 16px' : '14px 40px' }}>
+      <div ref={barraRef} style={{ background: 'white', borderBottom: '1px solid #E8E0D5', position: 'sticky', top: isMobile ? '61px' : '73px', zIndex: 90, padding: isMobile ? '12px 16px' : '14px 40px' }}>
         <div style={{ maxWidth: '1400px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: isMobile ? '10px' : '16px', flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
           <div style={{ position: 'relative' }} ref={dropdownRef}>
             <button onClick={() => setDropdownOpen(!dropdownOpen)}
@@ -146,11 +156,16 @@ export default function CosmeticosProductos({ rutinaActiva, productosIniciales }
 
       {/* Grid */}
       <div style={{ maxWidth: '1400px', margin: '0 auto', padding: isMobile ? '24px 16px' : '40px' }}>
-        <p style={{ fontSize: '13px', color: '#6B6B6B', marginBottom: isMobile ? '20px' : '32px' }}>
+        <div ref={listaRef} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', flexWrap: 'wrap', marginBottom: isMobile ? '20px' : '32px' }}>
+          <p style={{ fontSize: '13px', color: '#6B6B6B', margin: 0, flex: '1 1 auto', minWidth: 0 }}>
           {productosFiltrados.length} productos encontrados
           {rutinaActiva !== 'Todas' && <span style={{ color: 'var(--gold)', marginLeft: '8px' }}>· {rutinaActiva}</span>}
           {marcasSeleccionadas.length > 0 && <span style={{ color: 'var(--gold)', marginLeft: '8px' }}>· {marcasSeleccionadas.join(', ')}</span>}
-        </p>
+          </p>
+          {!loading && totalPaginas > 1 && (
+            <Paginacion compacta pagina={paginaSegura} totalPaginas={totalPaginas} onCambiar={cambiarPagina} isMobile={isMobile} colorActivo="var(--gold)" />
+          )}
+        </div>
 
         {loading ? (
           <p style={{ textAlign: 'center', color: '#6B6B6B', padding: '60px' }}>Cargando productos...</p>
@@ -212,37 +227,8 @@ export default function CosmeticosProductos({ rutinaActiva, productosIniciales }
 
         {/* paginacion-botones */}
         {!loading && productosFiltrados.length > 0 && totalPaginas > 1 && (
-          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', marginTop: isMobile ? '32px' : '48px', flexWrap: 'wrap' }}>
-            <button
-              onClick={() => { if (paginaSegura > 1) { setPaginaActual(paginaSegura - 1); window.scrollTo({ top: 0, behavior: 'smooth' }) } }}
-              disabled={paginaSegura <= 1}
-              style={{ minWidth: '40px', height: '40px', border: '1px solid #E8E0D5', borderRadius: '6px', background: 'white', color: paginaSegura <= 1 ? '#CCC' : '#2C2C2C', cursor: paginaSegura <= 1 ? 'not-allowed' : 'pointer', fontFamily: 'inherit', fontSize: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              ‹
-            </button>
-
-            {Array.from({ length: totalPaginas }, (_, i) => i + 1)
-              .filter(n => n === 1 || n === totalPaginas || Math.abs(n - paginaSegura) <= 1)
-              .map((n, idx, arr) => {
-                const prev = arr[idx - 1]
-                const hayGap = prev && n - prev > 1
-                return (
-                  <span key={n} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    {hayGap && <span style={{ color: '#AAA', fontSize: '14px' }}>…</span>}
-                    <button
-                      onClick={() => { setPaginaActual(n); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
-                      style={{ minWidth: '40px', height: '40px', border: '1px solid', borderColor: n === paginaSegura ? 'var(--gold)' : '#E8E0D5', borderRadius: '6px', background: n === paginaSegura ? 'var(--gold)' : 'white', color: n === paginaSegura ? 'white' : '#2C2C2C', cursor: 'pointer', fontFamily: 'inherit', fontSize: '14px', fontWeight: n === paginaSegura ? 600 : 400 }}>
-                      {n}
-                    </button>
-                  </span>
-                )
-              })}
-
-            <button
-              onClick={() => { if (paginaSegura < totalPaginas) { setPaginaActual(paginaSegura + 1); window.scrollTo({ top: 0, behavior: 'smooth' }) } }}
-              disabled={paginaSegura >= totalPaginas}
-              style={{ minWidth: '40px', height: '40px', border: '1px solid #E8E0D5', borderRadius: '6px', background: 'white', color: paginaSegura >= totalPaginas ? '#CCC' : '#2C2C2C', cursor: paginaSegura >= totalPaginas ? 'not-allowed' : 'pointer', fontFamily: 'inherit', fontSize: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              ›
-            </button>
+          <div style={{ marginTop: isMobile ? '32px' : '48px' }}>
+            <Paginacion pagina={paginaSegura} totalPaginas={totalPaginas} onCambiar={cambiarPagina} isMobile={isMobile} colorActivo="var(--gold)" />
           </div>
         )}
       </div>

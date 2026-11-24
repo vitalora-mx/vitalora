@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import Header from '@/components/store/Header'
@@ -8,6 +8,9 @@ import Footer from '@/components/store/Footer'
 import LoraChat from '@/components/store/LoraChat'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { miniatura } from '@/lib/imagenes'
+import Paginacion, { desplazarA } from '@/components/store/Paginacion'
+
+const PRODUCTOS_POR_PAGINA = 20
 
 interface Producto {
   id: number; slug: string; nombre: string; marca: string; categoria: string; tipo: string
@@ -22,6 +25,8 @@ export default function BuscarCliente() {
   const [productos, setProductos] = useState<Producto[]>([])
   const [loading, setLoading] = useState(true)
   const [mounted, setMounted] = useState(false)
+  const [paginaActual, setPaginaActual] = useState(1)
+  const listaRef = useRef<HTMLDivElement>(null)
   const isMobile = useIsMobile()
 
   useEffect(() => { setMounted(true) }, [])
@@ -29,6 +34,7 @@ export default function BuscarCliente() {
   useEffect(() => {
     async function buscar() {
       setLoading(true)
+      setPaginaActual(1)
       if (q.trim().length < 2) { setProductos([]); setLoading(false); return }
       try {
         const res = await fetch(`/api/tienda/buscar?q=${encodeURIComponent(q)}`)
@@ -41,6 +47,16 @@ export default function BuscarCliente() {
   }, [q])
 
   if (!mounted) return null
+
+  const totalPaginas = Math.max(1, Math.ceil(productos.length / PRODUCTOS_POR_PAGINA))
+  const paginaSegura = Math.min(paginaActual, totalPaginas)
+  const productosPagina = productos.slice((paginaSegura - 1) * PRODUCTOS_POR_PAGINA, paginaSegura * PRODUCTOS_POR_PAGINA)
+
+  // Al cambiar de página, ir al inicio de la lista ("N productos encontrados"), bajo el encabezado fijo
+  function cambiarPagina(n: number) {
+    setPaginaActual(n)
+    desplazarA(listaRef.current)
+  }
 
   function rutaProducto(p: Producto) {
     const ruta = p.tipo === 'suplemento' ? 'suplementos' : 'cosmeticos'
@@ -65,9 +81,12 @@ export default function BuscarCliente() {
             {q ? `"${q}"` : 'Buscar productos'}
           </h1>
           {!loading && q.trim().length >= 2 && (
-            <p style={{ fontSize: '14px', color: 'var(--text-muted)', marginTop: '12px' }}>
-              {productos.length} {productos.length === 1 ? 'producto encontrado' : 'productos encontrados'}
-            </p>
+            <div ref={listaRef} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', flexWrap: 'wrap', marginTop: '12px' }}>
+              <p style={{ fontSize: '14px', color: 'var(--text-muted)', margin: 0, flex: '1 1 auto', minWidth: 0 }}>
+                {productos.length} {productos.length === 1 ? 'producto encontrado' : 'productos encontrados'}
+              </p>
+              <Paginacion compacta pagina={paginaSegura} totalPaginas={totalPaginas} onCambiar={cambiarPagina} isMobile={isMobile} />
+            </div>
           )}
         </div>
 
@@ -83,7 +102,7 @@ export default function BuscarCliente() {
           </div>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)', gap: isMobile ? '12px' : '24px' }}>
-            {productos.map(p => {
+            {productosPagina.map(p => {
               const img = p.producto_imagenes?.slice().sort((a, b) => a.posicion - b.posicion)[0]
               const agotado = stockTotal(p) <= 0
               const bg = p.tipo === 'suplemento' ? '#F0F7F0' : '#F5F0E8'
@@ -115,6 +134,12 @@ export default function BuscarCliente() {
                 </Link>
               )
             })}
+          </div>
+        )}
+
+        {!loading && productos.length > 0 && totalPaginas > 1 && (
+          <div style={{ marginTop: isMobile ? '32px' : '48px' }}>
+            <Paginacion pagina={paginaSegura} totalPaginas={totalPaginas} onCambiar={cambiarPagina} isMobile={isMobile} />
           </div>
         )}
       </div>
