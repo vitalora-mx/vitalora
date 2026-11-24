@@ -7,6 +7,7 @@
 // - Cada palabra puede tener alternativas (sinónimos): basta con que
 //   aparezca una de ellas.
 // ============================================================
+import { expandirSinonimos } from './sinonimos'
 
 export const MAX_PALABRAS = 8
 
@@ -34,11 +35,11 @@ export function coincideTodas(alternativasPorPalabra: string[][], texto: string)
   return alternativasPorPalabra.every(alts => alts.some(a => texto.includes(a)))
 }
 
-// Filtro simple (sin sinónimos) para listas del admin.
-// Devuelve null si la búsqueda está vacía (no filtrar).
+// Filtro para listas del admin, con los mismos sinónimos que la tienda
+// ("acido" encuentra "Acid"). Devuelve null si la búsqueda está vacía (no filtrar).
 export function filtroPorPalabras(busqueda: string): ((...campos: unknown[]) => boolean) | null {
   const palabras = palabrasDe(busqueda)
   if (palabras.length === 0) return null
-  const grupos = palabras.map(p => [p])
+  const grupos = palabras.map(expandirSinonimos)
   return (...campos: unknown[]) => coincideTodas(grupos, textoDe(...campos))
 }
