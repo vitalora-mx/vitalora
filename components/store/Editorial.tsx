@@ -48,7 +48,7 @@ export default function Editorial() {
             loop
             muted
             playsInline
-            poster="/images/filosofia-poster.jpg"
+            poster="/images/filosofia-poster.webp"
             style={{
               position: 'absolute',
               inset: 0,
@@ -58,7 +58,7 @@ export default function Editorial() {
               zIndex: 1,
             }}
           >
-            <source src="/videos/filosofia-ambient.mp4" type="video/mp4" />
+            <source src="/videos/filosofia-productos.mp4" type="video/mp4" />
           </video>
         </div>
 
@@ -75,7 +75,7 @@ export default function Editorial() {
             gap: '12px',
           }}>
             <span style={{ width: '24px', height: '1px', background: 'var(--gold)', display: 'block' }} />
-            Nuestra Filosofía
+            Nuestra filosofía
           </div>
 
           <h2 style={{
@@ -85,14 +85,13 @@ export default function Editorial() {
             marginBottom: '32px',
             letterSpacing: '0.02em',
           }}>
-            Vitalidad<br />
-            <em style={{
+            Solo lo <em style={{
               fontFamily: 'var(--font-cormorant), serif',
               fontStyle: 'italic',
               color: 'var(--gold)',
               fontWeight: 300,
-            }}>auténtica</em>,<br />
-            sin atajos.
+            }}>auténtico</em>.<br />
+            Solo lo mejor de Corea.
           </h2>
 
           <p style={{
@@ -101,7 +100,7 @@ export default function Editorial() {
             color: 'rgba(245,240,232,0.7)',
             marginBottom: '24px',
           }}>
-            En Vitalora creemos que el verdadero bienestar nace de la unión entre la tradición coreana y la ciencia moderna. Cada producto es seleccionado y verificado por nuestro equipo para garantizar autenticidad, pureza y resultados.
+            En Vitalora buscamos, comparamos y elegimos una a una las marcas de skincare coreano más reconocidas y los productos que realmente funcionan. Todo lo que encuentras aquí es 100% original e importado, para que cuides tu piel con la tranquilidad de saber exactamente lo que usas.
           </p>
 
           {/* Valores */}
@@ -112,10 +111,10 @@ export default function Editorial() {
             marginTop: '40px',
           }}>
             {[
-              { num: '01', title: 'Origen verificado', desc: 'Importación directa con certificados de autenticidad.' },
-              { num: '02', title: 'Curaduría experta', desc: 'Solo el 5% de productos evaluados llegan a tu puerta.' },
-              { num: '03', title: 'Cruelty free', desc: 'Comprometidos con prácticas éticas y sostenibles.' },
-              { num: '04', title: 'Resultados reales', desc: 'Más de 5,000 clientas mexicanas nos respaldan.' },
+              { num: '01', title: '100% originales', desc: 'Productos auténticos de las marcas coreanas más reconocidas.' },
+              { num: '02', title: 'Curaduría experta', desc: 'Elegimos solo lo mejor de cada marca.' },
+              { num: '03', title: 'Las marcas que amas', desc: 'Las firmas favoritas de Corea, en un solo lugar.' },
+              { num: '04', title: 'Asesoría personalizada', desc: 'Lora te ayuda a armar tu rutina ideal.' },
             ].map((v) => (
               <div key={v.num} style={{
                 paddingTop: '24px',
