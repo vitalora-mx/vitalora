@@ -61,8 +61,8 @@ const secciones: Seccion[] = [
     titulo: 'Envíos',
     icono: '🚚',
     preguntas: [
-      { pregunta: '¿Cuánto cuesta el envío?', respuesta: 'El costo de envío es de $99 MXN para compras menores a $1,000 MXN. En compras iguales o mayores a $1,000 MXN el envío es completamente gratis a cualquier parte de México.' },
-      { pregunta: '¿Cuánto tarda en llegar mi pedido?', respuesta: 'El tiempo estimado de entrega es de 3 a 7 días hábiles a cualquier parte de la República Mexicana, dependiendo de tu ubicación.' },
+      { pregunta: '¿Cuánto cuesta el envío?', respuesta: 'El costo de envío es de $99 MXN para compras menores a $1,000 MXN. En compras iguales o mayores a $1,000 MXN el envío es completamente gratis a cualquier parte de México (excepto zonas extendidas, que tienen un cargo adicional de $200 MXN).' },
+      { pregunta: '¿Cuánto tarda en llegar mi pedido?', respuesta: 'El tiempo estimado de entrega es de 3 a 7 días hábiles a cualquier parte de la República Mexicana, dependiendo de tu ubicación (en zonas extendidas puede tardar algunos días más).' },
       { pregunta: '¿Cómo puedo rastrear mi pedido?', respuesta: 'Una vez que tu pedido sea enviado, recibirás un correo electrónico con tu número de guía de rastreo. También puedes consultar el estado de tu pedido y número de guía en la sección "Mis Pedidos" de tu cuenta.' },
       { pregunta: '¿Qué paquetería utilizan?', respuesta: 'Enviamos con paqueterías nacionales (Estafeta, DHL, FedEx o Paquetexpress), según la zona de entrega. Cuando tu pedido salga, te enviaremos por correo la paquetería y el número de guía para rastrearlo.' },
       { pregunta: '¿Realizan envíos a toda la República Mexicana?', respuesta: 'Sí, realizamos envíos a cualquier dirección dentro de la República Mexicana, incluyendo zonas rurales y extendidas (en zonas extendidas se agrega un cargo de $200 MXN y la entrega puede tardar algunos días más).' },
