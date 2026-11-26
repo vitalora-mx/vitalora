@@ -32,7 +32,7 @@ export default function TerminosPage() {
         <div style={{ textAlign: 'center', marginBottom: '48px' }}>
           <div style={{ fontSize: '11px', letterSpacing: '0.3em', textTransform: 'uppercase', color: 'var(--gold)', marginBottom: '16px' }}>Legal</div>
           <h1 style={{ fontFamily: 'var(--font-italiana), serif', fontSize: 'clamp(32px, 4vw, 48px)', color: 'var(--black)', marginBottom: '16px' }}>Términos y Condiciones</h1>
-          <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Última actualización: 1 de junio de 2026</p>
+          <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Última actualización: 26 de noviembre de 2026</p>
         </div>
         <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', marginBottom: '48px', flexWrap: 'wrap' }}>
           <Link href="/envios-devoluciones" style={{ padding: '8px 20px', border: '1px solid var(--line)', borderRadius: '100px', fontSize: '12px', color: 'var(--text-muted)', textDecoration: 'none' }}>Envíos y Devoluciones</Link>
