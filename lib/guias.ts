@@ -339,6 +339,7 @@ export async function cancelarGuia(pedidoId: number, motivoBruto: unknown, admin
     guia_url_rastreo: null, costo_guia: null, cobro_real_guia: null, saldo_antes_guia: null, saldo_despues_guia: null,
     guia_label_path: null, guia_creada_at: null, guia_entorno: null, guia_en_curso_desde: null,
     envio_estado: null, envio_estado_at: null, guia_cancelada_at: ahora,
+    guia_impresa_at: null, guia_impresa_por: null,
   }).eq('id', p.id)
   if (error) return falla(500, 'La guía se canceló en Skydropx pero no se actualizó el pedido. Avísale al equipo técnico.')
   await db.from('pedidos').update({ estado: 'pagado' }).eq('id', p.id).eq('estado', 'preparando')

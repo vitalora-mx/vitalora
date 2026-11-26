@@ -5,18 +5,9 @@
 import { Resend } from 'resend'
 import { createServiceClient } from '@/lib/supabase/service'
 import { formatearNumeroPedido } from '@/lib/utils'
+import { linkRastreo } from '@/lib/guia-cliente'
 
-// Enlace de rastreo de cada paquetería (cuando Skydropx no da uno)
-export function linkRastreo(paqueteria: string, guia: string): string {
-  const g = encodeURIComponent(guia.trim())
-  switch ((paqueteria || '').toLowerCase()) {
-    case 'estafeta': return `https://www.estafeta.com/herramientas/rastreo?guias=${g}`
-    case 'dhl': return `https://www.dhl.com/mx-es/home/rastreo.html?tracking-id=${g}`
-    case 'fedex': return `https://www.fedex.com/fedextrack/?trknbr=${g}`
-    case 'paquetexpress': return `https://www.paquetexpress.com.mx/rastreo/${g}`
-    default: return `https://www.google.com/search?q=rastrear+${encodeURIComponent(paqueteria)}+${g}`
-  }
-}
+export { linkRastreo }
 
 const escapar = (s: string) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!))
 

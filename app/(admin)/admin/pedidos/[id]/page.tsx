@@ -189,6 +189,14 @@ export default function PedidoDetallePage() {
 
   useEffect(() => { cargar() }, [cargar])
 
+  // Enlaces de la lista (#envio, #reembolsos): ir a la sección cuando ya cargó el pedido
+  const pedidoCargado = !!pedido
+  useEffect(() => {
+    if (!pedidoCargado) return
+    const id = window.location.hash.slice(1)
+    if (id) requestAnimationFrame(() => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
+  }, [pedidoCargado])
+
   function mostrarMsg(msg: string) {
     setMensaje(msg)
     setTimeout(() => setMensaje(''), 4000)
@@ -398,7 +406,6 @@ export default function PedidoDetallePage() {
   // Transferencia: sin comisión de Mercado Pago
   const pagoConMP = pedido.metodo_pago !== 'transferencia'
   const comisionMP = pagoConMP ? montoNeto * 0.0418 : 0  // ~4.18% sobre lo que quedo (MP bonifica lo reembolsado)
-  const costoEnvioMP = envioCliente > 0 ? envioCliente * 0.85 : 0  // estimado: MP se queda ~15%
   const ivaEstimado = subtotalProductos * 0.16 / 1.16
   const netoRecibido = montoNeto - comisionMP       // neto real despues de reembolso y comision
 
@@ -590,7 +597,7 @@ export default function PedidoDetallePage() {
 
             {/* Bloque: Historial de reembolsos y cancelaciones */}
             {(pedido.reembolsos?.length ?? 0) > 0 && (
-              <div style={{ background: '#fff', border: '1px solid #E8E4DA', borderRadius: '8px', overflow: 'hidden' }}>
+              <div id="reembolsos" style={{ background: '#fff', border: '1px solid #E8E4DA', borderRadius: '8px', overflow: 'hidden', scrollMarginTop: '16px' }}>
                 <div style={{ padding: '16px 20px', borderBottom: '1px solid #E8E4DA', background: '#FAFAF7' }}>
                   <p style={{ fontSize: '10px', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#6B6B6B', fontWeight: 600 }}>Reembolsos y cancelaciones</p>
                 </div>

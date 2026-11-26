@@ -7,36 +7,7 @@
 // ============================================================
 import { useEffect, useState } from 'react'
 import { ESTADOS_CON_GUIA } from '@/lib/estados-pedido'
-import { formatearNumeroPedido } from '@/lib/utils'
-
-const slug = (s: string | null | undefined) => (s || 'paqueteria').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
-
-// Abre el PDF en una pestaña (para imprimir) y además lo guarda en Descargas con un nombre claro.
-// La pestaña se abre antes de pedir el PDF para que el navegador no la bloquee.
-async function abrirYDescargar(url: string, nombreArchivo: string): Promise<string | null> {
-  const pestana = window.open('', '_blank')
-  try {
-    const res = await fetch(url)
-    if (!res.ok) {
-      pestana?.close()
-      const data = await res.json().catch(() => ({}))
-      return data.error || 'No se pudo generar el PDF.'
-    }
-    const blobUrl = URL.createObjectURL(await res.blob())
-    if (pestana) pestana.location.href = blobUrl
-    const a = document.createElement('a')
-    a.href = blobUrl
-    a.download = nombreArchivo
-    document.body.appendChild(a)
-    a.click()
-    a.remove()
-    setTimeout(() => URL.revokeObjectURL(blobUrl), 120000)
-    return null
-  } catch {
-    pestana?.close()
-    return 'Error de conexión al generar el PDF.'
-  }
-}
+import { imprimirGuiaPedido } from '@/lib/guia-cliente'
 
 export interface PedidoEnvio {
   id: number | string
@@ -49,6 +20,8 @@ export interface PedidoEnvio {
   cobro_real_guia?: number | null
   guia_creada_at?: string | null
   guia_url_rastreo?: string | null
+  guia_impresa_at?: string | null
+  guia_impresa_por?: string | null
   envio_estado?: string | null
   zona_verificada?: boolean | null
   guias_anteriores?: { numeroGuia: string | null; paqueteria: string | null; cancelada: string; por: string; motivo: string; entorno?: string | null }[] | null
@@ -208,13 +181,10 @@ export default function EnvioSkydropx({ pedido, puedeCancelarGuia, onCambio, mos
   const [pdfEnCurso, setPdfEnCurso] = useState<'' | 'completa' | 'guia'>('')
   async function imprimir(soloGuia: boolean) {
     setPdfEnCurso(soloGuia ? 'guia' : 'completa'); setError('')
-    const numero = formatearNumeroPedido(pedido.id)
-    const err = await abrirYDescargar(
-      `/api/admin/envios/imprimir?pedidoId=${pedido.id}${soloGuia ? '&solo=guia' : ''}`,
-      soloGuia ? `${numero}-solo-guia.pdf` : `${numero}-guia-${slug(pedido.paqueteria)}.pdf`,
-    )
+    const err = await imprimirGuiaPedido(pedido, soloGuia)
     if (err) setError(err)
     setPdfEnCurso('')
+    if (!err) await onCambio() // muestra "Impresa el … por …"
   }
 
   const tarifaElegida = cot?.tarifas.find(t => t.rateId === rateId)
@@ -223,7 +193,7 @@ export default function EnvioSkydropx({ pedido, puedeCancelarGuia, onCambio, mos
   const anteriores = pedido.guias_anteriores || []
 
   return (
-    <div style={tarjeta}>
+    <div id="envio" style={{ ...tarjeta, scrollMarginTop: '16px' }}>
       <div style={cabecera}>
         <p style={titulo}>Envío Skydropx</p>
         {(cot?.entorno === 'sandbox' || pedido.guia_entorno === 'sandbox') && (
@@ -258,10 +228,11 @@ export default function EnvioSkydropx({ pedido, puedeCancelarGuia, onCambio, mos
               <div><strong>{pedido.paqueteria}</strong> · <span style={{ fontFamily: 'monospace' }}>{pedido.numero_guia}</span></div>
               <div style={{ color: '#6B6B6B' }}>Costo según Skydropx: {fmt(pedido.costo_guia)} · Cobro real: {fmt(pedido.cobro_real_guia)}</div>
               <div style={{ color: '#6B6B6B' }}>Generada: {fecha(pedido.guia_creada_at)}{pedido.envio_estado ? ` · Rastreo: ${NOMBRE_RASTREO[pedido.envio_estado] || pedido.envio_estado}` : ''}</div>
+              {pedido.guia_impresa_at && <div style={{ color: '#5B7C99' }}>Impresa el {fecha(pedido.guia_impresa_at)}{pedido.guia_impresa_por ? ` por ${pedido.guia_impresa_por}` : ''}</div>}
               {pedido.guia_url_rastreo && <a href={pedido.guia_url_rastreo} target="_blank" rel="noopener noreferrer" style={{ color: '#C9A961', fontSize: '12px' }}>Ver rastreo en la paquetería ↗</a>}
             </div>
             <button onClick={() => imprimir(false)} disabled={!!pdfEnCurso} style={botonPrincipal(!pdfEnCurso)}>
-              {pdfEnCurso === 'completa' ? 'Preparando PDF…' : '🖨 Imprimir guía y hoja de pedido'}
+              {pdfEnCurso === 'completa' ? 'Preparando PDF…' : pedido.guia_impresa_at ? '✓ Impreso · Reimprimir guía y hoja de pedido' : '🖨 Imprimir guía y hoja de pedido'}
             </button>
             <button onClick={() => imprimir(true)} disabled={!!pdfEnCurso} style={botonSecundario}>
               {pdfEnCurso === 'guia' ? 'Preparando PDF…' : 'Descargar solo la guía'}

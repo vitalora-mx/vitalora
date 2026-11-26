@@ -48,6 +48,11 @@ export async function GET(req: NextRequest) {
     if (!etiqueta) return NextResponse.json({ error: 'No se encontró la etiqueta de este pedido.' }, { status: 404 })
   }
 
+  // Guía + hoja o solo guía: queda registrado quién y cuándo la imprimió (lo ve cualquier admin)
+  if (solo !== 'hoja') {
+    await db.from('pedidos').update({ guia_impresa_at: new Date().toISOString(), guia_impresa_por: adminAuth.admin.email }).eq('id', p.id)
+  }
+
   const pdf = solo === 'guia'
     ? new Uint8Array(etiqueta!)
     : await pdfGuiaYHoja(solo === 'hoja' ? null : etiqueta, p as unknown as PedidoHoja, url.origin)

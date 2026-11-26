@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { formatearNumeroPedido } from '@/lib/utils'
 import { TRANSICIONES_MANUALES } from '@/lib/estados-pedido'
+import { linkRastreo, imprimirGuiaPedido } from '@/lib/guia-cliente'
 
 interface Pedido {
   id: string
@@ -18,6 +19,11 @@ interface Pedido {
   cargo_zona_extendida?: number | null
   zona_verificada?: boolean | null
   numero_guia: string | null
+  paqueteria?: string | null
+  skydropx_shipment_id?: string | null
+  guia_url_rastreo?: string | null
+  guia_impresa_at?: string | null
+  guia_impresa_por?: string | null
   requiere_factura: boolean | null
   factura_estado: string | null
   created_at: string
@@ -42,14 +48,12 @@ function estadoInfo(estado: string) {
   return ESTADOS.find(e => e.value === estado) ?? { label: estado, color: '#888', bg: '#F0EDE5' }
 }
 
-function botonGuia(pedido: Pedido) {
-  const { estado, numero_guia } = pedido
-  if (estado === 'entregado') return { label: '✓ Entregado', color: '#3A8A3A', bg: 'rgba(58,138,58,0.1)', border: 'rgba(58,138,58,0.3)' }
-  if (estado === 'reembolsado') return { label: '↩ Devolución', color: '#EF4444', bg: 'rgba(239,68,68,0.08)', border: 'rgba(239,68,68,0.3)' }
-  if (estado === 'enviado') return { label: '🚚 En camino · Reimprimir', color: '#6A8A62', bg: 'rgba(106,138,98,0.1)', border: 'rgba(106,138,98,0.3)' }
-  if (numero_guia) return { label: '✓ Impreso · Reimprimir', color: '#5B7C99', bg: 'rgba(91,124,153,0.1)', border: 'rgba(91,124,153,0.3)' }
-  return { label: '🖨 Imprimir guía', color: '#C9A961', bg: 'rgba(201,169,97,0.1)', border: 'rgba(201,169,97,0.4)' }
-}
+// Estados en los que se puede generar guía desde el detalle (lib/estados-pedido ESTADOS_CON_GUIA, sin los ya enviados)
+const ESTADOS_GENERAR_GUIA = ['pagado', 'preparando', 'reembolso_parcial']
+// Sin botones en la columna Guía
+const ESTADOS_SIN_GUIA = ['cancelado', 'cancelado_sin_pago', 'abandonado', 'pendiente', 'esperando_comprobante', 'comprobante_en_revision', 'comprobante_rechazado', 'revision_monto']
+
+const fechaHora = (iso: string) => new Date(iso).toLocaleString('es-MX', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
 
 function fechaCorta(iso: string) {
   return new Date(iso).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' })
@@ -92,13 +96,14 @@ export default function PedidosPage() {
     setTimeout(() => setMensaje(''), 3000)
   }
 
-  function imprimirGuia(pedido: Pedido) {
-    if (!pedido.numero_guia) {
-      mostrarMensaje('Este pedido no tiene número de guía aún.')
-      return
-    }
-    // Abrir URL de impresión de Mercado Envíos
-    window.open(`https://www.mercadolibre.com.mx/envios/label/print?shipment_id=${pedido.numero_guia}`, '_blank')
+  // Imprimir la guía de Skydropx (guía + hoja de pedido). El servidor registra quién y cuándo.
+  const [imprimiendo, setImprimiendo] = useState<string | null>(null)
+  async function imprimirGuia(p: Pedido) {
+    setImprimiendo(p.id)
+    const err = await imprimirGuiaPedido(p, false)
+    setImprimiendo(null)
+    if (err) mostrarMensaje(err)
+    else cargar()
   }
 
   // Filtrado
@@ -238,7 +243,7 @@ export default function PedidosPage() {
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead style={{ background: '#FAFAF7', borderBottom: '1px solid #E8E4DA' }}>
                 <tr>
-                  {['Pedido', 'Cliente', 'Productos', 'Total', 'Estado', 'Guía MP', 'Detalle'].map((h, i) => (
+                  {['Pedido', 'Cliente', 'Productos', 'Total', 'Estado', 'Guía', 'Detalle'].map((h, i) => (
                     <th key={i} style={{ textAlign: 'left', padding: '12px 16px', fontSize: '10px', letterSpacing: '0.1em', textTransform: 'uppercase', color: '#6B6B6B', fontWeight: 600, whiteSpace: 'nowrap' }}>{h}</th>
                   ))}
                 </tr>
@@ -246,7 +251,6 @@ export default function PedidosPage() {
               <tbody>
                 {lista.map(p => {
                   const info = estadoInfo(p.estado)
-                  const guia = botonGuia(p)
                   const productos = p.pedido_items?.map(i => `${i.nombre}${i.variante_nombre ? ` (${i.variante_nombre})` : ''} ×${i.cantidad}`).join(', ') ?? '—'
 
                   return (
@@ -301,15 +305,9 @@ export default function PedidosPage() {
                         </select>
                       </td>
 
-                      {/* Guía MP */}
+                      {/* Guía */}
                       <td style={{ padding: '14px 16px', verticalAlign: 'middle' }}>
-                        <button onClick={() => imprimirGuia(p)}
-                          style={{ padding: '6px 10px', fontSize: '11px', fontWeight: 600, border: `1px solid ${guia.border}`, background: guia.bg, color: guia.color, borderRadius: '5px', cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap', transition: 'all 0.15s' }}>
-                          {guia.label}
-                        </button>
-                        {p.numero_guia && (
-                          <p style={{ fontSize: '10px', color: '#A8A8A8', marginTop: '3px', fontFamily: 'monospace' }}>{p.numero_guia}</p>
-                        )}
+                        <CeldaGuia p={p} imprimiendo={imprimiendo === p.id} onImprimir={() => imprimirGuia(p)} />
                       </td>
 
                       {/* Detalle */}
@@ -337,4 +335,63 @@ export default function PedidosPage() {
       </div>
     </>
   )
+}
+
+// ── Celda "Guía" ──
+const boton = (color: string, bg: string, borde: string): React.CSSProperties => ({ padding: '6px 10px', fontSize: '11px', fontWeight: 600, border: `1px solid ${borde}`, background: bg, color, borderRadius: '5px', cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap', textDecoration: 'none', display: 'inline-block' })
+const datoGuia: React.CSSProperties = { fontSize: '10px', color: '#A8A8A8', marginTop: '4px', lineHeight: 1.4 }
+
+function CeldaGuia({ p, imprimiendo, onImprimir }: { p: Pedido; imprimiendo: boolean; onImprimir: () => void }) {
+  const guiaSkydropx = !!p.skydropx_shipment_id
+  const enlaceRastreo = p.numero_guia
+    ? (p.guia_url_rastreo && /^https:\/\//.test(p.guia_url_rastreo) ? p.guia_url_rastreo : linkRastreo(p.paqueteria || '', p.numero_guia))
+    : null
+  const datos = p.numero_guia && (
+    <p style={datoGuia}>
+      {p.paqueteria ? <>{p.paqueteria}<br /></> : null}
+      <span style={{ fontFamily: 'monospace' }}>{p.numero_guia}</span>
+    </p>
+  )
+  const verReembolso = p.estado === 'reembolsado' && (
+    <Link href={`/admin/pedidos/${p.id}#reembolsos`} style={{ display: 'inline-block', marginTop: '4px', fontSize: '11px', color: '#EF4444', textDecoration: 'none' }}>↩ Ver reembolso</Link>
+  )
+
+  // Cancelados, abandonados o sin pagar: solo un guion (aunque conserven una guía vieja)
+  if (ESTADOS_SIN_GUIA.includes(p.estado)) return <span style={{ color: '#C8C4BA' }}>—</span>
+  // Reembolsado: solo los datos de la guía (si tuvo) y el enlace al reembolso
+  if (p.estado === 'reembolsado') {
+    return <>{datos || <span style={{ color: '#C8C4BA' }}>—</span>}<br />{verReembolso}</>
+  }
+  // Guía de Skydropx lista: imprimir / reimprimir
+  if (guiaSkydropx && p.numero_guia) {
+    const impresa = !!p.guia_impresa_at
+    return (
+      <>
+        <button onClick={onImprimir} disabled={imprimiendo}
+          title={impresa ? `Impresa el ${fechaHora(p.guia_impresa_at!)}${p.guia_impresa_por ? ' por ' + p.guia_impresa_por : ''}` : 'Guía + hoja de pedido'}
+          style={impresa ? boton('#5B7C99', 'rgba(91,124,153,0.1)', 'rgba(91,124,153,0.3)') : boton('#C9A961', 'rgba(201,169,97,0.1)', 'rgba(201,169,97,0.4)')}>
+          {imprimiendo ? 'Preparando…' : impresa ? '✓ Impreso · Reimprimir' : '🖨 Imprimir guía'}
+        </button>
+        {datos}
+      </>
+    )
+  }
+  // Guía de Skydropx en proceso
+  if (guiaSkydropx) {
+    return <Link href={`/admin/pedidos/${p.id}#envio`} style={{ fontSize: '11px', color: '#8B6914', textDecoration: 'none' }}>Guía en proceso →</Link>
+  }
+  // Guía manual: datos y rastreo, sin imprimir
+  if (p.numero_guia) {
+    return (
+      <>
+        {datos}
+        {enlaceRastreo && <a href={enlaceRastreo} target="_blank" rel="noopener noreferrer" style={{ fontSize: '11px', color: '#C9A961', textDecoration: 'none' }}>Rastrear ↗</a>}
+      </>
+    )
+  }
+  // Pagado/preparando sin guía: ir a la tarjeta Envío Skydropx
+  if (ESTADOS_GENERAR_GUIA.includes(p.estado)) {
+    return <Link href={`/admin/pedidos/${p.id}#envio`} style={boton('#0E0E0E', '#fff', '#C9A961')}>Generar guía →</Link>
+  }
+  return <span style={{ color: '#C8C4BA' }}>—</span>
 }
