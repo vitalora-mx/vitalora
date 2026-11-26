@@ -37,7 +37,7 @@ export class ErrorSkydropx extends Error {
 }
 
 export function entornoSkydropx(): 'produccion' | 'sandbox' {
-  return process.env.SKYDROPX_ENV === 'sandbox' ? 'sandbox' : 'produccion'
+  return (process.env.SKYDROPX_ENV || '').trim() === 'sandbox' ? 'sandbox' : 'produccion'
 }
 
 function urlBase(): string {
@@ -50,9 +50,14 @@ const esperar = (ms: number) => new Promise(r => setTimeout(r, ms))
 let tokenGuardado: { valor: string; venceEn: number; base: string } | null = null
 let tokenEnCurso: Promise<string> | null = null
 
+// Lee una variable sin espacios ni saltos de línea al inicio o al final (por si se pegó con ellos)
+function variable(nombre: string): string {
+  return (process.env[nombre] || '').trim()
+}
+
 async function pedirToken(limite: number): Promise<string> {
-  const id = process.env.SKYDROPX_CLIENT_ID
-  const secreto = process.env.SKYDROPX_CLIENT_SECRET
+  const id = variable('SKYDROPX_CLIENT_ID')
+  const secreto = variable('SKYDROPX_CLIENT_SECRET')
   if (!id || !secreto) throw new ErrorSkydropx('config', 'Faltan las credenciales de Skydropx.')
   const base = urlBase()
   const res = await llamar('POST', base + '/api/v1/oauth/token', {
@@ -294,4 +299,54 @@ export async function obtenerSaldo(timeoutMs = 8000): Promise<{ saldo: number; m
   const saldo = numero(r.json?.data?.balance)
   if (r.status !== 200 || !Number.isFinite(saldo)) throw new ErrorSkydropx('http', 'No se pudo consultar el saldo de Skydropx.', r.status)
   return { saldo, moneda: String(r.json?.data?.currency || 'MXN') }
+}
+
+// ── Diagnóstico (ruta de admin) ──
+// Pide un token nuevo y el saldo. Nunca devuelve las llaves ni el token:
+// solo si existen, cuánto miden y si Skydropx las aceptó.
+export interface DiagnosticoSkydropx {
+  entorno: 'produccion' | 'sandbox'
+  host: string
+  credenciales: {
+    clientId: { presente: boolean; largo: number; teniaEspacios: boolean }
+    clientSecret: { presente: boolean; largo: number; teniaEspacios: boolean }
+  }
+  token: { ok: boolean; ms: number; error?: { tipo: TipoErrorSkydropx | 'desconocido'; status: number | null; mensaje: string } }
+  saldo: { ok: boolean; saldo?: number; moneda?: string; error?: string }
+}
+
+function revisarVariable(nombre: string) {
+  const cruda = process.env[nombre] || ''
+  const limpia = cruda.trim()
+  return { presente: limpia.length > 0, largo: limpia.length, teniaEspacios: cruda !== limpia }
+}
+
+export async function diagnosticarSkydropx(): Promise<DiagnosticoSkydropx> {
+  const resultado: DiagnosticoSkydropx = {
+    entorno: entornoSkydropx(),
+    host: new URL(urlBase()).host,
+    credenciales: { clientId: revisarVariable('SKYDROPX_CLIENT_ID'), clientSecret: revisarVariable('SKYDROPX_CLIENT_SECRET') },
+    token: { ok: false, ms: 0 },
+    saldo: { ok: false },
+  }
+  const inicio = Date.now()
+  try {
+    tokenGuardado = null // fuerza un token nuevo: así se prueban las llaves de verdad
+    await obtenerToken(Date.now() + 8000)
+    resultado.token = { ok: true, ms: Date.now() - inicio }
+  } catch (e) {
+    const err = e instanceof ErrorSkydropx ? e : null
+    resultado.token = {
+      ok: false, ms: Date.now() - inicio,
+      error: { tipo: err?.tipo ?? 'desconocido', status: err?.status ?? null, mensaje: err?.message ?? 'Error desconocido' },
+    }
+    return resultado
+  }
+  try {
+    const s = await obtenerSaldo()
+    resultado.saldo = { ok: true, saldo: s.saldo, moneda: s.moneda }
+  } catch (e) {
+    resultado.saldo = { ok: false, error: e instanceof Error ? e.message : 'Error desconocido' }
+  }
+  return resultado
 }
