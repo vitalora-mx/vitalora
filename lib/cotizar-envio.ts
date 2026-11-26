@@ -170,8 +170,10 @@ export async function revisarZonaEnvio(params: {
     .single()
   if (error) console.error('Envío: no se guardó la cotización', error)
 
-  // Después de responder, para no hacer esperar al cliente
-  after(() => revisarAlertaUmbral().catch(e => console.error('Envío: alerta de umbral falló', e)))
+  // Después de responder, para no hacer esperar al cliente. Fuera de una petición
+  // (scripts, pruebas) after() no existe: entonces se revisa en ese momento.
+  const alerta = () => revisarAlertaUmbral().catch(e => console.error('Envío: alerta de umbral falló', e))
+  try { after(alerta) } catch { await alerta() }
 
   return resultadoDeFila(fila ?? {
     id: null, skydropx_id: cot.id, tarifas: cot.tarifas, sin_cobertura: sinCobertura, created_at: new Date().toISOString(),

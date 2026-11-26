@@ -60,7 +60,7 @@ const NOMBRE_RASTREO: Record<string, string> = {
   created: 'Guía creada', picked_up: 'Recolectado', in_transit: 'En tránsito', last_mile: 'En reparto',
   delivery_attempt: 'Intento de entrega', exception: 'Excepción', in_return: 'En devolución',
   canceled: 'Cancelado', error: 'Error', delivered: 'Entregado', delivered_to_branch: 'En sucursal',
-  guia_cancelada: 'Guía cancelada (admin)',
+  guia_cancelada: 'Guía cancelada (admin)', direccion_editada: 'Dirección editada (admin)',
 }
 const FUENTE: Record<string, string> = { webhook: 'aviso', consulta: 'consulta', manual: 'admin' }
 interface Tarifa {
@@ -346,7 +346,7 @@ export default function EnvioSkydropx({ pedido, puedeCancelarGuia, onCambio, mos
                 </div>
                 {cot.avisoZonaSinVerificar && (
                   <div style={{ fontSize: '12px', color: '#A33', lineHeight: 1.5, padding: '10px', background: '#FFF5F5', border: '1px solid #E8B4B4', borderRadius: '6px' }}>
-                    <strong>Es zona extendida</strong> y el cliente pagó sin el cargo (zona sin verificar). Contacta al cliente por los $200; si no paga o no responde en 2 días hábiles, cancela con reembolso completo.
+                    <strong>Es zona extendida</strong> y el cliente no pagó el cargo de $200 (zona sin verificar en el checkout o dirección cambiada después). Contacta al cliente por los $200; si no paga o no responde en 2 días hábiles, cancela con reembolso completo.
                   </div>
                 )}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>

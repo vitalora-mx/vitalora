@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { formatearNumeroPedido } from '@/lib/utils'
 import { TRANSICIONES_MANUALES, ESTADOS_REEMBOLSABLES, ESTADOS_CON_GUIA, PAQUETERIAS, puedeCancelarse } from '@/lib/estados-pedido'
 import EnvioSkydropx, { type PedidoEnvio } from '@/components/admin/EnvioSkydropx'
+import EditarDireccion from '@/components/admin/EditarDireccion'
 
 interface PedidoItem {
   id: number
@@ -502,6 +503,7 @@ export default function PedidoDetallePage() {
                 Col. {pedido.colonia}<br />
                 {pedido.ciudad}, {pedido.estado_dir} · CP {pedido.cp}
                 {pedido.referencia && <><br /><span style={{ color: '#A8A8A8', fontSize: '12px' }}>Ref: {pedido.referencia}</span></>}
+                <EditarDireccion pedido={pedido as any} puedeEditar={puedeGestionarDinero} onCambio={cargar} mostrarMsg={mostrarMsg} />
                 {pedido.zona_verificada === false && (
                   <div style={{ marginTop: '12px', padding: '10px 12px', background: '#FFF5F5', border: '1px solid #E8B4B4', borderRadius: '6px', fontSize: '12px', color: '#A33', lineHeight: 1.5 }}>
                     <strong>Zona sin verificar.</strong> Skydropx no respondió en el checkout y se cobró sin cargo de zona extendida. Revísalo al cotizar la guía: si es zona extendida, contacta al cliente por los $200; si no paga o no responde en 2 días hábiles, cancela con reembolso completo.

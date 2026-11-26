@@ -31,7 +31,7 @@ type Resultado<T> = ({ ok: true } & T) | { ok: false; status: number; error: str
 const falla = (status: number, error: string) => ({ ok: false as const, status, error })
 
 const CAMPOS = `id, estado, nombre, apellido, email, telefono, calle, numero, interior, colonia, ciudad, estado_dir, cp, referencia,
-  numero_guia, paqueteria, skydropx_shipment_id, guia_en_curso_desde, reembolso_en_curso_desde, zona_verificada,
+  numero_guia, paqueteria, skydropx_shipment_id, guia_en_curso_desde, reembolso_en_curso_desde, zona_verificada, cargo_zona_extendida,
   envio_estado, guias_anteriores, guia_label_path, costo_guia, cobro_real_guia, guia_entorno, guia_creada_at,
   saldo_antes_guia, origen_envio_id, pedido_items ( producto_id, cantidad )`
 
@@ -122,7 +122,8 @@ export async function cotizarGuia(params: {
       saldo,
       tarifas: cot.tarifas,
       zona: { extendida: r.cobra, motivo: r.motivo, masBarata: r.masBarata?.total ?? null },
-      avisoZonaSinVerificar: p.zona_verificada === false && r.cobra,
+      // Zona extendida sin el cargo pagado (zona sin verificar en el checkout o dirección cambiada después)
+      avisoZonaSinVerificar: r.cobra && Number(p.cargo_zona_extendida || 0) === 0,
     },
   }
 }

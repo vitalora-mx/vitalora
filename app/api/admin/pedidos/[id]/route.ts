@@ -30,6 +30,7 @@ export async function GET(
         numero_guia, paqueteria, metodo_pago,
         skydropx_shipment_id, guia_entorno, costo_guia, cobro_real_guia, guia_creada_at, guia_url_rastreo,
         envio_estado, guias_anteriores,
+        direccion_editada_at, direccion_editada_por, direccion_anterior,
         factura_url,
         requiere_factura, factura_rfc:rfc, factura_razon_social:razon_social, factura_uso_cfdi:uso_cfdi,
         factura_regimen:regimen_fiscal, factura_cp:cp_fiscal, factura_solicitada_at, factura_estado,
