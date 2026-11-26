@@ -603,7 +603,7 @@ export default function CheckoutPage() {
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div>
                       <div style={{ fontSize: '13px', fontWeight: 500, color: 'var(--black)', marginBottom: '4px' }}>Envío estándar</div>
-                      <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Entrega estimada: 2-5 días hábiles</div>
+                      <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Entrega estimada: 3-7 días hábiles</div>
                     </div>
                     <div style={{ fontFamily: 'var(--font-cormorant), serif', fontSize: '20px', fontWeight: 600, color: costoEnvio === 0 ? '#6B8F6B' : 'var(--black)' }}>
                       {costoEnvio === 0 ? 'GRATIS' : `${costoEnvio} MXN`}

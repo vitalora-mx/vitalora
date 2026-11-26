@@ -1,3 +1,5 @@
+import type { Metadata } from 'next'
+
 // ============================================================
 // Vista previa al compartir (og:image / twitter:image).
 // - Imagen por defecto: public/images/compartir-vitalora.jpg (1200x630).
@@ -28,5 +30,45 @@ export function ogImagenProducto(slug: string, nombre: string, primeraFoto?: str
     width: OG_ANCHO,
     height: OG_ALTO,
     alt: nombre,
+  }
+}
+
+// Metadatos de una página fija (nosotros, FAQ, políticas...). Si lleva
+// descripción, se puede compartir con la imagen por defecto; `indexar: false`
+// la deja fuera de los buscadores. Sin descripción = página privada o de
+// proceso (carrito, cuenta...): solo título y noindex.
+export function metadatosPagina(o: {
+  titulo: string
+  ruta: string
+  descripcion?: string
+  indexar?: boolean
+}): Metadata {
+  const indexar = o.indexar ?? true
+  // Título completo (absolute): una página anidada en otra con layout propio
+  // (p. ej. /recuperar/nueva) no hereda la plantilla "%s | Vitalora" del raíz.
+  if (!o.descripcion) {
+    return { title: { absolute: `${o.titulo} | Vitalora` }, robots: { index: false, follow: false } }
+  }
+  const url = `https://vitalora.com.mx${o.ruta}`
+  return {
+    title: { absolute: `${o.titulo} | Vitalora` },
+    description: o.descripcion,
+    ...(indexar ? { alternates: { canonical: url } } : {}),
+    openGraph: {
+      type: 'website',
+      locale: 'es_MX',
+      siteName: 'Vitalora',
+      title: `${o.titulo} | Vitalora`,
+      description: o.descripcion,
+      url,
+      images: [OG_IMAGEN_DEFECTO],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: `${o.titulo} | Vitalora`,
+      description: o.descripcion,
+      images: [OG_IMAGEN_DEFECTO],
+    },
+    robots: { index: indexar, follow: true },
   }
 }

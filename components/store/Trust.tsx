@@ -18,7 +18,7 @@ export default function Trust() {
     },
     {
       title: 'Envío Nacional',
-      desc: 'A todo México en 2-5 días',
+      desc: 'A todo México en 3-7 días hábiles',
       icon: (
         <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round">
           <path d="M1 4h13v11H1z" />

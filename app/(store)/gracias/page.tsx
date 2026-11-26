@@ -45,7 +45,7 @@ export default function GraciasPage() {
           {[
             { icon: '📦', titulo: 'Preparando', desc: 'Tu pedido está siendo preparado' },
             { icon: '🚚', titulo: 'En camino', desc: 'Recibirás tu número de guía por correo' },
-            { icon: '✦', titulo: 'Entrega', desc: '2-5 días hábiles a todo México' },
+            { icon: '✦', titulo: 'Entrega', desc: '3-7 días hábiles a todo México' },
           ].map((step) => (
             <div key={step.titulo} style={{ textAlign: 'center' }}>
               <div style={{ fontSize: '28px', marginBottom: '8px' }}>{step.icon}</div>

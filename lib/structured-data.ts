@@ -53,16 +53,18 @@ export function construirProductSchema(p: ProductoSchema): Record<string, unknow
       },
       deliveryTime: {
         '@type': 'ShippingDeliveryTime',
+        // Google suma preparación + tránsito: 0-1 + 3-6 = 3 a 7 días hábiles,
+        // el mismo rango que se muestra en la tienda (envíos, FAQ, checkout).
         handlingTime: {
           '@type': 'QuantitativeValue',
-          minValue: 1,
-          maxValue: 2,
+          minValue: 0,
+          maxValue: 1,
           unitCode: 'DAY',
         },
         transitTime: {
           '@type': 'QuantitativeValue',
           minValue: 3,
-          maxValue: 7,
+          maxValue: 6,
           unitCode: 'DAY',
         },
       },
