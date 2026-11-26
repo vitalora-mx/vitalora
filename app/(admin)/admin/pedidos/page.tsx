@@ -15,6 +15,8 @@ interface Pedido {
   total: number
   subtotal: number
   costo_envio: number
+  cargo_zona_extendida?: number | null
+  zona_verificada?: boolean | null
   numero_guia: string | null
   requiere_factura: boolean | null
   factura_estado: string | null
@@ -254,6 +256,12 @@ export default function PedidosPage() {
                       <td style={{ padding: '14px 16px', verticalAlign: 'middle' }}>
                         <p style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: '15px', color: '#0E0E0E', lineHeight: 1 }}>{formatearNumeroPedido(p.id)}</p>
                         <p style={{ fontSize: '11px', color: '#A8A8A8', marginTop: '3px' }}>{fechaCorta(p.created_at)}</p>
+                        {p.zona_verificada === false && (
+                          <p style={{ fontSize: '10px', color: '#A33', fontWeight: 600, marginTop: '4px' }}>Zona sin verificar</p>
+                        )}
+                        {Number(p.cargo_zona_extendida || 0) > 0 && (
+                          <p style={{ fontSize: '10px', color: '#8B6914', fontWeight: 600, marginTop: '4px' }}>Zona extendida</p>
+                        )}
                       </td>
 
                       {/* Cliente */}

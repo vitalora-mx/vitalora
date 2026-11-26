@@ -60,6 +60,15 @@ interface Pedido {
   subtotal: number
   descuento: number | null
   costo_envio: number
+  cargo_zona_extendida?: number | null
+  zona_extendida?: boolean | null
+  zona_verificada?: boolean | null
+  envio_cotizacion?: {
+    motivo: 'recargo' | 'precio' | null
+    masBarata: { paqueteria: string; servicio: string; total: number; zonaExtendida: boolean } | null
+    paqueteriasSinRecargo: string[]
+    paquete?: { empaque: string; largoCm: number; anchoCm: number; altoCm: number; pesoKg: number }
+  } | null
   total: number
   monto_reembolsado: number | null
   cancelado_at: string | null
@@ -373,6 +382,9 @@ export default function PedidoDetallePage() {
   // Cálculo financiero
   const subtotalProductos = pedido.subtotal ?? (pedido.total - (pedido.costo_envio ?? 0))
   const envioCliente = pedido.costo_envio ?? 0
+  const cargoZona = Number(pedido.cargo_zona_extendida || 0)
+  const envioSinCargo = Math.max(0, envioCliente - cargoZona)
+  const cot = pedido.envio_cotizacion
   const montoReembolsado = pedido.monto_reembolsado ?? 0
   const hayReembolso = montoReembolsado > 0
   const saldoPorDevolver = Math.max(0, Math.round((pedido.total - montoReembolsado) * 100) / 100)
@@ -487,6 +499,21 @@ export default function PedidoDetallePage() {
                 Col. {pedido.colonia}<br />
                 {pedido.ciudad}, {pedido.estado_dir} · CP {pedido.cp}
                 {pedido.referencia && <><br /><span style={{ color: '#A8A8A8', fontSize: '12px' }}>Ref: {pedido.referencia}</span></>}
+                {pedido.zona_verificada === false && (
+                  <div style={{ marginTop: '12px', padding: '10px 12px', background: '#FFF5F5', border: '1px solid #E8B4B4', borderRadius: '6px', fontSize: '12px', color: '#A33', lineHeight: 1.5 }}>
+                    <strong>Zona sin verificar.</strong> Skydropx no respondió en el checkout y se cobró sin cargo de zona extendida. Revísalo al cotizar la guía: si es zona extendida, contacta al cliente por los $200; si no paga o no responde en 2 días hábiles, cancela con reembolso completo.
+                  </div>
+                )}
+                {pedido.zona_verificada === true && (
+                  <div style={{ marginTop: '12px', padding: '10px 12px', background: cargoZona > 0 ? '#FFF9F0' : '#F5F8F3', border: `1px solid ${cargoZona > 0 ? '#E8D5B0' : '#D5E0CF'}`, borderRadius: '6px', fontSize: '12px', color: '#2C2C2C', lineHeight: 1.6 }}>
+                    <strong style={{ color: cargoZona > 0 ? '#8B6914' : '#3A5A3A' }}>
+                      {cargoZona > 0 ? `Zona extendida (${cot?.motivo === 'recargo' ? 'la paquetería más barata cobra recargo' : 'la tarifa más barata pasa de $150'})` : 'Zona normal'}
+                    </strong>
+                    {cot?.masBarata && <><br />Más barata en el checkout: {cot.masBarata.paqueteria} {cot.masBarata.servicio} · {fmt(cot.masBarata.total)}</>}
+                    {cot && <><br />Sin recargo de zona extendida: {cot.paqueteriasSinRecargo.length ? cot.paqueteriasSinRecargo.join(', ') : 'ninguna'}</>}
+                    {cot?.paquete && <><br /><span style={{ color: '#6B6B6B' }}>Paquete: {cot.paquete.empaque} {cot.paquete.largoCm}×{cot.paquete.anchoCm}×{cot.paquete.altoCm} cm · {cot.paquete.pesoKg} kg</span></>}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -524,7 +551,8 @@ export default function PedidoDetallePage() {
               <div style={{ padding: '16px 20px' }}>
                 {[
                   { label: 'Subtotal productos', valor: fmt(subtotalProductos), sub: null, color: '#0E0E0E', bold: false },
-                  { label: 'Envío cobrado al cliente', valor: envioCliente === 0 ? 'Gratis' : fmt(envioCliente), sub: null, color: '#0E0E0E', bold: false },
+                  { label: 'Envío cobrado al cliente', valor: envioSinCargo === 0 ? 'Gratis' : fmt(envioSinCargo), sub: null, color: '#0E0E0E', bold: false },
+                  ...(cargoZona > 0 ? [{ label: 'Cargo por zona extendida', valor: fmt(cargoZona), sub: 'Incluido en el envío que se cobró', color: '#8B6914', bold: false }] : []),
                   { label: 'Total pagado por el cliente', valor: fmt(pedido.total), sub: formaPagoLabel(pedido.forma_pago), color: '#0E0E0E', bold: true },
                   null, // separador
                   { label: 'IVA estimado incluido (16%)', valor: fmt(ivaEstimado), sub: 'Incluido en el precio de venta', color: '#6B6B6B', bold: false },

@@ -11,10 +11,26 @@ export function filaDescuentoHTML(pedido: any, tdIzq: string, tdDer: string): st
   return `<tr><td style="${tdIzq}color:#6B8F6B;">${etiquetaDescuento(pedido)}</td><td style="${tdDer}color:#6B8F6B;">-${mxn(descuento)}</td></tr>`
 }
 
-// Bloque "Resumen" para los avisos internos: Subtotal / Descuento / Envío / Total.
+// costo_envio incluye el cargo de zona extendida; en los correos van en renglones separados.
+export function cargoZonaExtendida(pedido: any): number {
+  return Math.max(0, Number(pedido.cargo_zona_extendida || 0))
+}
+export function envioSinCargo(pedido: any): number {
+  return Math.max(0, Math.round((Number(pedido.costo_envio || 0) - cargoZonaExtendida(pedido)) * 100) / 100)
+}
+
+// Renglón "Cargo por zona extendida" ('' si no hubo cargo)
+export function filaZonaExtendidaHTML(pedido: any, tdIzq: string, tdDer: string): string {
+  const cargo = cargoZonaExtendida(pedido)
+  if (cargo <= 0) return ''
+  return `<tr><td style="${tdIzq}color:#8B6914;">Cargo por zona extendida</td><td style="${tdDer}color:#8B6914;">${mxn(cargo)}</td></tr>`
+}
+
+// Bloque "Resumen" para los avisos internos: Subtotal / Descuento / Envío / Zona extendida / Total.
 export function resumenInternoHTML(pedido: any): string {
   const descuento = Number(pedido.descuento || 0)
-  const envio = Number(pedido.costo_envio || 0)
+  const envio = envioSinCargo(pedido)
+  const cargo = cargoZonaExtendida(pedido)
   const fila = (k: string, v: string, extra = '') =>
     `<tr><td style="padding:4px 0;font-size:13px;color:#555;${extra}">${k}</td><td style="padding:4px 0;font-size:13px;color:#333;text-align:right;${extra}">${v}</td></tr>`
   return `<h3 style="font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#C9A961;margin:0 0 12px;">Resumen</h3>`
@@ -22,6 +38,8 @@ export function resumenInternoHTML(pedido: any): string {
     + fila('Subtotal', mxn(pedido.subtotal))
     + (descuento > 0 ? fila(etiquetaDescuento(pedido), `-${mxn(descuento)}`, 'color:#3A5A3A;') : '')
     + fila('Envío', envio === 0 ? 'Gratis' : mxn(envio))
+    + (cargo > 0 ? fila('Cargo por zona extendida', mxn(cargo), 'color:#8B6914;') : '')
+    + (pedido.zona_verificada === false ? fila('Zona', 'Sin verificar (revisar al generar la guía)', 'color:#A33;') : '')
     + fila('Total', mxn(pedido.total), 'font-weight:700;border-top:1px solid #E8E0D5;')
     + `</table>`
 }

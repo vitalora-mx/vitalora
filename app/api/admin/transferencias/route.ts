@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import { Resend } from 'resend'
 import { requireAdmin } from '@/lib/admin-auth'
 import { formatearNumeroPedido } from '@/lib/utils'
-import { filaDescuentoHTML, resumenInternoHTML, avisoCancelacionHTML } from '@/lib/correoPedido'
+import { filaDescuentoHTML, resumenInternoHTML, avisoCancelacionHTML, envioSinCargo, filaZonaExtendidaHTML } from '@/lib/correoPedido'
 import { registrarComisionYAvisar } from '@/lib/comisiones'
 import { descontarStockUnaVez } from '@/lib/inventario'
 import { correoRechazoTransferencia } from '@/lib/correoTransferencia'
@@ -193,7 +193,7 @@ export async function PATCH(req: NextRequest) {
 async function enviarEmails(pedido: any) {
   const items = pedido.pedido_items || []
   const subtotal = pedido.subtotal || 0
-  const costoEnvio = pedido.costo_envio || 0
+  const costoEnvio = envioSinCargo(pedido)
   const total = pedido.total || 0
   const productosHTML = items.map((item: any) => `
     <tr>
@@ -226,6 +226,7 @@ async function enviarEmails(pedido: any) {
         <tr><td style="padding:4px 0;">Subtotal</td><td style="padding:4px 0;text-align:right;">$${subtotal.toLocaleString()} MXN</td></tr>
         ${filaDescuentoHTML(pedido, 'padding:4px 0;', 'padding:4px 0;text-align:right;')}
         <tr><td style="padding:4px 0;">Envío</td><td style="padding:4px 0;text-align:right;">${costoEnvio === 0 ? 'Gratis' : '$' + costoEnvio.toLocaleString() + ' MXN'}</td></tr>
+        ${filaZonaExtendidaHTML(pedido, 'padding:4px 0;', 'padding:4px 0;text-align:right;')}
         <tr><td style="padding:8px 0;font-size:16px;font-weight:700;color:#0E0E0E;">Total</td><td style="padding:8px 0;text-align:right;font-size:16px;font-weight:700;color:#0E0E0E;">$${total.toLocaleString()} MXN</td></tr>
       </table>
     </div>

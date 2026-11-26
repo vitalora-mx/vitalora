@@ -82,8 +82,10 @@ export default function CheckoutPage() {
   const [codigoAplicado, setCodigoAplicado] = useState<{ codigo: string; tipo: string; valor: number; montoDescuento: number; descripcion: string; descuentoEnvio?: string; envioPrecioFijo?: number; ciudadRestringida?: string | null; ciudadCoincide?: boolean } | null>(null)
   const [codigoError, setCodigoError] = useState('')
   const [validandoCodigo, setValidandoCodigo] = useState(false)
+  // Zona extendida: el servidor cotiza en Skydropx al llegar al paso 3 (/api/envio/cotizar)
+  const [envioZona, setEnvioZona] = useState<{ estado: 'cargando' | 'ok' | 'sin_cobertura' | 'cp_invalido' | 'sin_verificar'; cargo: number; clave: string }>({ estado: 'cargando', cargo: 0, clave: '' })
   // Respuestas del servidor al pagar
-  const [avisoTotal, setAvisoTotal] = useState<{ subtotal: number; descuento: number; descuentoTipo: string | null; codigo: string | null; costoEnvio: number; total: number } | null>(null)
+  const [avisoTotal, setAvisoTotal] = useState<{ subtotal: number; descuento: number; descuentoTipo: string | null; codigo: string | null; costoEnvio: number; cargoZonaExtendida?: number; total: number } | null>(null)
   const [errorPago, setErrorPago] = useState('')
   const [sesionExpirada, setSesionExpirada] = useState(false)
   const [compraComoInvitado, setCompraComoInvitado] = useState(false)
@@ -97,7 +99,39 @@ export default function CheckoutPage() {
   useEffect(() => { setMounted(true) }, [])
 
   // Si cambia algo que afecta el total, el aviso anterior del servidor ya no aplica
-  useEffect(() => { setAvisoTotal(null); setErrorPago('') }, [items, codigoAplicado, form.ciudad, metodoPago, descuentoPrimeraCompra])
+  useEffect(() => { setAvisoTotal(null); setErrorPago('') }, [items, codigoAplicado, form.ciudad, form.cp, form.colonia, form.estado, metodoPago, descuentoPrimeraCompra])
+
+  // ── Zona extendida: cotizar cuando el cliente llega al paso 3 o cambia la dirección o el carrito ──
+  const itemsEnvio = items.map(i => `${i.id}x${i.cantidad}`).join(',')
+  const claveEnvio = [form.cp, form.colonia, form.ciudad, form.estado, itemsEnvio].join('|')
+  useEffect(() => {
+    if (!mounted || paso !== 3 || items.length === 0) return
+    if (!/^\d{5}$/.test(form.cp) || !form.colonia.trim() || !form.ciudad.trim() || !form.estado.trim()) return
+    const control = new AbortController()
+    let vigente = true // false cuando cambió la dirección o el carrito: la respuesta vieja se ignora
+    // Si el servidor tarda más de esto, se sigue sin cargo ("sin verificar"); el servidor vuelve a revisar al pagar
+    const reloj = setTimeout(() => control.abort(), 12000)
+    setEnvioZona({ estado: 'cargando', cargo: 0, clave: claveEnvio })
+    fetch('/api/envio/cotizar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        direccion: { cp: form.cp, colonia: form.colonia, ciudad: form.ciudad, estado: form.estado },
+        items: items.map(i => ({ productoId: i.id, cantidad: i.cantidad })),
+      }),
+      signal: control.signal,
+    })
+      .then(r => r.json())
+      .then(d => {
+        if (!vigente) return
+        const estado = ['ok', 'sin_cobertura', 'cp_invalido', 'sin_verificar'].includes(d?.estado) ? d.estado : 'sin_verificar'
+        setEnvioZona({ estado, cargo: estado === 'ok' ? Number(d.cargo) || 0 : 0, clave: claveEnvio })
+      })
+      .catch(() => { if (vigente) setEnvioZona({ estado: 'sin_verificar', cargo: 0, clave: claveEnvio }) })
+      .finally(() => clearTimeout(reloj))
+    return () => { vigente = false; clearTimeout(reloj); control.abort() }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mounted, paso, claveEnvio])
 
   // ── Avance guardado (localStorage, caduca a las 2 h): se recupera al volver, p. ej. desde "Editar carrito" o la app de Mercado Pago ──
   // Va ANTES de la carga del perfil para que el perfil solo llene lo que esté vacío.
@@ -259,7 +293,11 @@ export default function CheckoutPage() {
     }
   }
   const montoDescuento = codigoAplicado ? codigoAplicado.montoDescuento : (descuentoPrimeraCompra ? Math.round(subtotal * 0.05) : 0)
-  const totalFinal = subtotal - montoDescuento + costoEnvio
+  // Cargo de zona extendida: solo si la cotización es de la dirección y el carrito actuales
+  const zonaActual = envioZona.clave === claveEnvio ? envioZona : { estado: 'cargando' as const, cargo: 0, clave: claveEnvio }
+  const cargoZona = zonaActual.estado === 'ok' ? zonaActual.cargo : 0
+  const envioListo = zonaActual.estado === 'ok' || zonaActual.estado === 'sin_verificar'
+  const totalFinal = subtotal - montoDescuento + costoEnvio + cargoZona
   // (helper definido abajo del archivo)
   const logueado = isLoggedIn()
 
@@ -320,6 +358,12 @@ export default function CheckoutPage() {
         setEnviando(false)
         return
       }
+      // Al pagar, el servidor encontró que no hay cobertura o que el C.P. no existe
+      if (res.status === 400 && (data.sinCobertura || data.cpInvalido)) {
+        setEnvioZona({ estado: data.sinCobertura ? 'sin_cobertura' : 'cp_invalido', cargo: 0, clave: claveEnvio })
+        setEnviando(false)
+        return
+      }
       if (esTransferencia && data.pedidoId) {
         borrarPedidoPendiente()
         borrarBorradorCheckout() // compra creada: ya no se necesita el avance guardado
@@ -351,7 +395,7 @@ export default function CheckoutPage() {
     setCompraComoInvitado(true)
     setDescuentoPrimeraCompra(false)
     const descuentoInvitado = codigoAplicado ? codigoAplicado.montoDescuento : 0
-    handlePagar({ sinToken: true, totalEsperado: subtotal - descuentoInvitado + costoEnvio })
+    handlePagar({ sinToken: true, totalEsperado: subtotal - descuentoInvitado + costoEnvio + cargoZona })
   }
 
   const inputStyle = { width: '100%', padding: '12px 16px', border: '1px solid var(--line)', borderRadius: '2px', fontSize: '14px', color: 'var(--text)', fontFamily: 'inherit', outline: 'none', background: 'white', boxSizing: 'border-box' as const }
@@ -611,10 +655,42 @@ export default function CheckoutPage() {
                   </div>
                 </div>
                   {/* zonas-extendidas-leyenda */}
-                  <div style={{ marginBottom: '24px', padding: '14px 16px', background: '#FFF9F0', border: '1px solid #E8D5B0', borderRadius: '4px' }}>
-                    <div style={{ fontSize: '12px', fontWeight: 600, color: '#8B6914', marginBottom: '4px' }}>Envíos a zonas extendidas</div>
-                    <div style={{ fontSize: '12px', color: 'var(--text-muted)', lineHeight: 1.6 }}>Si tu código postal está en zona extendida (comunidades rurales o de difícil acceso), se agrega un cargo de $200 MXN que no se refleja en el total, incluso con envío gratis. Si aplica, te contactaremos antes de enviar tu pedido para confirmarlo.</div>
-                  </div>
+                  {zonaActual.estado === 'cargando' && (
+                    <div style={{ marginBottom: '24px', padding: '14px 16px', background: 'white', border: '1px solid var(--line)', borderRadius: '4px', fontSize: '12px', color: 'var(--text-muted)' }}>
+                      Calculando envío a tu código postal…
+                    </div>
+                  )}
+                  {zonaActual.estado === 'sin_cobertura' && (
+                    <div style={{ marginBottom: '24px', padding: '14px 16px', background: '#FFF5F5', border: '1px solid #E8B4B4', borderRadius: '4px' }}>
+                      <div style={{ fontSize: '12px', fontWeight: 600, color: '#A33', marginBottom: '4px' }}>Sin cobertura de paquetería</div>
+                      <div style={{ fontSize: '12px', color: 'var(--text)', lineHeight: 1.6 }}>
+                        No tenemos cobertura de paquetería para tu código postal. <a href="https://wa.me/524622341282" target="_blank" rel="noopener noreferrer" style={{ color: '#A33', fontWeight: 600 }}>Escríbenos por WhatsApp</a> y te ayudamos.
+                      </div>
+                    </div>
+                  )}
+                  {zonaActual.estado === 'cp_invalido' && (
+                    <div style={{ marginBottom: '24px', padding: '14px 16px', background: '#FFF5F5', border: '1px solid #E8B4B4', borderRadius: '4px' }}>
+                      <div style={{ fontSize: '12px', fontWeight: 600, color: '#A33', marginBottom: '4px' }}>Revisa tu código postal</div>
+                      <div style={{ fontSize: '12px', color: 'var(--text)', lineHeight: 1.6 }}>
+                        No encontramos el código postal {form.cp}. <button onClick={() => setPaso(2)} style={{ background: 'none', border: 'none', padding: 0, color: '#A33', fontWeight: 600, textDecoration: 'underline', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px' }}>Corregir dirección</button>
+                      </div>
+                    </div>
+                  )}
+                  {cargoZona > 0 && (
+                    <div style={{ marginBottom: '24px', padding: '14px 16px', background: '#FFF9F0', border: '1px solid #E8D5B0', borderRadius: '4px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', marginBottom: '4px' }}>
+                        <div style={{ fontSize: '12px', fontWeight: 600, color: '#8B6914' }}>Cargo por zona extendida</div>
+                        <div style={{ fontFamily: 'var(--font-cormorant), serif', fontSize: '18px', fontWeight: 600, color: 'var(--black)' }}>+{cargoZona} MXN</div>
+                      </div>
+                      <div style={{ fontSize: '12px', color: 'var(--text-muted)', lineHeight: 1.6 }}>Tu código postal está en zona extendida: se agrega un cargo de $200 MXN, ya incluido en tu total.</div>
+                    </div>
+                  )}
+                  {(zonaActual.estado === 'ok' || zonaActual.estado === 'sin_verificar') && cargoZona === 0 && (
+                    <div style={{ marginBottom: '24px', padding: '14px 16px', background: '#FFF9F0', border: '1px solid #E8D5B0', borderRadius: '4px' }}>
+                      <div style={{ fontSize: '12px', fontWeight: 600, color: '#8B6914', marginBottom: '4px' }}>Envíos a zonas extendidas</div>
+                      <div style={{ fontSize: '12px', color: 'var(--text-muted)', lineHeight: 1.6 }}>Si tu código postal está en zona extendida (comunidades rurales o de difícil acceso), se agrega un cargo de $200 MXN, incluso con envío gratis. El cargo se muestra en el checkout antes de pagar.</div>
+                    </div>
+                  )}
 
                 <div style={{ marginBottom: '24px', padding: '20px', border: '1px solid', borderColor: datosConfirmados ? '#A8C5A0' : 'var(--line)', borderRadius: '4px', background: datosConfirmados ? '#F0F7F0' : 'white', transition: 'all 0.2s' }}>
                   <label style={{ display: 'flex', gap: '14px', alignItems: 'flex-start', cursor: 'pointer' }}>
@@ -687,6 +763,9 @@ export default function CheckoutPage() {
                         <div style={{ display: 'flex', justifyContent: 'space-between', color: '#3A5A3A' }}><span>{avisoTotal.codigo ? 'Código ' + avisoTotal.codigo : 'Descuento 5% primera compra'}</span><span>-${avisoTotal.descuento.toLocaleString()} MXN</span></div>
                       )}
                       <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Envío</span><span>{avisoTotal.costoEnvio === 0 ? 'Gratis' : `$${avisoTotal.costoEnvio.toLocaleString()} MXN`}</span></div>
+                      {(avisoTotal.cargoZonaExtendida || 0) > 0 && (
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Cargo por zona extendida</span><span>${(avisoTotal.cargoZonaExtendida || 0).toLocaleString()} MXN</span></div>
+                      )}
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, borderTop: '1px solid #F0D080', paddingTop: '6px', marginTop: '4px' }}><span>Total</span><span>${avisoTotal.total.toLocaleString()} MXN</span></div>
                     </div>
                   </div>
@@ -700,8 +779,8 @@ export default function CheckoutPage() {
 
                 <div style={{ display: 'flex', gap: '16px' }}>
                   <button onClick={() => setPaso(2)} style={{ flex: 1, padding: '18px', background: 'none', border: '1px solid var(--line)', fontSize: '13px', letterSpacing: '0.2em', textTransform: 'uppercase', cursor: 'pointer', fontFamily: 'inherit', borderRadius: '2px', color: 'var(--text-muted)' }}>← Regresar</button>
-                  <button onClick={() => handlePagar()} disabled={!validarPaso3() || enviando || sesionExpirada} style={{ flex: 2, padding: '18px', background: validarPaso3() ? 'var(--gold)' : 'var(--line)', color: validarPaso3() ? 'var(--black)' : 'var(--text-muted)', border: 'none', fontSize: '13px', letterSpacing: '0.2em', textTransform: 'uppercase', fontWeight: 700, cursor: validarPaso3() ? 'pointer' : 'not-allowed', fontFamily: 'inherit', borderRadius: '2px', opacity: enviando ? 0.7 : 1 }}>
-                    {enviando ? 'Procesando...' : avisoTotal
+                  <button onClick={() => handlePagar()} disabled={!validarPaso3() || !envioListo || enviando || sesionExpirada} style={{ flex: 2, padding: '18px', background: validarPaso3() && envioListo ? 'var(--gold)' : 'var(--line)', color: validarPaso3() && envioListo ? 'var(--black)' : 'var(--text-muted)', border: 'none', fontSize: '13px', letterSpacing: '0.2em', textTransform: 'uppercase', fontWeight: 700, cursor: validarPaso3() && envioListo ? 'pointer' : 'not-allowed', fontFamily: 'inherit', borderRadius: '2px', opacity: enviando ? 0.7 : 1 }}>
+                    {enviando ? 'Procesando...' : zonaActual.estado === 'cargando' ? 'Calculando envío...' : avisoTotal
                       ? `${metodoPago === 'transferencia' ? 'Continuar' : 'Pagar'} $${avisoTotal.total.toLocaleString()} MXN`
                       : (metodoPago === 'transferencia' ? 'Continuar con transferencia' : 'Pagar con Mercado Pago')}
                   </button>
@@ -745,6 +824,12 @@ export default function CheckoutPage() {
                   <span>Envío</span>
                   <span>{costoEnvio === 0 ? 'Gratis' : `${costoEnvio} MXN`}</span>
                 </div>
+                {cargoZona > 0 && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: '#8B6914' }}>
+                    <span>Zona extendida</span>
+                    <span>{cargoZona} MXN</span>
+                  </div>
+                )}
                 <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '10px', borderTop: '1px solid var(--line)' }}>
                   <span style={{ fontFamily: 'var(--font-cormorant), serif', fontSize: '20px', fontWeight: 600, color: 'var(--black)' }}>Total</span>
                   <span style={{ fontFamily: 'var(--font-cormorant), serif', fontSize: '24px', fontWeight: 600, color: 'var(--black)' }}>${totalFinal.toLocaleString()} MXN</span>

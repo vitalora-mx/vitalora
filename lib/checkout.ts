@@ -8,6 +8,8 @@ import { NextRequest } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { obtenerCliente } from '@/lib/cliente-auth'
 import { calcularEnvio } from '@/lib/envio'
+import { articuloDeProducto, type CopiaCotizacion } from '@/lib/cotizar-envio'
+import type { ArticuloPaquete } from '@/lib/paquete'
 import { validarCodigo, montoPrimeraCompra, puedeUsarPrimeraCompra, etiquetaDescuento } from '@/lib/descuentos'
 import { productoVisible } from '@/lib/tienda'
 
@@ -37,7 +39,11 @@ export interface PedidoCalculado {
   descuentoTipo: 'codigo' | 'primera_compra' | null
   descuentoTitulo: string | null
   codigo: string | null
-  costoEnvio: number
+  costoEnvio: number            // incluye el cargo de zona extendida
+  cargoZonaExtendida: number
+  zonaVerificada: boolean       // false = Skydropx no respondió ("Zona sin verificar")
+  envioCotizacion: CopiaCotizacion | null
+  origenEnvioId: number | null
   total: number
   userId: string | null
   comprador: Comprador
@@ -52,6 +58,7 @@ export interface Desglose {
   descuentoTipo: string | null
   codigo: string | null
   costoEnvio: number
+  cargoZonaExtendida: number
   total: number
 }
 
@@ -96,7 +103,9 @@ export function desglose(p: PedidoCalculado): Desglose {
     descuento: p.descuento,
     descuentoTipo: p.descuentoTipo,
     codigo: p.codigo,
-    costoEnvio: p.costoEnvio,
+    // En el desglose el envío va sin el cargo, que tiene su propio renglón
+    costoEnvio: redondear(p.costoEnvio - p.cargoZonaExtendida),
+    cargoZonaExtendida: p.cargoZonaExtendida,
     total: p.total,
   }
 }
@@ -150,7 +159,7 @@ export async function calcularPedido(req: NextRequest, body: any): Promise<Resul
   const ids = [...new Set([...agrupados.values()].map(i => i.productoId))]
   const { data: productos, error: errProd } = await supabaseAdmin
     .from('productos')
-    .select('id, nombre, marca, precio, stock, activo, tipo, producto_variantes(id, producto_id, nombre, precio, stock)')
+    .select('id, nombre, marca, precio, stock, activo, tipo, categoria, peso_g, alto_cm, ancho_cm, largo_cm, producto_variantes(id, producto_id, nombre, precio, stock)')
     .in('id', ids)
   if (errProd) {
     console.error('Checkout: error leyendo productos', errProd)
@@ -159,6 +168,7 @@ export async function calcularPedido(req: NextRequest, body: any): Promise<Resul
   const porId = new Map((productos || []).map((p: any) => [Number(p.id), p]))
 
   const lineas: LineaPedido[] = []
+  const articulos: ArticuloPaquete[] = []
   for (const it of agrupados.values()) {
     const prod: any = porId.get(it.productoId)
     if (!prod || !prod.activo) {
@@ -196,6 +206,8 @@ export async function calcularPedido(req: NextRequest, body: any): Promise<Resul
       nombre: prod.nombre, marca: prod.marca || '', varianteNombre,
       precio, cantidad: it.cantidad,
     })
+    // Las variantes no tienen peso ni medidas propias: se usan las del producto
+    articulos.push(articuloDeProducto(prod, it.cantidad))
   }
 
   const subtotal = redondear(lineas.reduce((s, l) => s + l.precio * l.cantidad, 0))
@@ -224,8 +236,20 @@ export async function calcularPedido(req: NextRequest, body: any): Promise<Resul
   descuento = redondear(Math.min(descuento, subtotal))
 
   // ── 5. Envío (lib/envio.ts) ──
-  const envio = await calcularEnvio({ subtotal, ciudad: direccion.ciudad, codigo: reglaEnvio })
+  const envio = await calcularEnvio({
+    subtotal,
+    codigo: reglaEnvio,
+    destino: { cp: direccion.cp, colonia: direccion.colonia, ciudad: direccion.ciudad, estado: direccion.estado },
+    articulos,
+  })
+  if (envio.zona.estado === 'cp_invalido') {
+    return error(400, 'No encontramos tu código postal. Revisa tu dirección de envío.', { cpInvalido: true })
+  }
+  if (envio.zona.estado === 'sin_cobertura') {
+    return error(400, 'No tenemos cobertura de paquetería para tu código postal. Escríbenos por WhatsApp y te ayudamos.', { sinCobertura: true })
+  }
   const costoEnvio = redondear(envio.costo)
+  const cargoZonaExtendida = redondear(envio.cargoZona)
 
   const total = redondear(subtotal - descuento + costoEnvio)
   if (total <= 0) return error(400, 'El total del pedido no es válido.')
@@ -234,7 +258,11 @@ export async function calcularPedido(req: NextRequest, body: any): Promise<Resul
     ok: true,
     pedido: {
       lineas, subtotal, descuento, descuentoTipo, descuentoTitulo, codigo,
-      costoEnvio, total, userId, comprador, direccion,
+      costoEnvio, cargoZonaExtendida,
+      zonaVerificada: envio.zona.verificada,
+      envioCotizacion: envio.zona.copia,
+      origenEnvioId: envio.zona.origenId,
+      total, userId, comprador, direccion,
     },
   }
 }
@@ -269,6 +297,11 @@ export async function guardarPedido(p: PedidoCalculado, extra: Record<string, un
       descuento: p.descuento,
       descuento_tipo: p.descuentoTipo,
       costo_envio: p.costoEnvio,
+      cargo_zona_extendida: p.cargoZonaExtendida,
+      zona_extendida: p.cargoZonaExtendida > 0,
+      zona_verificada: p.zonaVerificada,
+      envio_cotizacion: p.envioCotizacion,
+      origen_envio_id: p.origenEnvioId,
       total: p.total,
       user_id: p.userId,
       codigo_descuento: p.codigo,

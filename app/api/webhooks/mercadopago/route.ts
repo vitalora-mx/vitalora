@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import { MercadoPagoConfig, Payment } from 'mercadopago'
 import { Resend } from 'resend'
 import { formatearNumeroPedido } from '@/lib/utils'
-import { filaDescuentoHTML, resumenInternoHTML } from '@/lib/correoPedido'
+import { filaDescuentoHTML, resumenInternoHTML, envioSinCargo, filaZonaExtendidaHTML } from '@/lib/correoPedido'
 import { sincronizarReembolsosMP, reembolsarPagoEnCancelado } from '@/lib/reembolsos'
 import { registrarComisionYAvisar } from '@/lib/comisiones'
 import { descontarStockUnaVez } from '@/lib/inventario'
@@ -270,7 +270,7 @@ async function procesarComisionInfluencer(pedido: any) {
 async function enviarEmails(pedido: any) {
   const items = pedido.pedido_items || []
   const subtotal = pedido.subtotal || 0
-  const costoEnvio = pedido.costo_envio || 0
+  const costoEnvio = envioSinCargo(pedido)
   const total = pedido.total || 0
 
   const productosHTML = items.map((item: any) => `
@@ -313,6 +313,7 @@ async function enviarEmails(pedido: any) {
       <tr><td style="font-size:13px;color:#888;padding:4px 0;">Subtotal</td><td style="font-size:13px;color:#333;text-align:right;padding:4px 0;">$${subtotal.toLocaleString()} MXN</td></tr>
       ${filaDescuentoHTML(pedido, 'font-size:13px;padding:4px 0;', 'font-size:13px;text-align:right;padding:4px 0;')}
       <tr><td style="font-size:13px;color:${costoEnvio === 0 ? '#6B8F6B' : '#888'};padding:4px 0;">Env&iacute;o</td><td style="font-size:13px;color:${costoEnvio === 0 ? '#6B8F6B' : '#333'};text-align:right;padding:4px 0;">${costoEnvio === 0 ? 'Gratis' : '$' + costoEnvio + ' MXN'}</td></tr>
+      ${filaZonaExtendidaHTML(pedido, 'font-size:13px;padding:4px 0;', 'font-size:13px;text-align:right;padding:4px 0;')}
       <tr><td colspan="2" style="padding-top:12px;border-top:2px solid #0E0E0E;"></td></tr>
       <tr><td style="font-size:18px;font-weight:600;color:#0E0E0E;padding:4px 0;">Total</td><td style="font-size:18px;font-weight:600;color:#0E0E0E;text-align:right;padding:4px 0;">$${total.toLocaleString()} MXN</td></tr>
     </table>
