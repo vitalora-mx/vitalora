@@ -46,7 +46,10 @@ export async function POST(req: NextRequest) {
   const a = d.attributes || {}
   const estado = String(a.status || a.tracking_status || a.event || '').toLowerCase()
   const numeroGuia = String(a.tracking_number || a.master_tracking_number || '').trim()
-  const shipmentId = String(d.relationships?.shipment?.data?.id || a.shipment_id || (d.type === 'shipment' ? d.id : '') || '').trim()
+  // El envío puede venir como id suelto o solo como enlace (relationships.shipment.links.related = …/shipments/<id>)
+  const enlaceEnvio = String(d.relationships?.shipment?.links?.related || d.relationships?.shipment?.links?.self || '')
+  const idDelEnlace = /\/shipments\/([0-9a-f-]{36})/i.exec(enlaceEnvio)?.[1] || ''
+  const shipmentId = String(d.relationships?.shipment?.data?.id || a.shipment_id || idDelEnlace || (d.type === 'shipment' ? d.id : '') || '').trim()
   if (!estado || (!numeroGuia && !shipmentId)) {
     console.log('Webhook Skydropx: aviso sin estado o sin guía', JSON.stringify(json).slice(0, 500))
     return NextResponse.json({ ok: true, ignorado: 'sin estado o guía' })
@@ -60,7 +63,7 @@ export async function POST(req: NextRequest) {
     ({ data: pedido } = await db.from('pedidos').select('id, guia_entorno').eq('guia_entorno', entorno).eq('skydropx_shipment_id', shipmentId).maybeSingle())
   }
   if (!pedido) {
-    console.log(`Webhook Skydropx (${entorno}): guía ${numeroGuia || shipmentId} no corresponde a ningún pedido`)
+    console.log(`Webhook Skydropx (${entorno}): guía ${numeroGuia || '(sin número)'} / envío ${shipmentId || '(sin id)'} no corresponde a ningún pedido`)
     return NextResponse.json({ ok: true, ignorado: 'guía desconocida' })
   }
 
