@@ -26,6 +26,7 @@ export async function GET(request: Request) {
         costo_envio,
         estado,
         forma_pago,
+        metodo_pago,
         nombre,
         apellido,
         email,
@@ -58,8 +59,8 @@ export async function GET(request: Request) {
     const subtotalSinEnvio = pedidos?.reduce((a, p) => a + (p.subtotal ?? (p.total ?? 0) - (p.costo_envio ?? 0)), 0) ?? 0
     // IVA estimado: 16% sobre subtotal (incluido en precio)
     const ivaEstimado = subtotalSinEnvio * 0.16 / 1.16
-    // Comisión MP estimada: 3.6% + IVA (aprox 4.18%)
-    const comisionMP = totalBruto * 0.0418
+    // Comisión MP estimada: 3.6% + IVA (aprox 4.18%), solo en pedidos pagados con Mercado Pago
+    const comisionMP = pedidos?.reduce((a, p) => a + (p.metodo_pago === 'transferencia' ? 0 : (p.total ?? 0) * 0.0418), 0) ?? 0
     const neto = totalBruto - comisionMP
 
     return NextResponse.json({

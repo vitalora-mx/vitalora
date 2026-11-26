@@ -55,9 +55,17 @@ function variable(nombre: string): string {
   return (process.env[nombre] || '').trim()
 }
 
+// Sandbox usa sus propias llaves (SKYDROPX_SANDBOX_*); nunca las de producción.
+function nombresLlaves(): { id: string; secreto: string } {
+  return entornoSkydropx() === 'sandbox'
+    ? { id: 'SKYDROPX_SANDBOX_CLIENT_ID', secreto: 'SKYDROPX_SANDBOX_CLIENT_SECRET' }
+    : { id: 'SKYDROPX_CLIENT_ID', secreto: 'SKYDROPX_CLIENT_SECRET' }
+}
+
 async function pedirToken(limite: number): Promise<string> {
-  const id = variable('SKYDROPX_CLIENT_ID')
-  const secreto = variable('SKYDROPX_CLIENT_SECRET')
+  const llaves = nombresLlaves()
+  const id = variable(llaves.id)
+  const secreto = variable(llaves.secreto)
   if (!id || !secreto) throw new ErrorSkydropx('config', 'Faltan las credenciales de Skydropx.')
   const base = urlBase()
   const res = await llamar('POST', base + '/api/v1/oauth/token', {
@@ -325,7 +333,7 @@ export async function diagnosticarSkydropx(): Promise<DiagnosticoSkydropx> {
   const resultado: DiagnosticoSkydropx = {
     entorno: entornoSkydropx(),
     host: new URL(urlBase()).host,
-    credenciales: { clientId: revisarVariable('SKYDROPX_CLIENT_ID'), clientSecret: revisarVariable('SKYDROPX_CLIENT_SECRET') },
+    credenciales: { clientId: revisarVariable(nombresLlaves().id), clientSecret: revisarVariable(nombresLlaves().secreto) },
     token: { ok: false, ms: 0 },
     saldo: { ok: false },
   }
@@ -349,4 +357,151 @@ export async function diagnosticarSkydropx(): Promise<DiagnosticoSkydropx> {
     resultado.saldo = { ok: false, error: e instanceof Error ? e.message : 'Error desconocido' }
   }
   return resultado
+}
+
+// ── Envíos (guías) ──
+// Datos de una dirección para la guía. El C.P., la colonia, el municipio y el estado
+// no van aquí: Skydropx los toma de la cotización de la tarifa elegida.
+export interface DireccionGuia {
+  nombre: string      // máx. 30
+  empresa: string     // máx. 60
+  calleNumero: string // street1
+  telefono: string
+  email: string
+  referencia: string  // remitente: máx. 30 (obligatoria) · destinatario: máx. 40
+  infoAdicional?: string // máx. 70
+}
+
+export interface EnvioSkydropx {
+  id: string
+  estado: string                // workflow_status: in_progress | success | failed ...
+  paqueteria: string | null     // nombre para mostrar (PAQUETERIAS)
+  servicio: string | null
+  numeroGuia: string | null
+  total: number | null          // lo que Skydropx dice que cuesta la guía
+  etiquetaUrl: string | null
+  rastreoUrl: string | null
+  estadoRastreo: string | null  // tracking_status del paquete
+  error: string | null
+}
+
+const corta = (s: string, max: number) => (s || '').replace(/\s+/g, ' ').trim().slice(0, max)
+const soloDigitos = (s: string) => (s || '').replace(/\D/g, '').slice(-10)
+
+function normalizarEnvio(json: any): EnvioSkydropx {
+  const d = json?.data || {}
+  const a = d.attributes || {}
+  const paquete = (Array.isArray(json?.included) ? json.included : []).find((x: any) => x?.type === 'package')?.attributes || {}
+  const clave = String(a.carrier_name || '').toLowerCase()
+  const total = numero(a.total)
+  const err = a.error_detail
+  return {
+    id: String(d.id || a.id || ''),
+    estado: String(a.workflow_status || ''),
+    paqueteria: PAQUETERIAS_SKYDROPX[clave] ?? (a.carrier_name ? String(a.carrier_name) : null),
+    servicio: a.service_name ? String(a.service_name) : null,
+    numeroGuia: String(a.master_tracking_number || paquete.tracking_number || '') || null,
+    total: Number.isFinite(total) ? total : null,
+    etiquetaUrl: paquete.label_url ? String(paquete.label_url) : null,
+    rastreoUrl: paquete.tracking_url_provider ? String(paquete.tracking_url_provider) : null,
+    estadoRastreo: paquete.tracking_status ? String(paquete.tracking_status) : null,
+    error: err ? String(err.error_message || err.error_code || JSON.stringify(err)).slice(0, 300) : null,
+  }
+}
+
+// Crea la guía. SIEMPRE sin protección (seguro), sin valor declarado, sin recolección
+// y sin opciones de sucursal. Devuelve en cuanto Skydropx la acepta (suele quedar "in_progress").
+export async function crearEnvio(params: {
+  rateId: string
+  remitente: DireccionGuia
+  destinatario: DireccionGuia
+  claveSat: string
+  claveEmpaque: string
+  timeoutMs?: number
+}): Promise<EnvioSkydropx> {
+  const limite = Date.now() + (params.timeoutMs ?? 20000)
+  const dir = (x: DireccionGuia, maxRef: number) => ({
+    street1: corta(x.calleNumero, 100),
+    name: corta(x.nombre, 30),
+    company: corta(x.empresa, 60),
+    phone: soloDigitos(x.telefono),
+    email: corta(x.email, 100),
+    reference: corta(x.referencia, maxRef) || 'Sin referencia',
+    ...(x.infoAdicional ? { further_information: corta(x.infoAdicional, 70) } : {}),
+  })
+  const body = {
+    shipment: {
+      rate_id: params.rateId,
+      unique_shipment: true,      // reintento con la misma tarifa = misma guía, nunca dos
+      printing_format: 'standard', // hoja carta
+      address_from: dir(params.remitente, 30),
+      address_to: dir(params.destinatario, 40),
+      packages: [{
+        package_number: '1',
+        package_protected: false,
+        consignment_note: params.claveSat,
+        package_type: params.claveEmpaque,
+      }],
+    },
+  }
+  const r = await api('POST', '/api/v1/shipments/', body, limite)
+  if (r.status === 422) {
+    const msg = JSON.stringify(r.json || {})
+    if (/fondos|insufficient|DEBT_LIMIT/i.test(msg)) throw new ErrorSkydropx('http', 'Saldo insuficiente en Skydropx.', 422, r.json)
+    throw new ErrorSkydropx('http', 'Skydropx rechazó la guía: ' + msg.slice(0, 300), 422, r.json)
+  }
+  if (r.status === 409) throw new ErrorSkydropx('http', 'Skydropx todavía está procesando una guía con esta tarifa. Espera y actualiza.', 409, r.json)
+  if (r.status >= 300 || !r.json?.data?.id) throw new ErrorSkydropx('http', 'Skydropx no aceptó la guía.', r.status, r.json)
+  const envio = normalizarEnvio(r.json)
+  revisarEnvioSinProteccion(r.json)
+  return envio
+}
+
+// Los paquetes de la guía nunca deben venir protegidos
+function revisarEnvioSinProteccion(json: any) {
+  const paquetes = (Array.isArray(json?.included) ? json.included : []).filter((x: any) => x?.type === 'package')
+  if (paquetes.some((p: any) => p?.attributes?.package_protected === true)) {
+    throw new ErrorSkydropx('protegido', 'Skydropx creó la guía con protección (seguro).', null, paquetes)
+  }
+}
+
+export async function consultarEnvio(id: string, timeoutMs = 8000): Promise<EnvioSkydropx> {
+  const r = await api('GET', '/api/v1/shipments/' + encodeURIComponent(id), null, Date.now() + timeoutMs)
+  if (r.status >= 300) throw new ErrorSkydropx('http', 'No se pudo consultar la guía.', r.status, r.json)
+  return normalizarEnvio(r.json)
+}
+
+// Consulta hasta que la guía deje de estar en proceso o se acabe el tiempo
+export async function esperarEnvio(id: string, esperaMs: number): Promise<EnvioSkydropx> {
+  const limite = Date.now() + esperaMs
+  let envio = await consultarEnvio(id)
+  while ((envio.estado === 'in_progress' || envio.estado === 'pending') && Date.now() + 2000 < limite) {
+    await esperar(1500)
+    envio = await consultarEnvio(id)
+  }
+  return envio
+}
+
+export async function cancelarEnvio(id: string, motivo: string): Promise<{ aprobada: boolean; estado: string }> {
+  const r = await api('POST', `/api/v1/shipments/${encodeURIComponent(id)}/cancellations`, { reason: corta(motivo, 200) || 'Cancelada desde el admin', shipment_id: id }, Date.now() + 15000)
+  if (r.status === 422) throw new ErrorSkydropx('http', 'Skydropx dice que esta guía ya no se puede cancelar.', 422, r.json)
+  if (r.status >= 300) throw new ErrorSkydropx('http', 'No se pudo cancelar la guía.', r.status, r.json)
+  return { aprobada: r.json?.success === true || r.json?.status === 'approved', estado: String(r.json?.status || '') }
+}
+
+// Descarga el PDF de la etiqueta (el enlace de Skydropx no requiere token)
+export async function descargarEtiqueta(url: string, timeoutMs = 15000): Promise<Buffer> {
+  const u = new URL(url)
+  // El enlace viene de la respuesta de Skydropx (nunca del navegador); solo se exige https
+  if (u.protocol !== 'https:') throw new ErrorSkydropx('http', 'Enlace de etiqueta no reconocido.')
+  const control = new AbortController()
+  const reloj = setTimeout(() => control.abort(), timeoutMs)
+  try {
+    const res = await fetch(url, { signal: control.signal, cache: 'no-store' })
+    const buf = Buffer.from(await res.arrayBuffer())
+    if (res.status !== 200 || buf.subarray(0, 5).toString() !== '%PDF-') throw new ErrorSkydropx('http', 'La etiqueta no es un PDF válido.', res.status)
+    return buf
+  } finally {
+    clearTimeout(reloj)
+  }
 }

@@ -30,8 +30,9 @@ export const ESTADOS_CANCELABLES = [
   'esperando_comprobante', 'comprobante_en_revision', 'comprobante_rechazado',
 ]
 
-export function puedeCancelarse(p: { estado: string; numero_guia?: string | null }): boolean {
-  return !p.numero_guia && ESTADOS_CANCELABLES.includes(p.estado)
+// Una guía de Skydropx en proceso (aún sin número) también bloquea la cancelación
+export function puedeCancelarse(p: { estado: string; numero_guia?: string | null; skydropx_shipment_id?: string | null }): boolean {
+  return !p.numero_guia && !p.skydropx_shipment_id && ESTADOS_CANCELABLES.includes(p.estado)
 }
 
 // Estados desde los que se puede reembolsar (pagos ya recibidos)

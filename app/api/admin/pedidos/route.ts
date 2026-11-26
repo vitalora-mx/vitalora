@@ -31,7 +31,7 @@ export async function PUT(req: NextRequest) {
 
   const { data: actual } = await supabaseAdmin
     .from('pedidos')
-    .select('id, estado, reembolso_en_curso_desde')
+    .select('id, estado, reembolso_en_curso_desde, skydropx_shipment_id, guia_en_curso_desde')
     .eq('id', id)
     .maybeSingle()
   if (!actual) return NextResponse.json({ error: 'Pedido no encontrado' }, { status: 404 })
@@ -51,6 +51,10 @@ export async function PUT(req: NextRequest) {
     }
     if (candadoActivo(actual)) {
       return NextResponse.json({ error: 'Hay un reembolso o cancelación en proceso para este pedido. Espera un momento.' }, { status: 409 })
+    }
+    // La guía de Skydropx se maneja desde su tarjeta (cancelarla primero para registrar una manual)
+    if (actual.skydropx_shipment_id || (actual.guia_en_curso_desde && Date.now() - Date.parse(actual.guia_en_curso_desde) < 3 * 60 * 1000)) {
+      return NextResponse.json({ error: 'Este pedido tiene una guía de Skydropx. Para registrar una manual, primero cancela la de Skydropx.' }, { status: 409 })
     }
     const guia = typeof body.numero_guia === 'string' ? body.numero_guia.trim() : ''
     if (!guia || guia.length > 60) return NextResponse.json({ error: 'Número de guía no válido.' }, { status: 400 })

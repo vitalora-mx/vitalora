@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { formatearNumeroPedido } from '@/lib/utils'
 import { TRANSICIONES_MANUALES, ESTADOS_REEMBOLSABLES, ESTADOS_CON_GUIA, PAQUETERIAS, puedeCancelarse } from '@/lib/estados-pedido'
+import EnvioSkydropx, { type PedidoEnvio } from '@/components/admin/EnvioSkydropx'
 
 interface PedidoItem {
   id: number
@@ -41,7 +42,7 @@ interface ResumenSync {
   hayQueAplicar: boolean
 }
 
-interface Pedido {
+interface Pedido extends Omit<PedidoEnvio, 'id' | 'estado' | 'numero_guia' | 'paqueteria'> {
   id: string
   estado: string
   mp_payment_id: string | null
@@ -137,9 +138,9 @@ function botonGuia(pedido: Pedido) {
   const { estado, numero_guia } = pedido
   if (estado === 'entregado')   return { label: '✓ Pedido entregado', color: '#3A8A3A', bg: 'rgba(58,138,58,0.1)',    border: 'rgba(58,138,58,0.3)'    }
   if (estado === 'reembolsado') return { label: '↩ Devolución solicitada', color: '#EF4444', bg: 'rgba(239,68,68,0.08)',  border: 'rgba(239,68,68,0.3)'   }
-  if (estado === 'enviado')     return { label: '🚚 En camino · Reimprimir guía', color: '#6A8A62', bg: 'rgba(106,138,98,0.1)',  border: 'rgba(106,138,98,0.3)'  }
-  if (numero_guia)              return { label: '✓ Guía impresa · Reimprimir', color: '#5B7C99', bg: 'rgba(91,124,153,0.1)',  border: 'rgba(91,124,153,0.3)'  }
-  return                               { label: '🖨 Imprimir guía de envío', color: '#C9A961', bg: 'rgba(201,169,97,0.1)',  border: 'rgba(201,169,97,0.4)'  }
+  if (numero_guia)              return { label: '✎ Editar guía manual', color: '#5B7C99', bg: 'rgba(91,124,153,0.1)',  border: 'rgba(91,124,153,0.3)'  }
+  if (estado === 'enviado')     return { label: '✎ Registrar guía manual', color: '#6A8A62', bg: 'rgba(106,138,98,0.1)',  border: 'rgba(106,138,98,0.3)'  }
+  return                               { label: '✎ Registrar guía manual', color: '#C9A961', bg: 'rgba(201,169,97,0.1)',  border: 'rgba(201,169,97,0.4)'  }
 }
 
 export default function PedidoDetallePage() {
@@ -393,7 +394,9 @@ export default function PedidoDetallePage() {
     return it ? `${it.nombre}${it.variante_nombre ? ` · ${it.variante_nombre}` : ''}` : `Producto ${id}`
   }
   const montoNeto = Math.max(0, pedido.total - montoReembolsado)  // lo que realmente quedo cobrado
-  const comisionMP = montoNeto * 0.0418             // ~4.18% sobre lo que quedo (MP bonifica lo reembolsado)
+  // Transferencia: sin comisión de Mercado Pago
+  const pagoConMP = pedido.metodo_pago !== 'transferencia'
+  const comisionMP = pagoConMP ? montoNeto * 0.0418 : 0  // ~4.18% sobre lo que quedo (MP bonifica lo reembolsado)
   const costoEnvioMP = envioCliente > 0 ? envioCliente * 0.85 : 0  // estimado: MP se queda ~15%
   const ivaEstimado = subtotalProductos * 0.16 / 1.16
   const netoRecibido = montoNeto - comisionMP       // neto real despues de reembolso y comision
@@ -556,13 +559,13 @@ export default function PedidoDetallePage() {
                   { label: 'Total pagado por el cliente', valor: fmt(pedido.total), sub: formaPagoLabel(pedido.forma_pago), color: '#0E0E0E', bold: true },
                   null, // separador
                   { label: 'IVA estimado incluido (16%)', valor: fmt(ivaEstimado), sub: 'Incluido en el precio de venta', color: '#6B6B6B', bold: false },
-                  { label: 'Comisión Mercado Pago (~4.18%)', valor: `−${fmt(comisionMP)}`, sub: hayReembolso ? 'Sobre el monto neto (ya descontado el reembolso)' : 'Sobre el total del pedido', color: '#F59E0B', bold: false },
+                  ...(!pagoConMP ? [] : [{ label: 'Comisión Mercado Pago (~4.18%)', valor: `−${fmt(comisionMP)}`, sub: hayReembolso ? 'Sobre el monto neto (ya descontado el reembolso)' : 'Sobre el total del pedido', color: '#F59E0B', bold: false }]),
                   ...(hayReembolso ? [
                     null, // separador
                     { label: 'Reembolsado al cliente', valor: `−${fmt(montoReembolsado)}`, sub: montoReembolsado >= pedido.total ? 'Reembolso total' : 'Reembolso parcial', color: '#EF4444', bold: false },
                   ] : []),
                   null, // separador
-                  { label: hayReembolso ? 'Neto real recibido' : 'Neto estimado recibido', valor: fmt(netoRecibido), sub: hayReembolso ? 'Después de reembolso y comisión MP' : 'Después de comisión MP', color: '#6A8A62', bold: true },
+                  { label: hayReembolso ? 'Neto real recibido' : 'Neto estimado recibido', valor: fmt(netoRecibido), sub: pagoConMP ? (hayReembolso ? 'Después de reembolso y comisión MP' : 'Después de comisión MP') : (hayReembolso ? 'Después de reembolso · transferencia sin comisión' : 'Transferencia: sin comisión'), color: '#6A8A62', bold: true },
                 ].map((fila, i) => {
                   if (fila === null) return <div key={i} style={{ height: '1px', background: '#F0EDE5', margin: '8px 0' }} />
                   return (
@@ -575,9 +578,11 @@ export default function PedidoDetallePage() {
                     </div>
                   )
                 })}
+                {pagoConMP && (
                 <p style={{ fontSize: '10px', color: '#A8A8A8', marginTop: '12px', paddingTop: '12px', borderTop: '1px solid #F0EDE5' }}>
                   * Comisiones MP estimadas al 4.18%. El costo real puede variar según tu plan de Mercado Pago.
                 </p>
+                )}
               </div>
             </div>
 
@@ -864,12 +869,16 @@ export default function PedidoDetallePage() {
               </div>
             )}
 
-            {/* Guía MP */}
-            <div style={{ background: '#fff', border: '1px solid #E8E4DA', borderRadius: '8px', overflow: 'hidden' }}>
-              <div style={{ padding: '14px 18px', borderBottom: '1px solid #E8E4DA', background: '#FAFAF7' }}>
-                <p style={{ fontSize: '10px', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#6B6B6B', fontWeight: 600 }}>Guía Mercado Envíos</p>
-              </div>
-              <div style={{ padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {/* Envío Skydropx: cotizar, generar guía, imprimir, cancelar */}
+            <EnvioSkydropx pedido={pedido} puedeCancelarGuia={puedeGestionarDinero} onCambio={cargar} mostrarMsg={mostrarMsg} />
+
+            {/* Guía manual (respaldo si Skydropx falla) */}
+            {!pedido.skydropx_shipment_id && (
+            <details open={!!pedido.numero_guia} style={{ background: '#fff', border: '1px solid #E8E4DA', borderRadius: '8px', overflow: 'hidden' }}>
+              <summary style={{ padding: '14px 18px', background: '#FAFAF7', cursor: 'pointer', fontSize: '10px', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#6B6B6B', fontWeight: 600 }}>
+                Guía manual (si Skydropx falla)
+              </summary>
+              <div style={{ padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: '10px', borderTop: '1px solid #E8E4DA' }}>
                 {ESTADOS_CON_GUIA.includes(pedido.estado) ? (
                   <button onClick={imprimirGuia}
                     style={{ width: '100%', padding: '10px 16px', border: `1px solid ${guia.border}`, background: guia.bg, color: guia.color, borderRadius: '6px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', fontWeight: 600, transition: 'all 0.15s' }}>
@@ -915,7 +924,8 @@ export default function PedidoDetallePage() {
                   </div>
                 )}
               </div>
-            </div>
+            </details>
+            )}
 
             {/* Factura: se gestiona en Admin › Facturas (bucket privado) */}
             <div style={{ background: '#fff', border: '1px solid #E8E4DA', borderRadius: '8px', overflow: 'hidden' }}>

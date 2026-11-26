@@ -7,7 +7,7 @@
 // ============================================================
 import { after } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/service'
-import { cotizar, ErrorSkydropx, type Tarifa } from '@/lib/skydropx'
+import { cotizar, entornoSkydropx, ErrorSkydropx, type Tarifa } from '@/lib/skydropx'
 import { calcularPaquete, type ArticuloPaquete, type Paquete } from '@/lib/paquete'
 import { evaluarZonaExtendida, ALERTA_PROPORCION_POR_PRECIO, UMBRAL_PRECIO_ZONA } from '@/lib/zona-extendida'
 import { obtenerOrigen, origenParaCotizar } from '@/lib/envio-origenes'
@@ -104,7 +104,9 @@ export async function revisarZonaEnvio(params: {
     return SIN_VERIFICAR
   }
   const paquete = calcularPaquete(articulos)
+  // Las cotizaciones de sandbox llevan otra clave: nunca se mezclan con las de producción
   const clave = [
+    ...(entornoSkydropx() === 'sandbox' ? ['sandbox'] : []),
     origen.id, destino.cp, normalizar(destino.colonia), normalizar(destino.ciudad), normalizar(destino.estado),
     paquete.empaque, `${paquete.largoCm}x${paquete.anchoCm}x${paquete.altoCm}`, paquete.pesoKg,
   ].join('|')
@@ -114,6 +116,7 @@ export async function revisarZonaEnvio(params: {
     .from('cotizaciones_envio')
     .select('id, skydropx_id, tarifas, sin_cobertura, created_at')
     .eq('clave', clave)
+    .eq('uso', 'checkout')
     .gt('vence_at', new Date().toISOString())
     .order('vence_at', { ascending: false })
     .limit(1)
@@ -185,7 +188,7 @@ function inicioDelDiaMexico(): { iso: string; fecha: string } {
 async function revisarAlertaUmbral() {
   const db = createServiceClient()
   const { iso, fecha } = inicioDelDiaMexico()
-  const base = () => db.from('cotizaciones_envio').select('id', { count: 'exact', head: true }).gte('created_at', iso).eq('sin_cobertura', false)
+  const base = () => db.from('cotizaciones_envio').select('id', { count: 'exact', head: true }).gte('created_at', iso).eq('sin_cobertura', false).eq('uso', 'checkout')
   const [{ count: total }, { count: porPrecio }] = await Promise.all([base(), base().eq('motivo', 'precio')])
   if (!total || total < ALERTA_MINIMO_COTIZACIONES || (porPrecio || 0) / total <= ALERTA_PROPORCION_POR_PRECIO) return
 

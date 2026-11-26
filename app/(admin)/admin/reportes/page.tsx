@@ -18,6 +18,7 @@ interface Pedido {
   costo_envio: number | null
   estado: string
   forma_pago: string | null
+  metodo_pago?: string | null
   nombre: string | null
   apellido: string | null
   email: string | null
@@ -288,7 +289,7 @@ export default function ReportesPage() {
             {[
               { label: 'Total Bruto', valor: fmt(resumen.totalBruto), sub: `${resumen.totalPedidos} pedidos`, color: '#0E0E0E' },
               { label: 'IVA estimado (16%)', valor: fmt(resumen.ivaEstimado), sub: 'Incluido en precio', color: '#0E0E0E' },
-              { label: 'Comisiones MP', valor: `−${fmt(resumen.comisionMP)}`, sub: '~4.18% del total', color: '#F59E0B' },
+              { label: 'Comisiones MP', valor: `−${fmt(resumen.comisionMP)}`, sub: '~4.18% de los pagos con Mercado Pago', color: '#F59E0B' },
               { label: 'Costo de envíos', valor: fmt(resumen.totalEnvio), sub: 'Cobrado al cliente', color: '#0E0E0E' },
               { label: 'Neto estimado', valor: fmt(resumen.neto), sub: 'En tu cuenta MP', color: '#6A8A62' },
             ].map((s, i) => (
@@ -326,7 +327,7 @@ export default function ReportesPage() {
                   {pedidos.map(p => {
                     const expandido = expandidos.has(p.id)
                     const subtotal = p.subtotal ?? (p.total - (p.costo_envio ?? 0))
-                    const comision = p.total * 0.0418
+                    const comision = p.metodo_pago === 'transferencia' ? 0 : p.total * 0.0418
                     const neto = p.total - comision
 
                     return (
@@ -373,7 +374,7 @@ export default function ReportesPage() {
 
         {!cargando && pedidos.length > 0 && (
           <p style={{ fontSize: '11px', color: '#A8A8A8', marginTop: '12px', textAlign: 'right' }}>
-            {pedidos.length} pedidos · Comisiones MP estimadas al 4.18%
+            {pedidos.length} pedidos · Comisiones MP estimadas al 4.18% (transferencias sin comisión)
           </p>
         )}
       </div>

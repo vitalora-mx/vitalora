@@ -40,7 +40,7 @@ const falla = (status: number, error: string): Resultado => ({ ok: false, status
 const CAMPOS_PEDIDO = `
   id, estado, metodo_pago, mp_payment_id, mp_preference_id, nombre, apellido, email,
   total, subtotal, descuento, costo_envio, monto_reembolsado, user_id, descuento_tipo,
-  numero_guia, cancelado_at, reembolso_en_curso_desde,
+  numero_guia, skydropx_shipment_id, cancelado_at, reembolso_en_curso_desde,
   pedido_items ( id, nombre, marca, variante_nombre, precio, cantidad, cantidad_reembolsada ),
   reembolsos ( id, estado, incluye_envio, mp_refund_id )
 `
@@ -322,7 +322,7 @@ export async function cancelarPedido(pedidoId: number, admin: AdminQueOpera, mot
   const pedido = await cargarPedidoReembolso(pedidoId)
   if (!pedido) return falla(404, 'Pedido no encontrado.')
   if (!puedeCancelarse(pedido)) {
-    return falla(400, pedido.numero_guia
+    return falla(400, (pedido.numero_guia || pedido.skydropx_shipment_id)
       ? 'Este pedido ya tiene guía de envío y no puede cancelarse.'
       : `No se puede cancelar un pedido en estado "${pedido.estado}".`)
   }
@@ -410,7 +410,7 @@ export async function cancelarPedido(pedidoId: number, admin: AdminQueOpera, mot
       cancelado_por: admin.email,
       motivo_cancelacion: motivo,
       ...(huboPago ? { monto_reembolsado: r2(Number(pedido.monto_reembolsado || 0) + montoDevuelto) } : {}),
-    }).eq('id', pedido.id).eq('estado', pedido.estado).is('numero_guia', null).select('id')
+    }).eq('id', pedido.id).eq('estado', pedido.estado).is('numero_guia', null).is('skydropx_shipment_id', null).select('id')
 
     if ((cambiado?.length ?? 0) === 0) {
       await db.from('reembolsos').update({ estado: 'fallido', error: 'El pedido cambió mientras se cancelaba', mp_refund_id: refundId }).eq('id', fila.id)
