@@ -2,6 +2,10 @@ import { NextResponse } from 'next/server'
 import { cronAutorizado } from '@/lib/cron-auth'
 import { createServiceClient } from '@/lib/supabase/service'
 import { limpiarPendientesViejos } from '@/lib/abandonados'
+import { sincronizarPendientes } from '@/lib/rastreo'
+
+// Hasta 40 consultas de rastreo, una tras otra (límite de Skydropx: 2 por segundo)
+export const maxDuration = 300
 
 // Limpieza diaria de pedidos sin pago (cron de Vercel, una vez al día):
 //  1. Transferencias sin comprobante válido cuyo plazo venció -> 'cancelado_sin_pago'
@@ -31,7 +35,17 @@ export async function GET(request: Request) {
     // 2) Pedidos de Mercado Pago abandonados
     const { abandonados, conPago } = await limpiarPendientesViejos()
 
+    // 3) Rastreo de guías de Skydropx (respaldo si no llegó el aviso). Un fallo aquí no detiene lo anterior.
+    let rastreo: Awaited<ReturnType<typeof sincronizarPendientes>> | { error: string }
+    try {
+      rastreo = await sincronizarPendientes(40)
+    } catch (e) {
+      console.error('Cron: rastreo de guías falló', e)
+      rastreo = { error: 'rastreo falló' }
+    }
+
     return NextResponse.json({
+      rastreo,
       ok: true,
       cancelados: cancelados?.length ?? 0,
       idsCancelados: (cancelados || []).map(p => p.id),

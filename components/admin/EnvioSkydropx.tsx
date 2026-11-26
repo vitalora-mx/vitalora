@@ -55,6 +55,14 @@ export interface PedidoEnvio {
 }
 
 interface Origen { id: number; alias: string; cp: string; municipio: string; predeterminado: boolean }
+interface EventoRastreoAdmin { id: number; estado: string; descripcion: string | null; ubicacion: string | null; ocurrido_at: string; fuente: string }
+const NOMBRE_RASTREO: Record<string, string> = {
+  created: 'Guía creada', picked_up: 'Recolectado', in_transit: 'En tránsito', last_mile: 'En reparto',
+  delivery_attempt: 'Intento de entrega', exception: 'Excepción', in_return: 'En devolución',
+  canceled: 'Cancelado', error: 'Error', delivered: 'Entregado', delivered_to_branch: 'En sucursal',
+  guia_cancelada: 'Guía cancelada (admin)',
+}
+const FUENTE: Record<string, string> = { webhook: 'aviso', consulta: 'consulta', manual: 'admin' }
 interface Tarifa {
   rateId: string; paqueteria: string; servicio: string; total: number; dias: number | null
   zonaExtendida: boolean; recargoZona: number; soloSucursal: boolean; cupon: unknown
@@ -115,6 +123,28 @@ export default function EnvioSkydropx({ pedido, puedeCancelarGuia, onCambio, mos
 
   // Si cambian los datos de la cotización, la anterior ya no sirve
   function olvidarCotizacion() { setCot(null); setRateId('') }
+
+  // ── Rastreo: historial y "Actualizar rastreo" ──
+  const [eventos, setEventos] = useState<EventoRastreoAdmin[]>([])
+  const [rastreando, setRastreando] = useState(false)
+  const conGuiaLista = guiaSkydropx && !!pedido.numero_guia
+  useEffect(() => {
+    if (!conGuiaLista) return
+    let vigente = true
+    fetch(`/api/admin/envios/rastreo?pedidoId=${pedido.id}`).then(r => r.json())
+      .then(d => { if (vigente && Array.isArray(d)) setEventos(d) }).catch(() => {})
+    return () => { vigente = false }
+  }, [conGuiaLista, pedido.id, pedido.envio_estado])
+
+  async function actualizarRastreo() {
+    setRastreando(true); setError('')
+    try {
+      const r = await llamar('/api/admin/envios/rastreo', { pedidoId: pedido.id })
+      mostrarMsg(r.eventos > 0 ? `Rastreo actualizado: ${r.eventos} evento(s) nuevo(s).` : 'Sin novedades en el rastreo.')
+      await onCambio()
+    } catch (e) { setError((e as Error).message) }
+    setRastreando(false)
+  }
 
   async function llamar(url: string, body: object) {
     const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
@@ -227,7 +257,7 @@ export default function EnvioSkydropx({ pedido, puedeCancelarGuia, onCambio, mos
             <div style={{ fontSize: '12px', color: '#2C2C2C', lineHeight: 1.7 }}>
               <div><strong>{pedido.paqueteria}</strong> · <span style={{ fontFamily: 'monospace' }}>{pedido.numero_guia}</span></div>
               <div style={{ color: '#6B6B6B' }}>Costo según Skydropx: {fmt(pedido.costo_guia)} · Cobro real: {fmt(pedido.cobro_real_guia)}</div>
-              <div style={{ color: '#6B6B6B' }}>Generada: {fecha(pedido.guia_creada_at)}{pedido.envio_estado ? ` · Rastreo: ${pedido.envio_estado}` : ''}</div>
+              <div style={{ color: '#6B6B6B' }}>Generada: {fecha(pedido.guia_creada_at)}{pedido.envio_estado ? ` · Rastreo: ${NOMBRE_RASTREO[pedido.envio_estado] || pedido.envio_estado}` : ''}</div>
               {pedido.guia_url_rastreo && <a href={pedido.guia_url_rastreo} target="_blank" rel="noopener noreferrer" style={{ color: '#C9A961', fontSize: '12px' }}>Ver rastreo en la paquetería ↗</a>}
             </div>
             <button onClick={() => imprimir(false)} disabled={!!pdfEnCurso} style={botonPrincipal(!pdfEnCurso)}>
@@ -236,6 +266,24 @@ export default function EnvioSkydropx({ pedido, puedeCancelarGuia, onCambio, mos
             <button onClick={() => imprimir(true)} disabled={!!pdfEnCurso} style={botonSecundario}>
               {pdfEnCurso === 'guia' ? 'Preparando PDF…' : 'Descargar solo la guía'}
             </button>
+            <button onClick={actualizarRastreo} disabled={rastreando} style={botonSecundario}>
+              {rastreando ? 'Consultando rastreo…' : '↻ Actualizar rastreo'}
+            </button>
+            {eventos.length > 0 && (
+              <div style={{ fontSize: '11px', color: '#2C2C2C', border: '1px solid #E8E4DA', borderRadius: '6px', padding: '8px 10px', background: '#FAFAF7' }}>
+                <div style={{ ...etiqueta, marginBottom: '6px' }}>Historial de rastreo</div>
+                {eventos.map(e => (
+                  <div key={e.id} style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', padding: '3px 0', borderTop: '1px solid #F0EDE5' }}>
+                    <span>
+                      <strong>{NOMBRE_RASTREO[e.estado] || e.estado}</strong>
+                      {e.descripcion ? <span style={{ color: '#6B6B6B' }}> · {e.descripcion}</span> : null}
+                      {e.ubicacion ? <span style={{ color: '#8A8A8A' }}> · {e.ubicacion}</span> : null}
+                    </span>
+                    <span style={{ color: '#8A8A8A', whiteSpace: 'nowrap' }}>{fecha(e.ocurrido_at)} · {FUENTE[e.fuente] || e.fuente}</span>
+                  </div>
+                ))}
+              </div>
+            )}
             {puedeCancelarGuia && !recogido && !['enviado', 'entregado'].includes(pedido.estado) && (
               !mostrarCancelar
                 ? <button onClick={() => setMostrarCancelar(true)} style={{ ...botonSecundario, color: '#A33' }}>Cancelar guía</button>

@@ -79,5 +79,14 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json({ error: 'No se pudo actualizar el pedido' }, { status: 500 })
   }
   if (!data) return NextResponse.json({ error: 'El pedido cambió mientras tanto. Recarga la página.' }, { status: 409 })
+
+  // Fechas de envío y entrega (Vitalora Rewards usa entregado_at); solo si no existían
+  const ahora = new Date().toISOString()
+  if (cambios.estado === 'enviado' || cambios.estado === 'entregado') {
+    await supabaseAdmin.from('pedidos').update({ enviado_at: ahora }).eq('id', id).is('enviado_at', null)
+  }
+  if (cambios.estado === 'entregado') {
+    await supabaseAdmin.from('pedidos').update({ entregado_at: ahora }).eq('id', id).is('entregado_at', null)
+  }
   return NextResponse.json(data)
 }

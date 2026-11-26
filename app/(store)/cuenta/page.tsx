@@ -11,6 +11,7 @@ interface Pedido {
   id: number; estado: string; total: number; subtotal: number; costo_envio: number
   nombre: string; apellido: string; calle: string; numero: string; ciudad: string
   estado_dir: string; cp: string; numero_guia: string | null; tiene_factura: boolean
+  paqueteria?: string | null; guia_url_rastreo?: string | null; envio_estado?: string | null; entregado_at?: string | null
   created_at: string; pedido_items: { producto_id: number; nombre: string; marca: string; precio: number; cantidad: number }[]
 }
 
@@ -21,6 +22,23 @@ interface Direccion {
   colonia: string; ciudad: string; estado: string; cp: string; referencia: string; es_principal: boolean
 }
 
+// Estados en los que se puede reseñar lo comprado (igual que /api/resenas)
+const ESTADOS_RESENA = ['pagado', 'preparando', 'enviado', 'entregado', 'reembolso_parcial']
+
+// Texto del envío para el cliente
+function estadoEnvio(p: { estado: string; envio_estado?: string | null; entregado_at?: string | null; numero_guia: string | null }): string | null {
+  if (p.estado === 'entregado' || p.envio_estado === 'delivered') {
+    return p.entregado_at
+      ? 'Entregado el ' + new Date(p.entregado_at).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', timeZone: 'America/Mexico_City' }).replace('.', '')
+      : 'Entregado'
+  }
+  if (p.envio_estado === 'delivered_to_branch') return 'En sucursal, listo para recoger'
+  if (p.envio_estado === 'delivery_attempt') return 'Intento de entrega'
+  if (p.estado === 'enviado') return 'En camino'
+  if (p.numero_guia) return 'Guía generada'
+  return null
+}
+
 const emptyDir = { nombre_etiqueta: 'Casa', calle: '', numero: '', interior: '', colonia: '', ciudad: '', estado: '', cp: '', referencia: '', es_principal: false }
 
 export default function CuentaPage() {
@@ -28,7 +46,9 @@ export default function CuentaPage() {
   const { user, perfil, setPerfil, cerrarSesion, isLoggedIn } = useAuthStore()
   const [mounted, setMounted] = useState(false)
   const [esInfluencerCuenta, setEsInfluencerCuenta] = useState(false)
-  const [tab, setTab] = useState('perfil')
+  // ?tab=pedidos abre "Mis pedidos" (enlace del correo de entrega para dejar reseña)
+  const [tab, setTab] = useState(() =>
+    typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('tab') === 'pedidos' ? 'pedidos' : 'perfil')
   const [pedidos, setPedidos] = useState<Pedido[]>([])
   const [resenando, setResenando] = useState<{ id: number; nombre: string } | null>(null)
   const [resenaOk, setResenaOk] = useState(false)
@@ -423,13 +443,21 @@ export default function CuentaPage() {
                         <span style={{ color: '#333' }}>{item.marca} — {item.nombre} <span style={{ color: '#999' }}>x{item.cantidad}</span></span>
                         <span style={{ color: '#333', fontWeight: 500 }}>${(item.precio * item.cantidad).toLocaleString()}</span>
                       
-                        {p.estado === 'pagado' && item.producto_id && (
+                        {ESTADOS_RESENA.includes(p.estado) && item.producto_id && (
                           <button onClick={() => { setResenando({ id: item.producto_id, nombre: item.marca + ' - ' + item.nombre }); setResenaOk(false) }} style={{ display: 'block', marginTop: '6px', padding: '4px 12px', background: 'none', border: '1px solid var(--gold)', borderRadius: '100px', fontSize: '11px', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--gold)', cursor: 'pointer', fontFamily: 'inherit' }}>Escribir resena</button>
                         )}
                       </div>
                     ))}
                     <div style={{ display: 'flex', gap: '16px', marginTop: '16px', paddingTop: '16px', borderTop: '1px solid #EEE' }}>
-                      {p.numero_guia && <div style={{ fontSize: '12px', color: '#6B8F6B' }}>📦 Guía: <strong>{p.numero_guia}</strong></div>}
+                      {p.numero_guia && (
+                        <div style={{ fontSize: '12px', color: '#6B8F6B', lineHeight: 1.6 }}>
+                          📦 {p.paqueteria ? <>{p.paqueteria} · </> : null}Guía: <strong>{p.numero_guia}</strong>
+                          {estadoEnvio(p) && <> · <span style={{ fontWeight: 600 }}>{estadoEnvio(p)}</span></>}
+                          {p.guia_url_rastreo && /^https:\/\//.test(p.guia_url_rastreo) && (
+                            <> · <a href={p.guia_url_rastreo} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--gold)' }}>Rastrear</a></>
+                          )}
+                        </div>
+                      )}
                       {p.tiene_factura && (
                         <>
                           <button onClick={() => descargarFactura(p.id, 'pdf')} style={{ fontSize: '12px', color: 'var(--gold)', background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontFamily: 'inherit' }}>📄 Factura PDF</button>

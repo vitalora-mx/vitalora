@@ -434,6 +434,8 @@ export async function crearEnvio(params: {
       rate_id: params.rateId,
       unique_shipment: true,      // reintento con la misma tarifa = misma guía, nunca dos
       printing_format: 'standard', // hoja carta
+      // Solo sandbox: Skydropx simula el rastreo (recolectado → en tránsito → entregado), un paso por minuto
+      ...(entornoSkydropx() === 'sandbox' ? { auto_advance: true } : {}),
       address_from: dir(params.remitente, 30),
       address_to: dir(params.destinatario, 40),
       packages: [{
@@ -504,4 +506,41 @@ export async function descargarEtiqueta(url: string, timeoutMs = 15000): Promise
   } finally {
     clearTimeout(reloj)
   }
+}
+
+// ── Rastreo ──
+export interface EventoRastreo {
+  estado: string
+  descripcion: string | null
+  ubicacion: string | null
+  fecha: string | null // ISO
+}
+
+// Eventos de la paquetería para una guía. Devuelve [] si todavía no hay eventos (404).
+export async function consultarRastreo(numeroGuia: string, paqueteria: string, timeoutMs = 10000): Promise<EventoRastreo[]> {
+  const q = new URLSearchParams({ tracking_number: numeroGuia, carrier_name: (paqueteria || '').toLowerCase() })
+  const r = await api('GET', '/api/v1/shipments/tracking?' + q.toString(), null, Date.now() + timeoutMs)
+  if (r.status === 404) return []
+  if (r.status >= 300) throw new ErrorSkydropx('http', 'No se pudo consultar el rastreo.', r.status, r.json)
+  // La forma exacta no está documentada: se buscan los eventos donde vengan
+  const j = r.json
+  const lista: any[] =
+    Array.isArray(j) ? j
+    : Array.isArray(j?.data) ? j.data
+    : Array.isArray(j?.data?.events) ? j.data.events
+    : Array.isArray(j?.data?.attributes?.events) ? j.data.attributes.events
+    : Array.isArray(j?.events) ? j.events
+    : Array.isArray(j?.tracking_events) ? j.tracking_events
+    : []
+  return lista.map(e => {
+    const a = e?.attributes ?? e
+    const fecha = a?.date || a?.datetime || a?.created_at || null
+    const f = fecha ? new Date(fecha) : null
+    return {
+      estado: String(a?.status || a?.code || '').toLowerCase(),
+      descripcion: (a?.event_description || a?.description) ? String(a.event_description || a.description).slice(0, 300) : null,
+      ubicacion: a?.location ? String(typeof a.location === 'object' ? JSON.stringify(a.location) : a.location).slice(0, 200) : null,
+      fecha: f && !isNaN(f.getTime()) ? f.toISOString() : null,
+    }
+  }).filter(e => e.estado)
 }

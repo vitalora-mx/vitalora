@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
     .from('pedidos')
     .select(`
       id, estado, total, subtotal, descuento, costo_envio, created_at,
-      nombre, apellido, calle, numero, ciudad, estado_dir, cp, numero_guia, paqueteria,
+      nombre, apellido, calle, numero, ciudad, estado_dir, cp, numero_guia, paqueteria, guia_url_rastreo, envio_estado, enviado_at, entregado_at,
       factura_pdf_path, factura_xml_path, factura_enviada_at,
       pedido_items (producto_id, nombre, marca, precio, cantidad, variante_nombre)
     `)

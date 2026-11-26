@@ -76,7 +76,8 @@ export async function POST(req: NextRequest) {
       .from('pedidos')
       .select('id, estado, pedido_items(producto_id)')
       .eq('user_id', userId)
-      .eq('estado', 'pagado')
+      // Cualquier pedido pagado, en camino o entregado (antes solo "pagado": al enviarse ya no se podía reseñar)
+      .in('estado', ['pagado', 'preparando', 'enviado', 'entregado', 'reembolso_parcial'])
 
     let pedidoCompra: number | null = null
     if (pedidos) {
