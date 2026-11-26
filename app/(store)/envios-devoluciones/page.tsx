@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { useIsMobile } from '@/hooks/useIsMobile'
 
 const secciones = [
-  { titulo: '1. Cobertura de envíos', contenido: 'Realizamos envíos a cualquier dirección dentro de la República Mexicana. No realizamos envíos internacionales.' },
+  { titulo: '1. Cobertura de envíos', contenido: 'Realizamos envíos a cualquier dirección dentro de la República Mexicana a través de paqueterías nacionales (Estafeta, DHL, FedEx o Paquetexpress), según la zona de entrega. No realizamos envíos internacionales.' },
   { titulo: '2. Costos de envío', contenido: 'Compras menores a $1,000 MXN: costo de envío de $99 MXN. Compras iguales o mayores a $1,000 MXN: envío gratuito a cualquier parte de México.' },
   { titulo: 'Envíos a zonas extendidas', contenido: 'Algunas localidades de difícil acceso o zonas extendidas pueden tener un costo de envío adicional que no se refleja en el total de tu compra. Si tu domicilio se encuentra en una de estas zonas, nos pondremos en contacto contigo antes de procesar tu pedido para informarte.' },
   { titulo: '3. Tiempos de entrega', contenido: 'El tiempo estimado de entrega es de 3 a 7 días hábiles a partir de la confirmación del pago. Los tiempos pueden variar en zonas rurales o extendidas. Los días hábiles no incluyen sábados, domingos ni días festivos.' },

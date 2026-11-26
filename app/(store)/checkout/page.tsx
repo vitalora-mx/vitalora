@@ -658,7 +658,7 @@ export default function CheckoutPage() {
                             <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--black)' }}>Transferencia bancaria</div>
                             <img src="/images/pagos/spei.webp" alt="SPEI" style={{ height: '32px', width: 'auto', marginLeft: 'auto' }} />
                           </div>
-                          <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Transfiere por SPEI y sube tu comprobante. Confirmacion manual.</div>
+                          <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Transfiere por SPEI y sube tu comprobante. Confirmación manual.</div>
                         </div>
                       </div>
                     </div>
