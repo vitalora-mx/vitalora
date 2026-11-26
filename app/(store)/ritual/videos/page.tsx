@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { createClient } from '@supabase/supabase-js'
 import RitualVideosCliente from './RitualVideosCliente'
 import { videoVisible } from '@/lib/tienda'
+import { OG_IMAGEN_DEFECTO } from '@/lib/compartir'
 
 export const revalidate = 3600
 
@@ -22,6 +23,7 @@ export const metadata: Metadata = {
     description:
       'Videos de skincare coreano y bienestar organizados por tema.',
     url: 'https://vitalora.com.mx/ritual/videos',
+    images: [OG_IMAGEN_DEFECTO],
   },
   robots: { index: true, follow: true },
 }

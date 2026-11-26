@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { createClient } from '@supabase/supabase-js'
 import SuplementosCliente from './SuplementosCliente'
+import { OG_IMAGEN_DEFECTO } from '@/lib/compartir'
 
 export const revalidate = 3600
 
@@ -21,6 +22,7 @@ export const metadata: Metadata = {
     description:
       'Suplementos alimenticios de alta pureza con envío a todo México.',
     url: 'https://vitalora.com.mx/suplementos',
+    images: [OG_IMAGEN_DEFECTO],
   },
   robots: { index: true, follow: true },
 }

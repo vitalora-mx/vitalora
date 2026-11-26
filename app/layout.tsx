@@ -3,14 +3,12 @@ import { Cormorant_Garamond, Italiana } from 'next/font/google'
 import Script from 'next/script'
 import './globals.css'
 import { SUPLEMENTOS_ACTIVO } from '@/lib/tienda'
+import { OG_IMAGEN_DEFECTO } from '@/lib/compartir'
 
 // Textos que cambian según el interruptor de suplementos (lib/tienda.ts)
 const DESCRIPCION_SITIO = SUPLEMENTOS_ACTIVO
   ? 'Cosméticos coreanos auténticos y suplementos de alta pureza para México. Envío nacional, productos originales importados de Corea.'
   : 'Cosméticos coreanos auténticos para México. Envío nacional, productos originales importados de Corea.'
-const DESCRIPCION_CORTA = SUPLEMENTOS_ACTIVO
-  ? 'Cosméticos coreanos auténticos y suplementos de alta pureza para México.'
-  : 'Cosméticos coreanos auténticos para México.'
 
 const cormorant = Cormorant_Garamond({
   subsets: ['latin'],
@@ -46,29 +44,20 @@ export const metadata: Metadata = {
   creator: 'Vitalora',
   publisher: 'Vitalora',
 
+  // Base para todas las páginas. Sin url/title/description a propósito: las
+  // páginas que no definen los suyos no deben verse como la de inicio al
+  // compartirse (las redes usan entonces el <title> y la description de la página).
+  // Ojo: una página que define su propio openGraph reemplaza este completo,
+  // así que debe incluir images (OG_IMAGEN_DEFECTO o la suya).
   openGraph: {
     type: 'website',
     locale: 'es_MX',
-    url: 'https://vitalora.com.mx',
     siteName: 'Vitalora',
-    title: 'Vitalora — K-Beauty & Bienestar Auténtico',
-    description:
-      DESCRIPCION_CORTA,
-    images: [
-      {
-        url: '/images/logo/logo-footer.png',
-        width: 1200,
-        height: 630,
-        alt: 'Vitalora',
-      },
-    ],
+    images: [OG_IMAGEN_DEFECTO],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Vitalora — K-Beauty & Bienestar Auténtico',
-    description:
-      DESCRIPCION_CORTA,
-    images: ['/images/logo/logo-footer.png'],
+    images: [OG_IMAGEN_DEFECTO],
   },
   robots: {
     index: true,

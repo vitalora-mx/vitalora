@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { Suspense } from 'react'
 import { createClient } from '@supabase/supabase-js'
 import CosmeticosCliente from './CosmeticosCliente'
+import { OG_IMAGEN_DEFECTO } from '@/lib/compartir'
 
 export const revalidate = 3600
 
@@ -22,6 +23,7 @@ export const metadata: Metadata = {
     description:
       'Cosméticos coreanos originales con envío a todo México. Limpiadores, sérums, protectores solares y más.',
     url: 'https://vitalora.com.mx/cosmeticos',
+    images: [OG_IMAGEN_DEFECTO],
   },
   robots: { index: true, follow: true },
 }

@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { createClient } from '@supabase/supabase-js'
 import { construirProductSchema } from '@/lib/structured-data'
+import { ogImagenProducto } from '@/lib/compartir'
 import ProductoSuplementoCliente from './ProductoSuplementoCliente'
 
 export const revalidate = 3600
@@ -86,6 +87,7 @@ export async function generateMetadata(
     .sort((a: any, b: any) => a.posicion - b.posicion)
     .map((i: any) => i.url)
     .filter(Boolean)
+  const ogImagen = ogImagenProducto(p.slug, nombreLimpio, imagenes[0])
 
   return {
     title: { absolute: title },
@@ -97,13 +99,13 @@ export async function generateMetadata(
       title,
       description,
       url,
-      images: imagenes.length > 0 ? imagenes.slice(0, 1) : undefined,
+      images: [ogImagen],
     },
     twitter: {
       card: 'summary_large_image',
       title,
       description,
-      images: imagenes.length > 0 ? imagenes.slice(0, 1) : undefined,
+      images: [ogImagen],
     },
     robots: { index: true, follow: true },
     other: {

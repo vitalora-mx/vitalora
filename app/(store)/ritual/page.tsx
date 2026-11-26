@@ -6,6 +6,7 @@ import RitualVideos from '@/components/store/ritual/RitualVideos'
 import Footer from '@/components/store/Footer'
 import LoraChat from '@/components/store/LoraChat'
 import { SUPLEMENTOS_ACTIVO, FILTRO_SIN_SUPLEMENTOS } from '@/lib/tienda'
+import { OG_IMAGEN_DEFECTO } from '@/lib/compartir'
 
 export const revalidate = 3600
 
@@ -26,6 +27,7 @@ export const metadata: Metadata = {
     description:
       'Videos educativos de skincare coreano y bienestar, con los productos de cada rutina.',
     url: 'https://vitalora.com.mx/ritual',
+    images: [OG_IMAGEN_DEFECTO],
   },
   robots: { index: true, follow: true },
 }
