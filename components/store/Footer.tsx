@@ -173,7 +173,7 @@ export default function Footer() {
           flexDirection: isMobile ? 'column' : 'row',
           textAlign: isMobile ? 'center' : 'left',
         }}>
-          <span>© 2026 Vitalora · VANGUARDIA IMPORTACIONES & LOGÍSTICA DE MÉXICO S.A. DE C.V. · Todos los derechos reservados.</span>
+          <span>© 2026 Vitalora · VANGUARDIA IMPORTACIONES Y LOGÍSTICA DE MÉXICO S.A. DE C.V. · Todos los derechos reservados.</span>
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'center' }}>
             <MetodosPago variante="oscuro" titulo="" />
           </div>

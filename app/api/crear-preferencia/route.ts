@@ -87,7 +87,8 @@ export async function POST(req: NextRequest) {
         back_urls: {
           success: 'https://vitalora.com.mx/gracias',
           failure: 'https://vitalora.com.mx/checkout',
-          pending: 'https://vitalora.com.mx/checkout',
+          // Ficha OXXO o pago en revisión: aviso en lugar de regresar al checkout
+          pending: 'https://vitalora.com.mx/pago-pendiente',
         },
         auto_return: 'approved',
         statement_descriptor: 'VITALORA',

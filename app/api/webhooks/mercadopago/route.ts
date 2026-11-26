@@ -297,7 +297,7 @@ async function enviarEmails(pedido: any) {
   <div style="padding:40px 32px;text-align:center;border-bottom:1px solid #E8E0D5;">
     <div style="width:60px;height:60px;border-radius:50%;background:#F0F7F0;border:2px solid #6B8F6B;display:inline-flex;align-items:center;justify-content:center;font-size:24px;margin-bottom:20px;">&#10003;</div>
     <h2 style="font-size:24px;color:#0E0E0E;margin:0 0 8px;font-weight:400;">&iexcl;Pago confirmado, ${pedido.nombre}!</h2>
-    <p style="font-size:14px;color:#888;margin:0;">Pedido ${formatearNumeroPedido(pedido.id)} &mdash; Tu pedido esta siendo preparado.</p>
+    <p style="font-size:14px;color:#888;margin:0;">Pedido ${formatearNumeroPedido(pedido.id)} &mdash; Tu pedido est&aacute; siendo preparado.</p>
   </div>
   <div style="padding:32px;">
     <h3 style="font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#C9A961;margin:0 0 20px;">Detalle del pedido</h3>
@@ -312,22 +312,22 @@ async function enviarEmails(pedido: any) {
     <table style="width:100%;margin-top:20px;padding-top:16px;border-top:1px solid #E8E0D5;">
       <tr><td style="font-size:13px;color:#888;padding:4px 0;">Subtotal</td><td style="font-size:13px;color:#333;text-align:right;padding:4px 0;">$${subtotal.toLocaleString()} MXN</td></tr>
       ${filaDescuentoHTML(pedido, 'font-size:13px;padding:4px 0;', 'font-size:13px;text-align:right;padding:4px 0;')}
-      <tr><td style="font-size:13px;color:${costoEnvio === 0 ? '#6B8F6B' : '#888'};padding:4px 0;">Envio</td><td style="font-size:13px;color:${costoEnvio === 0 ? '#6B8F6B' : '#333'};text-align:right;padding:4px 0;">${costoEnvio === 0 ? 'Gratis' : '$' + costoEnvio + ' MXN'}</td></tr>
+      <tr><td style="font-size:13px;color:${costoEnvio === 0 ? '#6B8F6B' : '#888'};padding:4px 0;">Env&iacute;o</td><td style="font-size:13px;color:${costoEnvio === 0 ? '#6B8F6B' : '#333'};text-align:right;padding:4px 0;">${costoEnvio === 0 ? 'Gratis' : '$' + costoEnvio + ' MXN'}</td></tr>
       <tr><td colspan="2" style="padding-top:12px;border-top:2px solid #0E0E0E;"></td></tr>
       <tr><td style="font-size:18px;font-weight:600;color:#0E0E0E;padding:4px 0;">Total</td><td style="font-size:18px;font-weight:600;color:#0E0E0E;text-align:right;padding:4px 0;">$${total.toLocaleString()} MXN</td></tr>
     </table>
   </div>
   <div style="padding:24px 32px;background:#FAFAF5;border-top:1px solid #E8E0D5;">
-    <h3 style="font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#C9A961;margin:0 0 12px;">Direccion de envio</h3>
+    <h3 style="font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#C9A961;margin:0 0 12px;">Direcci&oacute;n de env&iacute;o</h3>
     <p style="font-size:14px;color:#333;line-height:1.7;margin:0;">${pedido.nombre} ${pedido.apellido}<br>${pedido.calle} ${pedido.numero}${pedido.interior ? ', Int. ' + pedido.interior : ''}<br>${pedido.colonia || ''}<br>${pedido.ciudad || ''}, ${pedido.estado_dir || ''} CP ${pedido.cp}</p>
   </div>
   <div style="padding:32px;text-align:center;">
-    <p style="font-size:13px;color:#888;">Te enviaremos tu numero de guia cuando el pedido sea enviado.</p>
+    <p style="font-size:13px;color:#888;">Te enviaremos tu n&uacute;mero de gu&iacute;a cuando el pedido sea enviado.</p>
   </div>
   ${avisoCancelacionHTML()}
   <div style="background:#0E0E0E;padding:32px;text-align:center;">
     <div style="margin-bottom:16px;"><img src="https://vitalora.com.mx/images/logo/logo-footer.png" alt="Vitalora" width="110" style="display:block;margin:0 auto;max-width:110px;height:auto;opacity:0.8;" /></div>
-    <p style="font-size:12px;color:rgba(245,240,232,0.6);margin:0 0 8px;">&iquest;Tienes dudas? Escribenos a</p>
+    <p style="font-size:12px;color:rgba(245,240,232,0.6);margin:0 0 8px;">&iquest;Tienes dudas? Escr&iacute;benos a</p>
     <a href="mailto:hola@vitalora.com.mx" style="font-size:13px;color:#C9A961;text-decoration:none;">hola@vitalora.com.mx</a>
   </div>
 </div></body></html>`

@@ -75,7 +75,8 @@ export function construirProductSchema(p: ProductoSchema): Record<string, unknow
       returnPolicyCategory: 'https://schema.org/MerchantReturnFiniteReturnWindow',
       merchantReturnDays: 30,
       returnMethod: 'https://schema.org/ReturnByMail',
-      returnFees: 'https://schema.org/FreeReturn',
+      // Por arrepentimiento, el envío de regreso lo paga el comprador (política de devoluciones)
+      returnFees: 'https://schema.org/ReturnFeesCustomerResponsibility',
     },
   }
 

@@ -30,7 +30,7 @@ const secciones: Seccion[] = [
       { pregunta: '¿Sus productos son auténticos?', respuesta: SUPLEMENTOS_ACTIVO
         ? 'Sí, el 100% de nuestros productos son auténticos e importados directamente de Corea del Sur (cosméticos) y de fabricantes certificados (suplementos). Cada producto cuenta con certificados de autenticidad y verificación de lote.'
         : 'Sí, el 100% de nuestros productos son auténticos e importados directamente de Corea del Sur. Cada producto cuenta con certificados de autenticidad y verificación de lote.' },
-      { pregunta: '¿Cómo puedo contactarlos?', respuesta: 'Puedes contactarnos por correo electrónico a hola@vitalora.com.mx o a través del formulario de ayuda en tu cuenta. Nuestro horario de atención es de lunes a viernes de 9:00 AM a 6:00 PM.' },
+      { pregunta: '¿Cómo puedo contactarlos?', respuesta: 'Puedes escribirnos a hola@vitalora.com.mx, por WhatsApp al 462 234 1282, desde vitalora.com.mx/contacto o desde el formulario de ayuda en tu cuenta. Nuestro horario de atención es de lunes a viernes de 9:00 AM a 6:00 PM.' },
     ]
   },
   {
@@ -49,9 +49,9 @@ const secciones: Seccion[] = [
     titulo: 'Compras y Pagos',
     icono: '💳',
     preguntas: [
-      { pregunta: '¿Qué métodos de pago aceptan?', respuesta: 'Aceptamos dos formas de pago: Mercado Pago (tarjeta de crédito o débito, pago en efectivo en OXXO y saldo de Mercado Pago) y transferencia bancaria (SPEI). Si pagas por transferencia, tu pedido se confirma cuando validamos tu comprobante.' },
+      { pregunta: '¿Qué métodos de pago aceptan?', respuesta: 'Aceptamos dos formas de pago: Mercado Pago (tarjeta de crédito o débito, pago en efectivo en OXXO y saldo de Mercado Pago) y transferencia bancaria (SPEI). Si pagas por transferencia, tienes 2 horas para transferir y subir tu comprobante; si no, el pedido se cancela. Tu pedido se confirma cuando validamos tu comprobante.' },
       { pregunta: '¿Es seguro comprar en Vitalora?', respuesta: 'Sí, tu información está protegida. Los pagos son procesados por Mercado Pago, una de las plataformas de pago más seguras de Latinoamérica. Nunca vemos ni almacenamos los datos de tu tarjeta.' },
-      { pregunta: '¿Puedo pagar en OXXO?', respuesta: 'Sí, al momento de pagar selecciona la opción de pago en OXXO a través de Mercado Pago. Recibirás un código de referencia para realizar tu pago en cualquier tienda OXXO. El pago puede tardar hasta 24 horas en reflejarse.' },
+      { pregunta: '¿Puedo pagar en OXXO?', respuesta: 'Sí, al momento de pagar selecciona la opción de pago en OXXO a través de Mercado Pago. Recibirás un código de referencia para realizar tu pago en cualquier tienda OXXO. El pago puede tardar hasta 24 horas en reflejarse; tu pedido se confirma cuando Mercado Pago lo acredita y en ese momento te llega el correo de confirmación.' },
       { pregunta: '¿Puedo pagar a meses sin intereses?', respuesta: 'Las opciones de meses sin intereses dependen de tu tarjeta y banco emisor. Al momento del checkout en Mercado Pago, podrás ver las opciones disponibles para tu tarjeta.' },
       { pregunta: '¿Necesito crear una cuenta para comprar?', respuesta: 'No es obligatorio, puedes comprar como visitante. Sin embargo, al crear una cuenta obtienes: 5% de descuento en tu primera compra, historial de pedidos, direcciones guardadas para futuras compras y acceso a promociones exclusivas.' },
       { pregunta: '¿Emiten factura?', respuesta: 'Sí, emitimos factura electrónica (CFDI). Puedes solicitarla desde tu cuenta en la sección de "Facturación", donde podrás registrar tus datos fiscales (RFC, razón social, régimen fiscal); si compraste como invitado, solicítala en vitalora.com.mx/facturacion. La factura debe solicitarse dentro del mismo mes calendario de tu compra.' },
@@ -61,12 +61,12 @@ const secciones: Seccion[] = [
     titulo: 'Envíos',
     icono: '🚚',
     preguntas: [
-      { pregunta: '¿Cuánto cuesta el envío?', respuesta: 'El costo de envío es de $99 MXN para compras menores a $1,000 MXN. En compras mayores a $1,000 MXN el envío es completamente gratis a cualquier parte de México.' },
+      { pregunta: '¿Cuánto cuesta el envío?', respuesta: 'El costo de envío es de $99 MXN para compras menores a $1,000 MXN. En compras iguales o mayores a $1,000 MXN el envío es completamente gratis a cualquier parte de México.' },
       { pregunta: '¿Cuánto tarda en llegar mi pedido?', respuesta: 'El tiempo estimado de entrega es de 3 a 7 días hábiles a cualquier parte de la República Mexicana, dependiendo de tu ubicación.' },
       { pregunta: '¿Cómo puedo rastrear mi pedido?', respuesta: 'Una vez que tu pedido sea enviado, recibirás un correo electrónico con tu número de guía de rastreo. También puedes consultar el estado de tu pedido y número de guía en la sección "Mis Pedidos" de tu cuenta.' },
       { pregunta: '¿Qué paquetería utilizan?', respuesta: 'Enviamos con paqueterías nacionales (Estafeta, DHL, FedEx o Paquetexpress), según la zona de entrega. Cuando tu pedido salga, te enviaremos por correo la paquetería y el número de guía para rastrearlo.' },
       { pregunta: '¿Realizan envíos a toda la República Mexicana?', respuesta: 'Sí, realizamos envíos a cualquier dirección dentro de la República Mexicana, incluyendo zonas rurales y extendidas (los tiempos de entrega pueden variar en estas zonas).' },
-      { pregunta: '¿Puedo cambiar la dirección de envío después de realizar mi pedido?', respuesta: 'Si tu pedido aún no ha sido enviado, contáctanos inmediatamente a hola@vitalora.com.mx para cancelar tu compra. Una vez se hace el pago, no es posible modificar la dirección. Si no recibimos tu solicitud de cancelación y el producto ya fue entregado a la paquetería, los costos de envío no serán reembolsables. Si el producto no puede ser entregado se hará un reembolso hasta que la paquetería autorice la devolución.' },
+      { pregunta: '¿Puedo cambiar la dirección de envío después de realizar mi pedido?', respuesta: 'No es posible modificar la dirección una vez generada la guía. Antes de eso, escríbenos a hola@vitalora.com.mx con tu número de pedido y la dirección correcta. Si necesitas cancelar tu pedido, escríbenos antes de que sea enviado; si el producto ya fue entregado a la paquetería, los costos de envío no serán reembolsables. Si el producto no puede ser entregado, el reembolso se hará cuando la paquetería autorice la devolución.' },
       { pregunta: '¿Mi paquete aparece como entregado por la paquetería, pero yo no he recibido nada?', respuesta: 'Si tu pedido aparece como entregado, te recomendamos primero verificar si alguna otra persona lo recibió por ti, por ejemplo: un familiar, vecino, vigilante o recepción del domicilio. Si nadie lo recibió, deberás comunicarte directamente con la paquetería para levantar un reporte o reclamo y esperar la resolución correspondiente. En algunos casos, la paquetería puede ofrecer un reembolso por la pérdida del paquete. Lamentablemente, no podemos realizar reembolsos cuando la paquetería marca el pedido como entregado correctamente.' },
     ]
   },
@@ -74,11 +74,11 @@ const secciones: Seccion[] = [
     titulo: 'Devoluciones y Reembolsos',
     icono: '↩',
     preguntas: [
-      { pregunta: '¿Cuál es su política de devoluciones?', respuesta: 'Aceptamos devoluciones dentro de los 30 días posteriores a la entrega. El producto debe estar sin abrir, en su empaque original y en perfectas condiciones. Contáctanos a hola@vitalora.com.mx para iniciar el proceso.' },
+      { pregunta: '¿Cuál es su política de devoluciones?', respuesta: 'Aceptamos devoluciones dentro de los 30 días naturales posteriores a la entrega. El producto debe estar sin abrir, en su empaque original y en perfectas condiciones. Contáctanos a hola@vitalora.com.mx para iniciar el proceso.' },
       { pregunta: '¿Qué pasa si mi paquete no llega o se pierde?', respuesta: 'Si tu paquete no es entregado o se pierde durante el envío, la devolución de tu dinero es completamente gratuita. Nos hacemos cargo de todo el proceso con la paquetería.' },
       { pregunta: '¿Qué pasa si me arrepiento de mi compra?', respuesta: 'Si deseas devolver un producto por arrepentimiento, el costo del envío de retorno corre por tu cuenta. El reembolso se procesará una vez que recibamos el producto en buen estado y sin abrir.' },
       { pregunta: '¿El costo de envío es reembolsable?', respuesta: 'El costo de envío no es reembolsable si la paquetería no puede entregar el paquete por datos incorrectos o incompletos proporcionados por el comprador.' },
-      { pregunta: '¿Cuánto tiempo tarda el reembolso?', respuesta: 'Una vez aprobada la devolución, el reembolso se procesa en un plazo de 5 a 10 días hábiles, dependiendo de tu método de pago y banco.' },
+      { pregunta: '¿Cuánto tiempo tarda el reembolso?', respuesta: 'Una vez aprobada la devolución, el reembolso se procesa en un plazo de 5 a 10 días hábiles, dependiendo de tu método de pago y banco. Si pagaste por transferencia, te lo depositamos por transferencia a la cuenta (CLABE) que nos indiques.' },
       { pregunta: '¿Qué hago si recibo un producto dañado o incorrecto?', respuesta: 'Contáctanos inmediatamente a hola@vitalora.com.mx con fotos del producto y tu número de pedido. Te enviaremos un reemplazo sin costo adicional o procesaremos tu reembolso completo.' },
     ]
   },

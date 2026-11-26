@@ -4,8 +4,13 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useCartStore } from '@/store/cartStore'
 
+// Igual que el carrito lateral (CarritoDrawer); el monto real lo calcula el servidor (lib/envio.ts)
+const ENVIO_GRATIS = 1000
+const COSTO_ENVIO = 99
+
 export default function CarritoPage() {
   const { items, total, quitarItem, actualizarCantidad, vaciarCarrito } = useCartStore()
+  const costoEnvio = total() >= ENVIO_GRATIS ? 0 : COSTO_ENVIO
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => { setMounted(true) }, [])
@@ -65,12 +70,12 @@ export default function CarritoPage() {
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: 'var(--text-muted)', marginBottom: '12px' }}>
               <span>Subtotal</span><span>${total().toLocaleString()} MXN</span>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: total() >= 1000 ? '#6B8F6B' : 'var(--text-muted)', marginBottom: '24px' }}>
-              <span>Envío</span><span>{total() >= 1000 ? 'Gratis' : 'Por calcular'}</span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: costoEnvio === 0 ? '#6B8F6B' : 'var(--text-muted)', marginBottom: '24px' }}>
+              <span>Envío</span><span>{costoEnvio === 0 ? 'Gratis' : `$${COSTO_ENVIO} MXN`}</span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '16px', borderTop: '1px solid var(--line)', marginBottom: '24px' }}>
               <span style={{ fontFamily: 'var(--font-cormorant), serif', fontSize: '20px', fontWeight: 600 }}>Total</span>
-              <span style={{ fontFamily: 'var(--font-cormorant), serif', fontSize: '22px', fontWeight: 600 }}>${total().toLocaleString()} MXN</span>
+              <span style={{ fontFamily: 'var(--font-cormorant), serif', fontSize: '22px', fontWeight: 600 }}>${(total() + costoEnvio).toLocaleString()} MXN</span>
             </div>
             <Link href="/checkout" style={{ display: 'block', padding: '16px', background: 'var(--black)', color: 'var(--bg-cream)', textAlign: 'center', textDecoration: 'none', fontSize: '12px', letterSpacing: '0.2em', textTransform: 'uppercase', borderRadius: '2px', marginBottom: '12px' }}>
               Proceder al pago →

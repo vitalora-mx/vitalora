@@ -36,7 +36,7 @@ export default function CosmeticosHeader() {
           <span style={{ width: '100%', textAlign: 'center' }}>✦ Envío gratis desde <strong>$1,000 MXN</strong></span>
         ) : (
           <>
-            <span>✦ Envío gratis en compras mayores a <strong>$1,000 MXN</strong></span>
+            <span>✦ Envío gratis en compras desde <strong>$1,000 MXN</strong></span>
             <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
               <span style={{ cursor: 'pointer', color: 'var(--gold)', letterSpacing: '0.1em' }} onClick={() => document.getElementById('loraFab')?.click()}>
                 ✦ Chatea con <strong>Lora</strong> y descubre tu rutina ideal

@@ -19,7 +19,7 @@ export default function AnnouncementBar() {
       {isMobile ? (
         <>✦ Envío gratis desde <span style={{ color: 'var(--gold)' }}>$1,000 MXN</span> ✦</>
       ) : (
-        <>✦ ENVÍO GRATIS EN COMPRAS MAYORES A{' '}
+        <>✦ ENVÍO GRATIS EN COMPRAS DESDE{' '}
         <span style={{ color: 'var(--gold)' }}>$1,000 MXN</span>
         {' '}✦ PRODUCTOS 100% AUTÉNTICOS ✦</>
       )}
