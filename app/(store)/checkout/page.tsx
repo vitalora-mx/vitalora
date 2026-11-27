@@ -689,9 +689,9 @@ export default function CheckoutPage() {
                     </div>
                   )}
 
-                <div style={{ marginBottom: '24px', padding: '20px', border: '1px solid', borderColor: datosConfirmados ? '#A8C5A0' : 'var(--line)', borderRadius: '4px', background: datosConfirmados ? '#F0F7F0' : 'white', transition: 'all 0.2s' }}>
+                <div style={{ marginBottom: '24px', padding: '20px', border: '1px solid', borderColor: datosConfirmados ? '#A8C5A0' : 'var(--line)', borderRadius: '4px', background: datosConfirmados ? '#F0F7F0' : 'white', transition: 'border-color 0.2s ease, background-color 0.2s ease' }}>
                   <label style={{ display: 'flex', gap: '14px', alignItems: 'flex-start', cursor: 'pointer' }}>
-                    <div onClick={() => setDatosConfirmados(!datosConfirmados)} style={{ width: '22px', height: '22px', borderRadius: '4px', flexShrink: 0, border: '2px solid', borderColor: datosConfirmados ? 'var(--sage-deep)' : 'var(--line)', background: datosConfirmados ? 'var(--sage-deep)' : 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s', cursor: 'pointer', marginTop: '2px' }}>
+                    <div onClick={() => setDatosConfirmados(!datosConfirmados)} style={{ width: '22px', height: '22px', borderRadius: '4px', flexShrink: 0, border: '2px solid', borderColor: datosConfirmados ? 'var(--sage-deep)' : 'var(--line)', background: datosConfirmados ? 'var(--sage-deep)' : 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'border-color 0.2s ease, background-color 0.2s ease', cursor: 'pointer', marginTop: '2px' }}>
                       {datosConfirmados && <span style={{ color: 'white', fontSize: '13px', fontWeight: 700 }}>✓</span>}
                     </div>
                     <div>
@@ -707,7 +707,7 @@ export default function CheckoutPage() {
                 <div style={{ marginBottom: '24px' }}>
                   <div style={{ fontSize: '11px', letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '12px' }}>Metodo de pago</div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                    <div onClick={() => setMetodoPago('mercadopago')} style={{ padding: '16px', border: '2px solid', borderColor: metodoPago === 'mercadopago' ? 'var(--sage-deep)' : 'var(--line)', borderRadius: '6px', cursor: 'pointer', background: metodoPago === 'mercadopago' ? '#F0F7F0' : 'white', transition: 'all 0.2s' }}>
+                    <div onClick={() => setMetodoPago('mercadopago')} style={{ padding: '16px', border: '2px solid', borderColor: metodoPago === 'mercadopago' ? 'var(--sage-deep)' : 'var(--line)', borderRadius: '6px', cursor: 'pointer', background: metodoPago === 'mercadopago' ? '#F0F7F0' : 'white', transition: 'border-color 0.2s ease, background-color 0.2s ease' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                         <div style={{ width: '20px', height: '20px', borderRadius: '50%', border: '2px solid', borderColor: metodoPago === 'mercadopago' ? 'var(--sage-deep)' : 'var(--line)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                           {metodoPago === 'mercadopago' && <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: 'var(--sage-deep)' }} />}
@@ -721,7 +721,7 @@ export default function CheckoutPage() {
                         </div>
                       </div>
                     </div>
-                    <div onClick={() => setMetodoPago('transferencia')} style={{ padding: '16px', border: '2px solid', borderColor: metodoPago === 'transferencia' ? 'var(--sage-deep)' : 'var(--line)', borderRadius: '6px', cursor: 'pointer', background: metodoPago === 'transferencia' ? '#F0F7F0' : 'white', transition: 'all 0.2s' }}>
+                    <div onClick={() => setMetodoPago('transferencia')} style={{ padding: '16px', border: '2px solid', borderColor: metodoPago === 'transferencia' ? 'var(--sage-deep)' : 'var(--line)', borderRadius: '6px', cursor: 'pointer', background: metodoPago === 'transferencia' ? '#F0F7F0' : 'white', transition: 'border-color 0.2s ease, background-color 0.2s ease' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                         <div style={{ width: '20px', height: '20px', borderRadius: '50%', border: '2px solid', borderColor: metodoPago === 'transferencia' ? 'var(--sage-deep)' : 'var(--line)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                           {metodoPago === 'transferencia' && <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: 'var(--sage-deep)' }} />}

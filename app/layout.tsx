@@ -76,6 +76,8 @@ export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   maximumScale: 5,
+  // color de la barra del navegador en el celular (crema de la marca, --bg-cream)
+  themeColor: '#F5F0E8',
 }
 
 const GA_ID = 'G-74CFHNZRBB'

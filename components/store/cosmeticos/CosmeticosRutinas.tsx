@@ -68,7 +68,7 @@ export default function CosmeticosRutinas({ rutinaActiva, setRutinaActiva }: Pro
             cursor: 'pointer',
             fontFamily: 'inherit',
             fontWeight: rutinaActiva === 'Todas' ? 500 : 400,
-            transition: 'all 0.2s',
+            transition: 'background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, scale 160ms var(--ease-out)',
           }}
         >
           ✦ Ver todas

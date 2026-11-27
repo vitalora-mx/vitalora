@@ -35,7 +35,7 @@ export default function SuplementoTabs({ producto }: Props) {
               fontFamily: 'inherit',
               marginBottom: '-1px',
               whiteSpace: 'nowrap',
-              transition: 'all 0.2s',
+              transition: 'color 0.2s ease, border-color 0.2s ease, scale 160ms var(--ease-out)',
             }}
           >
             {tab}

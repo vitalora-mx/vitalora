@@ -136,7 +136,7 @@ export default function FAQPage() {
                 borderColor: seccionActiva === i ? 'var(--black)' : 'var(--line)',
                 background: seccionActiva === i ? 'var(--black)' : 'white',
                 color: seccionActiva === i ? 'var(--bg-cream)' : 'var(--text)',
-                transition: 'all 0.2s',
+                transition: 'background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, scale 160ms var(--ease-out)',
               }}>
               {sec.icono} {sec.titulo}
             </button>

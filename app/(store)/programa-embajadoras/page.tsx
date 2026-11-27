@@ -5,10 +5,10 @@ export default function ProgramaEmbajadorasPage() {
     <>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,600&family=Italiana&display=swap');
-        .emb-cta { transition: all 0.2s; }
-        .emb-cta:hover { transform: translateY(-2px); }
         .emb-fade { animation: embFade 0.8s ease both; }
         @keyframes embFade { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes embFadeSuave { from { opacity: 0; } to { opacity: 1; } }
+        @media (prefers-reduced-motion: reduce) { .emb-fade { animation-name: embFadeSuave; } }
       `}</style>
 
       <div style={{ background: '#F5F0E8', fontFamily: 'system-ui, sans-serif', color: '#0E0E0E' }}>

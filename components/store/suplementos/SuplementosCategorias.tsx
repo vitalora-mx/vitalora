@@ -35,7 +35,7 @@ export default function SuplementosCategorias({ categoriaActiva, setCategoriaAct
       cursor: 'pointer',
       fontFamily: 'inherit',
       whiteSpace: 'nowrap',
-      transition: 'all 0.2s',
+      transition: 'background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, scale 160ms var(--ease-out)',
       marginBottom: '-2px',
     }
   }

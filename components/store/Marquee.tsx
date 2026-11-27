@@ -23,7 +23,7 @@ export default function Marquee() {
       borderTop: '1px solid var(--line)',
       borderBottom: '1px solid var(--line)',
     }}>
-      <div style={{
+      <div className="marquee-pista" style={{
         display: 'flex',
         gap: isMobile ? '48px' : '80px',
         animation: 'scroll 30s linear infinite',

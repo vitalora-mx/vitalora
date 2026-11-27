@@ -232,11 +232,11 @@ export default function LoraChat() {
               <div style={{ alignSelf: 'flex-start', background: 'white', border: '1px solid var(--line, #E8E4DA)', padding: '14px 18px', borderRadius: '4px' }}>
                 <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
                   {[0, 1, 2].map((i) => (
-                    <div key={i} style={{
+                    <div key={i} className="lora-punto" style={{
                       width: '6px', height: '6px',
                       background: '#C9A961',
                       borderRadius: '50%',
-                      animation: `bounce 1.2s ease-in-out ${i * 0.2}s infinite`,
+                      animation: `loraPuntos 1.2s ease-in-out ${i * 0.2}s infinite`,
                     }} />
                   ))}
                 </div>
@@ -270,7 +270,7 @@ export default function LoraChat() {
                     style={{ flex: 1, border: 'none', outline: 'none', fontFamily: 'inherit', fontSize: '14px', background: 'none', padding: '8px 0', color: 'var(--text, #0E0E0E)' }}
                   />
                   <button type="submit" disabled={loading || !input.trim()}
-                    style={{ width: '36px', height: '36px', borderRadius: '50%', background: loading || !input.trim() ? '#E8E4DA' : 'var(--black)', color: loading || !input.trim() ? '#A8A8A8' : 'var(--gold)', border: 'none', cursor: loading || !input.trim() ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: '16px', transition: 'all 0.15s' }}>
+                    style={{ width: '36px', height: '36px', borderRadius: '50%', background: loading || !input.trim() ? '#E8E4DA' : 'var(--black)', color: loading || !input.trim() ? '#A8A8A8' : 'var(--gold)', border: 'none', cursor: loading || !input.trim() ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: '16px', transition: 'background-color 0.15s ease, color 0.15s ease, scale 160ms var(--ease-out)' }}>
                     →
                   </button>
                 </form>
@@ -288,14 +288,6 @@ export default function LoraChat() {
             )}
           </div>
         </div>
-      )}
-
-      <style>{`
-        @keyframes bounce {
-          0%, 80%, 100% { transform: scale(0.8); opacity: 0.5; }
-          40% { transform: scale(1.2); opacity: 1; }
-        }
-      `}</style>
-    </>
+      )}    </>
   )
 }

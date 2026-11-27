@@ -1,33 +1,72 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useCartStore } from '@/store/cartStore'
 
 const ENVIO_GRATIS = 1000
 const COSTO_ENVIO = 99
 
+// Entrada más lenta que la salida: abrir es una acción del cliente, cerrar
+// debe sentirse inmediato (skill emil-design-eng, tiempos asimétricos).
+const ENTRADA_MS = 320
+const SALIDA_MS = 200
+
 export default function CarritoDrawer() {
   const { items, isOpen, cerrarCarrito, quitarItem, actualizarCantidad, total, totalItems } = useCartStore()
 
-  if (!isOpen) return null
+  // montado: el panel existe en la página (sigue montado mientras sale)
+  // visible: el panel está en su lugar (true) o fuera de la pantalla (false)
+  const [montado, setMontado] = useState(isOpen)
+  const [visible, setVisible] = useState(false)
+
+  // al abrir se monta; al cerrar empieza a salir (ajuste durante el render, sin efecto)
+  if (isOpen && !montado) setMontado(true)
+  if (!isOpen && visible) setVisible(false)
+
+  useEffect(() => {
+    if (isOpen) {
+      // dos cuadros: el panel se pinta fuera de la pantalla y luego entra
+      let segundo = 0
+      const primero = requestAnimationFrame(() => {
+        segundo = requestAnimationFrame(() => setVisible(true))
+      })
+      return () => { cancelAnimationFrame(primero); cancelAnimationFrame(segundo) }
+    }
+    // se desmonta cuando termina la salida
+    const t = setTimeout(() => setMontado(false), SALIDA_MS + 40)
+    return () => clearTimeout(t)
+  }, [isOpen])
+
+  if (!montado) return null
 
   const subtotal = total()
   const costoEnvio = subtotal >= ENVIO_GRATIS ? 0 : COSTO_ENVIO
   const totalFinal = subtotal + costoEnvio
+  // transiciones (no keyframes): si se cierra mientras entra, regresa desde donde va
+  const duracion = visible ? ENTRADA_MS : SALIDA_MS
 
   return (
     <>
       {/* Overlay */}
       <div
         onClick={cerrarCarrito}
-        style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, backdropFilter: 'blur(4px)' }}
+        style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, backdropFilter: 'blur(4px)',
+          opacity: visible ? 1 : 0,
+          pointerEvents: visible ? 'auto' : 'none',
+          transition: `opacity ${duracion}ms var(--ease-drawer)`,
+        }}
       />
 
       {/* Drawer */}
-      <div style={{
+      <div className="carrito-panel" data-visible={visible} style={{
         position: 'fixed', top: 0, right: 0, width: '420px', maxWidth: '100vw', height: '100dvh',
         background: 'var(--bg-cream)', zIndex: 1001, display: 'flex',
         flexDirection: 'column', boxShadow: '-20px 0 60px rgba(0,0,0,0.2)',
+        transform: visible ? 'translateX(0)' : 'translateX(100%)',
+        pointerEvents: visible ? 'auto' : 'none',
+        transition: `transform ${duracion}ms var(--ease-drawer)`,
       }}>
 
         {/* Header */}
@@ -98,7 +137,8 @@ export default function CarritoDrawer() {
                   Te faltan <strong style={{ color: 'var(--black)' }}>${(ENVIO_GRATIS - subtotal).toLocaleString()} MXN</strong> para envío gratis
                 </div>
                 <div style={{ height: '4px', background: 'var(--line)', borderRadius: '2px', overflow: 'hidden' }}>
-                  <div style={{ height: '100%', width: `${Math.min((subtotal / ENVIO_GRATIS) * 100, 100)}%`, background: 'var(--gold)', borderRadius: '2px', transition: 'width 0.3s' }} />
+                  {/* scaleX en lugar de width: no recalcula el diseño en cada cuadro */}
+                  <div style={{ height: '100%', width: '100%', transform: `scaleX(${Math.min(subtotal / ENVIO_GRATIS, 1)})`, transformOrigin: 'left', background: 'var(--gold)', borderRadius: '2px', transition: 'transform 0.3s var(--ease-out)' }} />
                 </div>
               </div>
             )}

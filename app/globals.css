@@ -61,25 +61,34 @@ body {
 @keyframes scroll {
   to { transform: translateX(-50%); }
 }
-@keyframes fadeUp {
-  from { opacity: 0; transform: translateY(20px); }
-  to   { opacity: 1; transform: translateY(0); }
+
+/* ── Movimiento (skills emil-design-eng / review-animations) ─────────── */
+:root {
+  /* entradas y respuestas: arranca rápido, se siente ágil */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  /* paneles que se deslizan (carrito lateral), curva tipo iOS */
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
 }
-@keyframes loraPulse {
-  0%, 100% { box-shadow: 0 10px 40px rgba(0,0,0,0.25), 0 0 0 0 rgba(201,169,97,0.4); }
-  50%       { box-shadow: 0 10px 40px rgba(0,0,0,0.25), 0 0 0 12px rgba(201,169,97,0); }
+/* puntos de "escribiendo" de Lora; con movimiento reducido solo cambia la opacidad */
+@keyframes loraPuntos {
+  0%, 80%, 100% { transform: scale(0.8); opacity: 0.5; }
+  40% { transform: scale(1.2); opacity: 1; }
 }
-@keyframes orbit {
-  from { transform: rotate(0deg); }
-  to   { transform: rotate(360deg); }
+@keyframes loraPuntosSuave {
+  0%, 80%, 100% { opacity: 0.4; }
+  40% { opacity: 1; }
 }
-@keyframes msgIn {
-  from { opacity: 0; transform: translateY(8px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-@keyframes typing {
-  0%, 60%, 100% { opacity: 0.3; transform: translateY(0); }
-  30%            { opacity: 1;   transform: translateY(-4px); }
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  /* la cinta de marcas queda quieta, con el texto visible */
+  .marquee-pista { animation: none !important; }
+  .lora-punto { animation-name: loraPuntosSuave !important; }
+  /* el carrito lateral aparece con desvanecido, sin deslizarse */
+  .carrito-panel {
+    transform: none !important;
+    transition: opacity 200ms ease !important;
+  }
+  .carrito-panel[data-visible="false"] { opacity: 0; }
 }
 /* ── Celular: sensación nativa (skill mobile-native) ─────────────────── */
 /* en @layer base: las utilidades de Tailwind y los estilos en línea siguen ganando */

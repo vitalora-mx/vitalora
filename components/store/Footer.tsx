@@ -58,7 +58,6 @@ export default function Footer() {
                   textDecoration: 'none',
                   fontSize: '11px',
                   letterSpacing: '0.05em',
-                  transition: 'all 0.3s',
                 }}>{red.label}</a>
               ))}
             </div>

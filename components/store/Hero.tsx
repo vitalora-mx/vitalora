@@ -100,7 +100,7 @@ const botonBase: React.CSSProperties = {
   gap: '10px',
   boxShadow: '0 8px 30px rgba(0,0,0,0.2)',
   textDecoration: 'none',
-  transition: 'all 0.3s',
+  transition: 'background-color 0.3s, color 0.3s, scale 160ms var(--ease-out)',
   whiteSpace: 'nowrap' as const,
 }
 
@@ -237,7 +237,7 @@ export default function Hero() {
               border: 'none',
               cursor: 'pointer',
               padding: 0,
-              transition: 'all 0.4s ease',
+              transition: 'width 0.4s ease, background-color 0.4s ease, scale 160ms var(--ease-out)',
             }}
           />
         ))}
@@ -360,7 +360,7 @@ export default function Hero() {
               textDecoration: 'none',
               borderRadius: '100px',
               fontWeight: 500,
-              transition: 'all 0.3s ease',
+              transition: 'background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, scale 160ms var(--ease-out)',
             }}
             onPointerEnter={soloMouse(e => {
               e.currentTarget.style.background = 'var(--black)'
