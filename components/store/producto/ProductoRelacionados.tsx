@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { soloMouse } from '@/lib/hover'
 
 const todosLosProductos: Record<number, any> = {
   1: { nombre: 'Hydra Glow Essence', marca: 'COSRX', precio: 649, color: 'linear-gradient(135deg, #F5E8E0, #E8C9C0)', slug: 'hydra-glow-essence' },
@@ -43,8 +44,8 @@ export default function ProductoRelacionados({ productoIds, tipo }: Props) {
             >
               <div
                 style={{ background: 'white', borderRadius: '4px', overflow: 'hidden', border: '1px solid var(--line)', transition: 'transform 0.3s, box-shadow 0.3s' }}
-                onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 12px 40px rgba(0,0,0,0.08)' }}
-                onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none' }}
+                onPointerEnter={soloMouse(e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 12px 40px rgba(0,0,0,0.08)' })}
+                onPointerLeave={soloMouse(e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none' })}
               >
                 <div style={{ aspectRatio: '1', background: producto.color, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <div style={{ fontFamily: 'var(--font-italiana), serif', fontSize: '40px', color: 'rgba(0,0,0,0.1)' }}>V</div>

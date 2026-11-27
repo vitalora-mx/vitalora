@@ -217,7 +217,7 @@ export default function CuentaPage() {
   // No logueado
   if (!isLoggedIn()) {
     return (
-      <main style={{ minHeight: '100vh', background: 'var(--bg-cream)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px' }}>
+      <main style={{ minHeight: '100svh', background: 'var(--bg-cream)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px' }}>
         <div style={{ maxWidth: '440px', width: '100%', background: 'white', borderRadius: '12px', padding: isMobile ? '28px 20px' : '48px', border: '1px solid #E5E5E5', boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}>
           <div style={{ textAlign: 'center', marginBottom: '32px' }}>
             <Link href="/" style={{ textDecoration: 'none' }}><img src="/images/logo/logo-header.webp" alt="Vitalora" style={{ height: '40px', width: 'auto', display: 'block' }} /></Link>
@@ -249,7 +249,7 @@ export default function CuentaPage() {
   const estadoColor: Record<string, string> = { pendiente: '#F0A030', pagado: '#3080D0', enviado: '#6B8F6B', entregado: '#3A3', cancelado: '#D33' }
 
   return (
-    <main style={{ minHeight: '100vh', background: 'var(--bg-cream)', padding: isMobile ? '24px 16px' : '40px' }}>
+    <main style={{ minHeight: '100svh', background: 'var(--bg-cream)', padding: isMobile ? '24px 16px' : '40px' }}>
       <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
           <div>

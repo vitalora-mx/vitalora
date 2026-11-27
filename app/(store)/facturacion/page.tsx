@@ -121,7 +121,7 @@ export default function FacturacionPage() {
   const inputStyle: React.CSSProperties = { width: '100%', padding: '14px 16px', border: '1px solid var(--line)', borderRadius: '8px', fontSize: '14px', color: 'var(--text)', background: 'white', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }
 
   return (
-    <main style={{ background: 'var(--bg-cream)', minHeight: '100vh' }}>
+    <main style={{ background: 'var(--bg-cream)', minHeight: '100svh' }}>
       <Header />
       <div style={{ maxWidth: '640px', margin: '0 auto', padding: isMobile ? '40px 16px 60px' : '72px 40px 100px' }}>
 

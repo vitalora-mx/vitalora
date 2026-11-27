@@ -128,7 +128,7 @@ export default function NuevaPasswordPage() {
   return (
     <>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=Italiana&display=swap');`}</style>
-      <div style={{ minHeight: '100vh', background: '#F5F0E8', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px', fontFamily: 'system-ui, sans-serif' }}>
+      <div style={{ minHeight: '100svh', background: '#F5F0E8', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px', fontFamily: 'system-ui, sans-serif' }}>
         <div style={{ background: 'white', maxWidth: '420px', width: '100%', padding: '48px 40px', borderRadius: '4px', border: '1px solid #E8E4DA' }}>
           <Suspense fallback={<p style={{ textAlign: 'center', color: '#A8A8A8' }}>Cargando…</p>}>
             <NuevaPasswordForm />

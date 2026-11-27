@@ -65,7 +65,7 @@ export default function ContactoPage() {
   }
 
   return (
-    <main style={{ background: 'var(--bg-cream)', minHeight: '100vh' }}>
+    <main style={{ background: 'var(--bg-cream)', minHeight: '100svh' }}>
       <Header />
       <div style={{ maxWidth: '640px', margin: '0 auto', padding: isMobile ? '40px 16px 60px' : '72px 40px 100px' }}>
 

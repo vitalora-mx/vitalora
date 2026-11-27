@@ -20,7 +20,7 @@ export default function GraciasPage() {
   if (!mounted) return null
 
   return (
-    <main style={{ minHeight: '100vh', background: 'var(--bg-cream)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px' }}>
+    <main style={{ minHeight: '100svh', background: 'var(--bg-cream)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px' }}>
       <div style={{ maxWidth: '600px', textAlign: 'center' }}>
 
         {/* Ícono */}

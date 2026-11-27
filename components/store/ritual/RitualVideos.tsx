@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useState, useRef, useEffect } from 'react'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { SUPLEMENTOS_ACTIVO } from '@/lib/tienda'
+import { soloMouse } from '@/lib/hover'
 
 const SAGE = '#A8B5A0'
 
@@ -153,8 +154,8 @@ export default function RitualVideos({ videosIniciales, temasIniciales }: Props)
             {videosFiltrados.map(video => (
               <Link key={video.id} href={`/ritual/${video.slug}`} style={{ textDecoration: 'none' }}>
                 <div style={{ cursor: 'pointer', background: '#161616', borderRadius: '4px', overflow: 'hidden', border: '1px solid rgba(168,181,160,0.15)', transition: 'transform 0.3s, box-shadow 0.3s' }}
-                  onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 12px 40px rgba(0,0,0,0.5)' }}
-                  onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none' }}>
+                  onPointerEnter={soloMouse(e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 12px 40px rgba(0,0,0,0.5)' })}
+                  onPointerLeave={soloMouse(e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none' })}>
                   {/* Portada con play */}
                   <div style={{ aspectRatio: '16/9', background: '#000', position: 'relative', overflow: 'hidden' }}>
                     <img src={`https://img.youtube.com/vi/${video.youtube_id}/hqdefault.jpg`} alt={video.titulo} loading="lazy" decoding="async" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />

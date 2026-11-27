@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useCartStore } from '@/store/cartStore'
+import { useIsMobile } from '@/hooks/useIsMobile'
 
 // Igual que el carrito lateral (CarritoDrawer); el monto real lo calcula el servidor (lib/envio.ts)
 const ENVIO_GRATIS = 1000
@@ -12,6 +13,7 @@ export default function CarritoPage() {
   const { items, total, quitarItem, actualizarCantidad, vaciarCarrito } = useCartStore()
   const costoEnvio = total() >= ENVIO_GRATIS ? 0 : COSTO_ENVIO
   const [mounted, setMounted] = useState(false)
+  const isMobile = useIsMobile()
 
   useEffect(() => { setMounted(true) }, [])
 
@@ -32,25 +34,25 @@ export default function CarritoPage() {
   }
 
   return (
-    <main style={{ background: 'var(--bg-cream)', minHeight: '100vh', padding: '60px 40px' }}>
+    <main style={{ background: 'var(--bg-cream)', minHeight: '100svh', padding: isMobile ? '32px 16px' : '60px 40px' }}>
       <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
-        <h1 style={{ fontFamily: 'var(--font-italiana), serif', fontSize: '48px', marginBottom: '48px', color: 'var(--black)' }}>Tu carrito</h1>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: '40px' }}>
+        <h1 style={{ fontFamily: 'var(--font-italiana), serif', fontSize: '48px', marginBottom: isMobile ? '24px' : '48px', color: 'var(--black)' }}>Tu carrito</h1>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 320px', gap: isMobile ? '24px' : '40px' }}>
           <div>
             {items.map((item) => (
-              <div key={`${item.id}-${item.varianteId ?? 'base'}`} style={{ display: 'flex', gap: '20px', padding: '24px 0', borderBottom: '1px solid var(--line)' }}>
-                <div style={{ width: '100px', height: '100px', background: 'var(--bg-cream-deep)', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 }}>
+              <div key={`${item.id}-${item.varianteId ?? 'base'}`} style={{ display: 'flex', gap: isMobile ? '14px' : '20px', padding: isMobile ? '20px 0' : '24px 0', borderBottom: '1px solid var(--line)' }}>
+                <div style={{ width: isMobile ? '80px' : '100px', height: isMobile ? '80px' : '100px', background: 'var(--bg-cream-deep)', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 }}>
                   {item.imagen ? (
                     <img src={item.imagen} alt={item.nombre} loading="lazy" decoding="async" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                   ) : (
                     <span style={{ fontFamily: 'var(--font-italiana), serif', fontSize: '28px', color: 'var(--text-muted)' }}>V</span>
                   )}
                 </div>
-                <div style={{ flex: 1 }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: '10px', letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--gold)', marginBottom: '4px' }}>{item.marca}</div>
                   <div style={{ fontFamily: 'var(--font-cormorant), serif', fontSize: '20px', fontWeight: 500, color: 'var(--black)', marginBottom: item.varianteNombre ? '2px' : '16px' }}>{item.nombre}</div>
                   {item.varianteNombre && <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '16px' }}>{item.varianteNombre}</div>}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
                     <div style={{ display: 'flex', alignItems: 'center', border: '1px solid var(--line)', borderRadius: '2px' }}>
                       <button onClick={() => actualizarCantidad(item.id, item.cantidad - 1, item.varianteId)} style={{ width: '36px', height: '36px', border: 'none', background: 'none', cursor: 'pointer', fontSize: '16px' }}>−</button>
                       <span style={{ width: '36px', textAlign: 'center', fontSize: '14px' }}>{item.cantidad}</span>
@@ -58,14 +60,21 @@ export default function CarritoPage() {
                     </div>
                     <button onClick={() => quitarItem(item.id, item.varianteId)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '12px', color: 'var(--text-muted)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Eliminar</button>
                   </div>
+                  {isMobile && (
+                    <div style={{ fontFamily: 'var(--font-cormorant), serif', fontSize: '20px', fontWeight: 600, color: 'var(--black)', marginTop: '12px' }}>
+                      ${(item.precio * item.cantidad).toLocaleString()} MXN
+                    </div>
+                  )}
                 </div>
-                <div style={{ fontFamily: 'var(--font-cormorant), serif', fontSize: '22px', fontWeight: 600, color: 'var(--black)' }}>
-                  ${(item.precio * item.cantidad).toLocaleString()} MXN
-                </div>
+                {!isMobile && (
+                  <div style={{ fontFamily: 'var(--font-cormorant), serif', fontSize: '22px', fontWeight: 600, color: 'var(--black)' }}>
+                    ${(item.precio * item.cantidad).toLocaleString()} MXN
+                  </div>
+                )}
               </div>
             ))}
           </div>
-          <div style={{ position: 'sticky', top: '24px', background: 'white', padding: '32px', borderRadius: '4px', border: '1px solid var(--line)', height: 'fit-content' }}>
+          <div style={{ position: isMobile ? 'static' : 'sticky', top: '24px', background: 'white', padding: isMobile ? '24px' : '32px', borderRadius: '4px', border: '1px solid var(--line)', height: 'fit-content' }}>
             <h3 style={{ fontFamily: 'var(--font-italiana), serif', fontSize: '22px', marginBottom: '24px' }}>Resumen</h3>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: 'var(--text-muted)', marginBottom: '12px' }}>
               <span>Subtotal</span><span>${total().toLocaleString()} MXN</span>

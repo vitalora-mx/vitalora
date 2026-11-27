@@ -81,6 +81,37 @@ body {
   0%, 60%, 100% { opacity: 0.3; transform: translateY(0); }
   30%            { opacity: 1;   transform: translateY(-4px); }
 }
+/* ── Celular: sensación nativa (skill mobile-native) ─────────────────── */
+/* en @layer base: las utilidades de Tailwind y los estilos en línea siguen ganando */
+@layer base {
+  html {
+    /* sin destello gris/azul al tocar; cada botón da su propia respuesta con :active */
+    -webkit-tap-highlight-color: transparent;
+  }
+  button, a, [role="button"], label, summary {
+    /* el toque responde al instante (sin la espera del doble toque para zoom) */
+    touch-action: manipulation;
+  }
+  button, [role="button"] {
+    /* mantener presionado un botón no selecciona su texto */
+    -webkit-user-select: none;
+    user-select: none;
+    /* solo aplica a botones sin transition en línea; los que la tienen conservan la suya */
+    transition: scale 160ms cubic-bezier(0.23, 1, 0.32, 1);
+  }
+  button:not(:disabled):active, [role="button"]:active {
+    /* se encoge un poco al presionar; la propiedad scale se suma al transform en línea
+       (las flechas del Hero centradas con translateY también se encogen) */
+    scale: 0.97;
+  }
+  @media (pointer: coarse) {
+    /* iPhone acerca la página al escribir en campos con letra menor a 16px */
+    input, textarea, select {
+      font-size: 16px !important;
+    }
+  }
+}
+
 .hero-desktop { display: block; }
 .hero-mobile { display: none; }
 @media (max-width: 768px) {

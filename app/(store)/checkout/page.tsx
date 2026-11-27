@@ -414,7 +414,7 @@ export default function CheckoutPage() {
   }
 
   return (
-    <main style={{ background: 'var(--bg-cream)', minHeight: '100vh', padding: isMobile ? '32px 16px' : '60px 40px' }}>
+    <main style={{ background: 'var(--bg-cream)', minHeight: '100svh', padding: isMobile ? '32px 16px' : '60px 40px' }}>
       <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
 
         <div style={{ textAlign: 'center', marginBottom: '48px' }}>
@@ -442,7 +442,7 @@ export default function CheckoutPage() {
           ))}
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 400px', gap: isMobile ? '24px' : '40px', alignItems: 'start' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'minmax(0, 1fr)' : '1fr 400px', gap: isMobile ? '24px' : '40px', alignItems: 'start' }}>
 
           <div style={{ background: 'white', padding: isMobile ? '24px 20px' : '40px', borderRadius: '4px', border: '1px solid var(--line)' }}>
 
@@ -476,7 +476,7 @@ export default function CheckoutPage() {
                   </p>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '20px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'minmax(0, 1fr)' : '1fr 1fr', gap: '20px' }}>
                   {[
                     { name: 'nombre', label: 'Nombre (como en tu ID)', placeholder: 'Tu nombre' },
                     { name: 'apellido', label: 'Apellido (como en tu ID)', placeholder: 'Tu apellido' },
@@ -545,7 +545,7 @@ export default function CheckoutPage() {
                 )}
 
                 {(!logueado || direcciones.length === 0 || usarNuevaDireccion) && (
-                  <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '20px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'minmax(0, 1fr)' : '1fr 1fr', gap: '20px' }}>
                     {[
                       { name: 'calle', label: 'Calle', placeholder: 'Nombre de la calle', span: 2 },
                       { name: 'numero', label: 'Número exterior', placeholder: 'Ej: 123 (o SN si no tiene)', span: 1 },
@@ -848,7 +848,7 @@ export default function CheckoutPage() {
               ) : (
                 <div>
                   <div style={{ display: 'flex', gap: '8px' }}>
-                    <input value={codigoInput} onChange={e => { setCodigoInput(e.target.value.toUpperCase()); setCodigoError('') }} placeholder="Ej: BIENVENIDO10" onKeyDown={e => e.key === 'Enter' && validarCodigo()} style={{ flex: 1, padding: '10px 12px', border: '1px solid var(--line)', borderRadius: '2px', fontSize: '13px', fontFamily: 'monospace', textTransform: 'uppercase', letterSpacing: '0.1em', outline: 'none' }} />
+                    <input value={codigoInput} onChange={e => { setCodigoInput(e.target.value.toUpperCase()); setCodigoError('') }} placeholder="Ej: BIENVENIDO10" onKeyDown={e => e.key === 'Enter' && validarCodigo()} style={{ flex: 1, minWidth: 0, padding: '10px 12px', border: '1px solid var(--line)', borderRadius: '2px', fontSize: '13px', fontFamily: 'monospace', textTransform: 'uppercase', letterSpacing: '0.1em', outline: 'none' }} />
                     <button onClick={() => validarCodigo()} disabled={validandoCodigo || !codigoInput.trim()} style={{ padding: '10px 16px', background: codigoInput.trim() ? 'var(--black)' : 'var(--line)', color: codigoInput.trim() ? 'white' : 'var(--text-muted)', border: 'none', borderRadius: '2px', fontSize: '12px', cursor: codigoInput.trim() ? 'pointer' : 'not-allowed', fontFamily: 'inherit', fontWeight: 600 }}>{validandoCodigo ? '...' : 'Aplicar'}</button>
                   </div>
                   {codigoError && <p style={{ fontSize: '11px', color: '#D33', marginTop: '6px', marginBottom: 0 }}>{codigoError}</p>}

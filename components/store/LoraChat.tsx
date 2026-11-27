@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useIsMobile } from '@/hooks/useIsMobile'
+import { soloMouse } from '@/lib/hover'
 
 type Message = {
   role: 'lora' | 'user'
@@ -135,8 +136,8 @@ export default function LoraChat() {
           boxShadow: '0 10px 40px rgba(0,0,0,0.25)',
           transition: 'transform 0.2s',
         }}
-        onMouseEnter={e => (e.currentTarget.style.transform = 'scale(1.05)')}
-        onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}
+        onPointerEnter={soloMouse(e => (e.currentTarget.style.transform = 'scale(1.05)'))}
+        onPointerLeave={soloMouse(e => (e.currentTarget.style.transform = 'scale(1)'))}
       >L</button>
 
       {/* Chat */}
@@ -149,7 +150,7 @@ export default function LoraChat() {
           top: isMobile ? '76px' : 'auto',
           width: isMobile ? 'auto' : '420px',
           height: isMobile ? 'auto' : '640px',
-          maxHeight: isMobile ? 'none' : 'calc(100vh - 64px)',
+          maxHeight: isMobile ? 'none' : 'calc(100svh - 64px)',
           background: 'var(--bg-cream)',
           border: '1px solid var(--line)',
           borderRadius: '4px',
@@ -211,15 +212,15 @@ export default function LoraChat() {
                 {/* Sugerencia destacada: rutina completa */}
                 <button onClick={() => sendMessage(SUGERENCIA_DESTACADA)}
                   style={{ background: 'var(--black)', border: '1px solid var(--gold)', padding: '14px 16px', fontFamily: 'inherit', fontSize: '13px', color: 'var(--gold)', textAlign: 'left', cursor: 'pointer', borderRadius: '2px', fontWeight: 600, letterSpacing: '0.02em', transition: 'opacity 0.15s' }}
-                  onMouseEnter={e => (e.currentTarget.style.opacity = '0.85')}
-                  onMouseLeave={e => (e.currentTarget.style.opacity = '1')}>
+                  onPointerEnter={soloMouse(e => (e.currentTarget.style.opacity = '0.85'))}
+                  onPointerLeave={soloMouse(e => (e.currentTarget.style.opacity = '1'))}>
                   {SUGERENCIA_DESTACADA}
                 </button>
                 {SUGERENCIAS.map((s, i) => (
                   <button key={i} onClick={() => sendMessage(s)}
                     style={{ background: 'white', border: '1px solid var(--line, #E8E4DA)', padding: '12px 16px', fontFamily: 'inherit', fontSize: '13px', color: 'var(--text, #0E0E0E)', textAlign: 'left', cursor: 'pointer', borderRadius: '2px', transition: 'border-color 0.15s' }}
-                    onMouseEnter={e => (e.currentTarget.style.borderColor = '#C9A961')}
-                    onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--line, #E8E4DA)')}>
+                    onPointerEnter={soloMouse(e => (e.currentTarget.style.borderColor = '#C9A961'))}
+                    onPointerLeave={soloMouse(e => (e.currentTarget.style.borderColor = 'var(--line, #E8E4DA)'))}>
                     {s}
                   </button>
                 ))}

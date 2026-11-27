@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { miniaturaResena } from '@/lib/imagenes'
 import { reducirSiEsMuyPesada } from '@/lib/reducir-imagen-cliente'
+import { soloMouse } from '@/lib/hover'
 
 interface Props {
   productoId: number
@@ -100,8 +101,8 @@ export default function FormularioResena({ productoId, productoNombre, onCerrar,
               <span
                 key={n}
                 onClick={() => setEstrellas(n)}
-                onMouseEnter={() => setHover(n)}
-                onMouseLeave={() => setHover(0)}
+                onPointerEnter={soloMouse(() => setHover(n))}
+                onPointerLeave={soloMouse(() => setHover(0))}
                 style={{ fontSize: '32px', cursor: 'pointer', color: (hover || estrellas) >= n ? 'var(--gold)' : 'var(--line)', transition: 'color 0.15s' }}
               >★</span>
             ))}

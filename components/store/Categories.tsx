@@ -4,6 +4,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { SUPLEMENTOS_ACTIVO } from '@/lib/tienda'
+import { soloMouse } from '@/lib/hover'
 
 export default function Categories() {
   const isMobile = useIsMobile()
@@ -71,8 +72,8 @@ export default function Categories() {
             aspectRatio: isMobile ? '1122 / 1402' : '1390 / 1132',
             transition: 'transform 0.4s, box-shadow 0.4s',
           }}
-            onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.02)'; e.currentTarget.style.boxShadow = '0 20px 50px rgba(0,0,0,0.15)' }}
-            onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = 'none' }}
+            onPointerEnter={soloMouse(e => { e.currentTarget.style.transform = 'scale(1.02)'; e.currentTarget.style.boxShadow = '0 20px 50px rgba(0,0,0,0.15)' })}
+            onPointerLeave={soloMouse(e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = 'none' })}
           >
             <Image
               src={cosmeticosImg}
@@ -95,8 +96,8 @@ export default function Categories() {
             aspectRatio: isMobile ? '1122 / 1402' : '1390 / 1132',
             transition: 'transform 0.4s, box-shadow 0.4s',
           }}
-            onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.02)'; e.currentTarget.style.boxShadow = '0 20px 50px rgba(0,0,0,0.15)' }}
-            onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = 'none' }}
+            onPointerEnter={soloMouse(e => { e.currentTarget.style.transform = 'scale(1.02)'; e.currentTarget.style.boxShadow = '0 20px 50px rgba(0,0,0,0.15)' })}
+            onPointerLeave={soloMouse(e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = 'none' })}
           >
             <Image
               src={suplementosImg}

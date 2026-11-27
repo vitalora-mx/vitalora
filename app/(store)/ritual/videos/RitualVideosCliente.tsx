@@ -5,6 +5,7 @@ import Link from 'next/link'
 import RitualHeader from '@/components/store/ritual/RitualHeader'
 import Footer from '@/components/store/Footer'
 import LoraChat from '@/components/store/LoraChat'
+import { soloMouse } from '@/lib/hover'
 
 const SAGE = '#A8B5A0'
 
@@ -52,8 +53,8 @@ export default function RitualVideosCliente({ videosIniciales }: { videosInicial
                   {grupo.videos.map(video => (
                     <Link key={video.id} href={`/ritual/${video.slug}`} style={{ textDecoration: 'none', flex: '0 0 300px' }}>
                       <div style={{ cursor: 'pointer', borderRadius: '6px', overflow: 'hidden', transition: 'transform 0.3s' }}
-                        onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.04)' }}
-                        onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)' }}>
+                        onPointerEnter={soloMouse(e => { e.currentTarget.style.transform = 'scale(1.04)' })}
+                        onPointerLeave={soloMouse(e => { e.currentTarget.style.transform = 'scale(1)' })}>
                         <div style={{ aspectRatio: '16/9', background: '#000', position: 'relative', overflow: 'hidden' }}>
                           <img src={`https://img.youtube.com/vi/${video.youtube_id}/hqdefault.jpg`} alt={video.titulo} loading="lazy" decoding="async" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                           <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.15)' }}>

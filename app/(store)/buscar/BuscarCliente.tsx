@@ -71,7 +71,7 @@ export default function BuscarCliente() {
   }
 
   return (
-    <main style={{ background: 'var(--bg-cream)', minHeight: '100vh' }}>
+    <main style={{ background: 'var(--bg-cream)', minHeight: '100svh' }}>
       <Header />
       <div style={{ maxWidth: '1400px', margin: '0 auto', padding: isMobile ? '32px 16px 60px' : '60px 40px 100px' }}>
 

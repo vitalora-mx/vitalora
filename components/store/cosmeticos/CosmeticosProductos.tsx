@@ -7,6 +7,7 @@ import { useIsMobile } from '@/hooks/useIsMobile'
 import { miniatura } from '@/lib/imagenes'
 import Paginacion, { desplazarA } from '@/components/store/Paginacion'
 import { SUPLEMENTOS_ACTIVO } from '@/lib/tienda'
+import { soloMouse } from '@/lib/hover'
 
 interface Producto {
   id: number; slug: string; marca: string; categoria: string; nombre: string
@@ -179,8 +180,8 @@ export default function CosmeticosProductos({ rutinaActiva, productosIniciales }
             {productosPagina.map(producto => (
               <Link key={producto.id} href={`/cosmeticos/producto/${producto.slug}`} style={{ textDecoration: 'none' }}>
                 <div style={{ cursor: 'pointer', background: 'white', borderRadius: '4px', overflow: 'hidden', border: '1px solid #E8E0D5', transition: 'transform 0.3s, box-shadow 0.3s' }}
-                  onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 12px 40px rgba(0,0,0,0.1)'; const pri = e.currentTarget.querySelector('.prod-img-principal') as HTMLElement | null; const sec = e.currentTarget.querySelector('.prod-img-secundaria') as HTMLElement | null; if (sec) { if (pri) pri.style.opacity = '0'; sec.style.opacity = '1' } }}
-                  onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none'; const pri = e.currentTarget.querySelector('.prod-img-principal') as HTMLElement | null; const sec = e.currentTarget.querySelector('.prod-img-secundaria') as HTMLElement | null; if (sec) { if (pri) pri.style.opacity = producto.stock === 0 ? '0.45' : '1'; sec.style.opacity = '0' } }}>
+                  onPointerEnter={soloMouse(e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 12px 40px rgba(0,0,0,0.1)'; const pri = e.currentTarget.querySelector('.prod-img-principal') as HTMLElement | null; const sec = e.currentTarget.querySelector('.prod-img-secundaria') as HTMLElement | null; if (sec) { if (pri) pri.style.opacity = '0'; sec.style.opacity = '1' } })}
+                  onPointerLeave={soloMouse(e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none'; const pri = e.currentTarget.querySelector('.prod-img-principal') as HTMLElement | null; const sec = e.currentTarget.querySelector('.prod-img-secundaria') as HTMLElement | null; if (sec) { if (pri) pri.style.opacity = producto.stock === 0 ? '0.45' : '1'; sec.style.opacity = '0' } })}>
                   <div style={{ aspectRatio: '1', background: '#F5F0E8', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden' }}>
                       {producto.precio_original && producto.precio_original > producto.precio && producto.stock !== 0 && (
                         <div style={{ position: 'absolute', top: isMobile ? '10px' : '12px', right: isMobile ? '10px' : '12px', width: isMobile ? '46px' : '54px', height: isMobile ? '46px' : '54px', borderRadius: '50%', background: 'var(--gold)', color: 'white', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', lineHeight: 1, zIndex: 3, boxShadow: '0 2px 8px rgba(0,0,0,0.12)' }}>

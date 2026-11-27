@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { useIsMobile } from '@/hooks/useIsMobile'
+import { soloMouse } from '@/lib/hover'
 
 export default function Newsletter() {
   const isMobile = useIsMobile()
@@ -87,8 +88,8 @@ export default function Newsletter() {
           textDecoration: 'none',
           transition: 'opacity 0.25s ease',
         }}
-        onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.opacity = '0.85' }}
-        onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.opacity = '1' }}
+        onPointerEnter={soloMouse((e) => { (e.currentTarget as HTMLAnchorElement).style.opacity = '0.85' })}
+        onPointerLeave={soloMouse((e) => { (e.currentTarget as HTMLAnchorElement).style.opacity = '1' })}
         >
           Regístrate
           <span style={{ fontSize: '15px' }}>→</span>

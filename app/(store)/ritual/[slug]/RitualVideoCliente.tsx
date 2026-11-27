@@ -8,6 +8,7 @@ import Footer from '@/components/store/Footer'
 import LoraChat from '@/components/store/LoraChat'
 import { useCartStore } from '@/store/cartStore'
 import { miniatura } from '@/lib/imagenes'
+import { soloMouse } from '@/lib/hover'
 
 const SAGE = '#A8B5A0'
 
@@ -122,8 +123,8 @@ export default function RitualVideoCliente({ video }: { video: Video }) {
                 {video.productos.map(p => (
                   <Link key={p.id} href={urlProducto(p)} style={{ textDecoration: 'none' }}>
                     <div style={{ cursor: 'pointer', background: '#161616', borderRadius: '4px', overflow: 'hidden', border: '1px solid rgba(168,181,160,0.15)', transition: 'transform 0.3s, box-shadow 0.3s' }}
-                      onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 12px 40px rgba(0,0,0,0.5)' }}
-                      onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none' }}>
+                      onPointerEnter={soloMouse(e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 12px 40px rgba(0,0,0,0.5)' })}
+                      onPointerLeave={soloMouse(e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none' })}>
                       <div style={{ aspectRatio: '1', background: '#F5F0E8', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
                         {getImagen(p) ? (
                           <img src={getImagen(p)} alt={p.nombre} loading="lazy" decoding="async" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />

@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useState, useEffect } from 'react'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { SUPLEMENTOS_ACTIVO } from '@/lib/tienda'
+import { soloMouse } from '@/lib/hover'
 
 const todosLosSlides = [
   {
@@ -182,10 +183,10 @@ export default function Hero() {
           alignItems: 'center',
           justifyContent: 'center',
           zIndex: 10,
-          transition: 'background 0.3s',
+          transition: 'background 0.3s, scale 160ms cubic-bezier(0.23, 1, 0.32, 1)',
         }}
-        onMouseEnter={e => e.currentTarget.style.background = 'rgba(0,0,0,0.8)'}
-        onMouseLeave={e => e.currentTarget.style.background = 'rgba(0,0,0,0.45)'}
+        onPointerEnter={soloMouse(e => e.currentTarget.style.background = 'rgba(0,0,0,0.8)')}
+        onPointerLeave={soloMouse(e => e.currentTarget.style.background = 'rgba(0,0,0,0.45)')}
       >←</button>
 
       {/* Flecha derecha */}
@@ -208,10 +209,10 @@ export default function Hero() {
           alignItems: 'center',
           justifyContent: 'center',
           zIndex: 10,
-          transition: 'background 0.3s',
+          transition: 'background 0.3s, scale 160ms cubic-bezier(0.23, 1, 0.32, 1)',
         }}
-        onMouseEnter={e => e.currentTarget.style.background = 'rgba(0,0,0,0.8)'}
-        onMouseLeave={e => e.currentTarget.style.background = 'rgba(0,0,0,0.45)'}
+        onPointerEnter={soloMouse(e => e.currentTarget.style.background = 'rgba(0,0,0,0.8)')}
+        onPointerLeave={soloMouse(e => e.currentTarget.style.background = 'rgba(0,0,0,0.45)')}
       >→</button>
 
       {/* Puntos de navegación */}
@@ -361,16 +362,16 @@ export default function Hero() {
               fontWeight: 500,
               transition: 'all 0.3s ease',
             }}
-            onMouseEnter={e => {
+            onPointerEnter={soloMouse(e => {
               e.currentTarget.style.background = 'var(--black)'
               e.currentTarget.style.color = 'var(--gold)'
               e.currentTarget.style.borderColor = 'var(--black)'
-            }}
-            onMouseLeave={e => {
+            })}
+            onPointerLeave={soloMouse(e => {
               e.currentTarget.style.background = 'var(--gold)'
               e.currentTarget.style.color = 'var(--black)'
               e.currentTarget.style.borderColor = 'var(--gold)'
-            }}
+            })}
           >
             &#10022; Ver ofertas
           </Link>
@@ -472,14 +473,14 @@ export default function Hero() {
             <button
               onClick={handleLoraClick}
               style={botonStyle}
-              onMouseEnter={e => {
+              onPointerEnter={soloMouse(e => {
                 e.currentTarget.style.background = 'var(--black)'
                 e.currentTarget.style.color = 'var(--gold)'
-              }}
-              onMouseLeave={e => {
+              })}
+              onPointerLeave={soloMouse(e => {
                 e.currentTarget.style.background = 'var(--gold)'
                 e.currentTarget.style.color = 'var(--black)'
-              }}
+              })}
             >
               {slide.boton.texto}
             </button>
@@ -487,14 +488,14 @@ export default function Hero() {
             <Link
               href={(slide.boton as any).href || '/'}
               style={botonStyle}
-              onMouseEnter={e => {
+              onPointerEnter={soloMouse(e => {
                 e.currentTarget.style.background = 'var(--black)'
                 e.currentTarget.style.color = 'var(--gold)'
-              }}
-              onMouseLeave={e => {
+              })}
+              onPointerLeave={soloMouse(e => {
                 e.currentTarget.style.background = 'var(--gold)'
                 e.currentTarget.style.color = 'var(--black)'
-              }}
+              })}
             >
               {slide.boton.texto}
             </Link>

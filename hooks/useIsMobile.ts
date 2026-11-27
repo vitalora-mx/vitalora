@@ -1,31 +1,30 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useCallback, useSyncExternalStore } from 'react'
 
 // Hook que detecta si la pantalla es de celular.
 // Uso: const isMobile = useIsMobile()  -> true en pantallas <= 768px
 // Tambien acepta un breakpoint custom: useIsMobile(1024)
+//
+// Usa useSyncExternalStore para que React haga un segundo render con el ancho
+// real después de hidratar. Antes se leía window.innerWidth en el estado
+// inicial: al abrir una página directo, el HTML del servidor (escritorio) no
+// coincidía con el cliente, React no corregía los estilos y el celular se
+// quedaba con el diseño de escritorio. Al navegar dentro del sitio usa el
+// ancho real desde el primer render, sin parpadeo.
 export function useIsMobile(breakpoint: number = 768): boolean {
-  // Inicializa leyendo el ancho real si ya estamos en el navegador.
-  const [isMobile, setIsMobile] = useState<boolean>(() => {
-    if (typeof window !== 'undefined') {
-      return window.innerWidth <= breakpoint
-    }
-    return false
-  })
-
-  useEffect(() => {
-    function check() {
-      setIsMobile(window.innerWidth <= breakpoint)
-    }
-    check()
-    window.addEventListener('resize', check)
-    window.addEventListener('orientationchange', check)
+  const subscribe = useCallback((onChange: () => void) => {
+    window.addEventListener('resize', onChange)
+    window.addEventListener('orientationchange', onChange)
     return () => {
-      window.removeEventListener('resize', check)
-      window.removeEventListener('orientationchange', check)
+      window.removeEventListener('resize', onChange)
+      window.removeEventListener('orientationchange', onChange)
     }
-  }, [breakpoint])
+  }, [])
 
-  return isMobile
+  return useSyncExternalStore(
+    subscribe,
+    () => window.innerWidth <= breakpoint,
+    () => false,
+  )
 }

@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useCartStore } from '@/store/cartStore'
 import { useIsMobile } from '@/hooks/useIsMobile'
+import { soloMouse } from '@/lib/hover'
 
 const products = [
   { id: 1, slug: 'hydra-glow-essence', meta: 'K-Beauty · Sérum', nombre: 'Hydra Glow Essence', marca: 'COSRX', sub: 'Ácido hialurónico + ginseng coreano', precio: 649, tag: 'Best Seller', tagType: 'gold', color: 'linear-gradient(135deg, #F5E8E0, #E8C9C0)', tipo: 'cosmetico' as const },
@@ -51,8 +52,8 @@ export default function FeaturedProducts() {
             <div
               key={product.id}
               style={{ cursor: 'pointer' }}
-              onMouseEnter={() => setHoveredId(product.id)}
-              onMouseLeave={() => setHoveredId(null)}
+              onPointerEnter={soloMouse(() => setHoveredId(product.id))}
+              onPointerLeave={soloMouse(() => setHoveredId(null))}
             >
               <div style={{ aspectRatio: '4/5', background: 'var(--bg-cream)', borderRadius: '2px', overflow: 'hidden', position: 'relative', marginBottom: isMobile ? '14px' : '20px' }}>
                 <div style={{ ...tagStyles[product.tagType], position: 'absolute', top: '12px', left: '12px', padding: '5px 10px', fontSize: '9px', letterSpacing: '0.18em', textTransform: 'uppercase', zIndex: 2 }}>
