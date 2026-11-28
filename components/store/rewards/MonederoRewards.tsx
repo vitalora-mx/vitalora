@@ -97,6 +97,26 @@ export default function MonederoRewards({ isMobile }: { isMobile: boolean }) {
         </div>
       </div>
 
+      {/* Cómo usar los puntos (el canje en el checkout llega en la Parte 5) */}
+      <div style={tarjeta}>
+        <h2 style={{ fontSize: '18px', fontWeight: 600, margin: '0 0 16px' }}>¿Cómo uso mis puntos?</h2>
+        <ol style={{ listStyle: 'none', padding: 0, margin: '0 0 16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          {[
+            'Elige tus productos y agrégalos al carrito con tu sesión iniciada.',
+            'En el checkout, junto al código de descuento, verás “Usar puntos de mi Monedero Rewards”.',
+            'Elige cuántos puntos usar (o todos) y el descuento se aplica al instante.',
+          ].map((paso, i) => (
+            <li key={i} style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+              <span aria-hidden style={{ flexShrink: 0, width: '26px', height: '26px', borderRadius: '50%', background: '#F6EEDC', color: '#8A6D2B', fontSize: '13px', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{i + 1}</span>
+              <span style={{ fontSize: '14px', color: '#333', lineHeight: 1.6, paddingTop: '3px', minWidth: 0 }}>{paso}</span>
+            </li>
+          ))}
+        </ol>
+        <p style={{ fontSize: '13px', color: '#666', lineHeight: 1.7, margin: 0, padding: '12px 14px', background: '#FAF6EC', borderRadius: '8px' }}>
+          <strong style={{ color: '#111' }}>1 punto = $1</strong> de descuento en productos. El envío, cuando aplica, se paga aparte. Puedes combinarlos con tu descuento de primera compra o con un cupón.
+        </p>
+      </div>
+
       <div style={tarjeta}>
         <h2 style={{ fontSize: '18px', fontWeight: 600, margin: '0 0 4px' }}>Historial</h2>
         <p style={{ fontSize: '13px', color: '#888', margin: '0 0 20px' }}>1 punto = $1 de descuento en productos. Tus puntos no vencen.</p>

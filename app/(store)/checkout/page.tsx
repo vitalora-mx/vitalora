@@ -7,6 +7,7 @@ import { useAuthStore, fetchCliente } from '@/store/authStore'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { leerPedidoPendiente, guardarPedidoPendiente, borrarPedidoPendiente } from '@/lib/pedido-pendiente'
 import { leerBorradorCheckout, guardarBorradorCheckout, borrarBorradorCheckout, type BorradorCheckout } from '@/lib/checkout-borrador'
+import { leerCodigoEnlace, borrarCodigoEnlace } from '@/lib/codigo-guardado'
 
 const ENVIO_GRATIS = 1000
 const COSTO_ENVIO = 99
@@ -78,8 +79,10 @@ export default function CheckoutPage() {
   const [usarNuevaDireccion, setUsarNuevaDireccion] = useState(false)
   const [perfilCargado, setPerfilCargado] = useState(false)
   const [descuentoPrimeraCompra, setDescuentoPrimeraCompra] = useState(false)
+  // La cuenta todavía tiene su primera compra (aunque ahora la sustituya un código)
+  const [primeraCompraDisponible, setPrimeraCompraDisponible] = useState(false)
   const [codigoInput, setCodigoInput] = useState('')
-  const [codigoAplicado, setCodigoAplicado] = useState<{ codigo: string; tipo: string; valor: number; montoDescuento: number; descripcion: string; descuentoEnvio?: string; envioPrecioFijo?: number; ciudadRestringida?: string | null; ciudadCoincide?: boolean } | null>(null)
+  const [codigoAplicado, setCodigoAplicado] = useState<{ codigo: string; tipo: string; valor: number; montoDescuento: number; descripcion: string; descuentoEnvio?: string; envioPrecioFijo?: number; ciudadRestringida?: string | null; ciudadCoincide?: boolean; esRewards?: boolean; desdeEnlace?: boolean } | null>(null)
   const [codigoError, setCodigoError] = useState('')
   const [validandoCodigo, setValidandoCodigo] = useState(false)
   // Zona extendida: el servidor cotiza en Skydropx al llegar al paso 3 (/api/envio/cotizar)
@@ -141,6 +144,13 @@ export default function CheckoutPage() {
     if (!mounted || borradorRestaurado.current) return
     borradorRestaurado.current = true
     const b = leerBorradorCheckout()
+    // Código de un enlace ?codigo= (lib/codigo-guardado.ts): se aplica solo si el avance
+    // guardado no trae un código escrito por el cliente, que siempre gana
+    const enlace = b?.codigo ? null : leerCodigoEnlace()
+    if (enlace) {
+      setCodigoInput(enlace)
+      validarCodigo({ codigo: enlace, email: b?.form?.email || '', ciudad: b?.form?.ciudad || '', desdeEnlace: true })
+    }
     if (!b) return
     borrador.current = b
     setForm(prev => ({ ...prev, ...b.form }))
@@ -165,7 +175,9 @@ export default function CheckoutPage() {
     if (!mounted || !borradorRestaurado.current) return
     const t = setTimeout(() => guardarBorradorCheckout({
       form, paso, metodoPago, direccionSeleccionada, usarNuevaDireccion, compraComoInvitado,
-      codigo: codigoAplicado?.codigo ?? '',
+      // Solo se guarda un código escrito por el cliente; el de un enlace se vuelve a leer de
+      // lib/codigo-guardado.ts (así respeta sus 30 días y que un enlace nuevo reemplace al anterior)
+      codigo: codigoAplicado && !codigoAplicado.desdeEnlace ? codigoAplicado.codigo : '',
     }), 300)
     return () => clearTimeout(t)
   }, [mounted, form, paso, metodoPago, direccionSeleccionada, usarNuevaDireccion, compraComoInvitado, codigoAplicado])
@@ -192,6 +204,7 @@ export default function CheckoutPage() {
         // Verificar si tiene descuento de primera compra
         if (!perfil.primera_compra_usada) {
           setDescuentoPrimeraCompra(true)
+          setPrimeraCompraDisponible(true)
         }
       }
 
@@ -248,7 +261,7 @@ export default function CheckoutPage() {
   }
 
   // datos: al recuperar el avance guardado se pasan directo (el estado aún no se actualizó)
-  async function validarCodigo(datos?: { codigo: string; email: string; ciudad: string }) {
+  async function validarCodigo(datos?: { codigo: string; email: string; ciudad: string; desdeEnlace?: boolean }) {
     const codigo = (datos?.codigo ?? codigoInput).trim()
     if (!codigo) return
     setValidandoCodigo(true); setCodigoError('')
@@ -258,13 +271,22 @@ export default function CheckoutPage() {
         body: JSON.stringify({ codigo, subtotal: total(), email: datos?.email ?? form.email, ciudad: datos?.ciudad ?? form.ciudad }),
       })
       const data = await res.json()
-      if (data.error) { setCodigoError(data.error) }
-      else { setCodigoAplicado(data); setDescuentoPrimeraCompra(false) }
-    } catch { setCodigoError('Error validando código') }
+      if (data.error) {
+        if (datos?.desdeEnlace) {
+          // Código de un enlace que ya no es válido: se olvida sin mostrar error
+          // (si fue un límite de intentos, 429, se conserva para la próxima vez)
+          if (res.status === 400) borrarCodigoEnlace()
+          setCodigoInput('')
+        } else setCodigoError(data.error)
+      }
+      else { setCodigoAplicado({ ...data, desdeEnlace: !!datos?.desdeEnlace }); setDescuentoPrimeraCompra(false) }
+    } catch { if (!datos?.desdeEnlace) setCodigoError('Error validando código') }
     setValidandoCodigo(false)
   }
 
   function quitarCodigo() {
+    // Si el cliente quita el código que llegó por enlace, ya no se vuelve a aplicar solo
+    if (codigoAplicado && leerCodigoEnlace() === codigoAplicado.codigo) borrarCodigoEnlace()
     setCodigoAplicado(null); setCodigoInput('')
     // Restaurar descuento primera compra si aplica
     if (isLoggedIn() && user) {
@@ -623,8 +645,10 @@ export default function CheckoutPage() {
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                         <span style={{ fontSize: '18px' }}>🏷️</span>
                         <div>
-                          <div style={{ fontSize: '13px', fontWeight: 600, color: '#3A5A3A' }}>Código {codigoAplicado.codigo} aplicado</div>
+                          <div style={{ fontSize: '13px', fontWeight: 600, color: '#3A5A3A' }}>{codigoAplicado.esRewards ? 'Código Rewards' : 'Código'} {codigoAplicado.codigo} aplicado</div>
                           <div style={{ fontSize: '11px', color: '#6B8F6B' }}>{codigoAplicado.descripcion}</div>
+                          {codigoAplicado.desdeEnlace && <div style={{ fontSize: '11px', color: '#6B8F6B' }}>Se aplicó desde el enlace que abriste.</div>}
+                          {codigoAplicado.esRewards && primeraCompraDisponible && <div style={{ fontSize: '11px', color: '#6B8F6B' }}>Tu descuento de primera compra se guarda para otra compra.</div>}
                         </div>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -842,6 +866,7 @@ export default function CheckoutPage() {
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%' }}>
                     <span style={{ padding: '4px 10px', background: '#111', color: 'white', borderRadius: '4px', fontFamily: 'monospace', fontSize: '13px', fontWeight: 700, letterSpacing: '0.1em' }}>{codigoAplicado.codigo}</span>
                     <span style={{ fontSize: '12px', color: '#3A8A3A' }}>✓</span>
+                    {codigoAplicado.esRewards && <span style={{ fontSize: '11px', color: '#8A6D2B', fontWeight: 600 }}>✦ Rewards</span>}
                   </div>
                   <button onClick={quitarCodigo} style={{ background: 'none', border: 'none', fontSize: '12px', color: '#A33', cursor: 'pointer', fontFamily: 'inherit' }}>Quitar</button>
                 </div>

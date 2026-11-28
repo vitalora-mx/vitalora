@@ -131,11 +131,12 @@ export async function POST(req: NextRequest) {
         }
 
         // Incrementar usos del codigo de descuento
-        if (pedido.codigo_descuento) {
+        // (los códigos Vitalora Rewards no tienen límite de usos: no aplican estas dos tablas)
+        if (pedido.codigo_descuento && !pedido.rewards_miembro_id) {
           await supabaseAdmin.rpc('incrementar_uso_codigo', { codigo_param: pedido.codigo_descuento })
         }
         // Registrar que este email ya uso el codigo
-        if (pedido.codigo_descuento && pedido.email) {
+        if (pedido.codigo_descuento && !pedido.rewards_miembro_id && pedido.email) {
           try {
             await supabaseAdmin.from('codigos_usados').insert({
               codigo: pedido.codigo_descuento,
@@ -148,7 +149,7 @@ export async function POST(req: NextRequest) {
         // ════════════════════════════════════════════════════════
         // NUEVO: Lógica del programa de influencers
         // ════════════════════════════════════════════════════════
-        if (pedido.codigo_descuento) {
+        if (pedido.codigo_descuento && !pedido.rewards_miembro_id) {
           await procesarComisionInfluencer(pedido)
         }
       }

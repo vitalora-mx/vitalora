@@ -4,7 +4,7 @@
 // ============================================================
 import { Resend } from 'resend'
 import { DIAS_ACREDITACION } from '@/lib/rewards'
-import { SITIO_REWARDS as SITIO } from '@/lib/rewards-config'
+import { SITIO_REWARDS as SITIO, enlaceCodigo } from '@/lib/rewards-config'
 
 const escapar = (s: unknown) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!))
 
@@ -38,6 +38,7 @@ export async function enviarBienvenidaRewards(p: { email: string; nombre: string
         <div style="background:#0E0E0E;border-radius:6px;padding:24px;text-align:center;margin:0 0 24px;">
           <div style="font-size:30px;letter-spacing:0.18em;color:#C9A961;font-family:Georgia,serif;">${codigo}</div>
         </div>
+        <p style="${parrafo}">También puedes compartir tu enlace, que aplica el código solo al pagar:<br><a href="${escapar(enlaceCodigo(p.codigo))}" target="_blank" style="color:#A8873F;font-weight:600;word-break:break-all;">${escapar(enlaceCodigo(p.codigo).replace('https://', ''))}</a></p>
         <p style="${parrafo}">Compártelo: quien compre con él obtiene <strong>5% de descuento</strong> en productos y tú recibes <strong>10% en puntos</strong> en tu Monedero Rewards (1 punto = $1 de descuento en productos). También ganas cuando lo usas en tus propias compras.</p>
         <p style="${parrafo}">Tus puntos aparecen como pendientes en cuanto se paga cada pedido y pasan a disponibles ${DIAS_ACREDITACION} días después de que se entrega. <strong>Tus puntos no vencen.</strong></p>
         <div style="text-align:center;margin:32px 0 8px;">

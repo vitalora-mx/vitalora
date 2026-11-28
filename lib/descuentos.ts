@@ -5,6 +5,7 @@
 // ============================================================
 import { createServiceClient } from '@/lib/supabase/service'
 import type { ReglaEnvioCodigo } from '@/lib/envio'
+import { REWARDS_VISIBLE, PORCENTAJE_CODIGO, esCodigoRewards, miembroPorCodigo, descuentoCodigo } from '@/lib/rewards'
 
 export const PORCENTAJE_PRIMERA_COMPRA = 5
 
@@ -15,6 +16,8 @@ export interface CodigoValido extends ReglaEnvioCodigo {
   montoDescuento: number
   esInfluencer: boolean
   descripcion: string
+  // Código Vitalora Rewards: id del miembro dueño (null en códigos de codigos_descuento)
+  rewardsMiembroId: number | null
 }
 
 export type ResultadoCodigo = { ok: true; datos: CodigoValido } | { ok: false; error: string }
@@ -35,8 +38,14 @@ export async function validarCodigo(params: {
     .select('*')
     .eq('codigo', codigoLimpio)
     .eq('activo', true)
-    .single()
-  if (error || !data) return { ok: false, error: 'Código no válido' }
+    .maybeSingle()
+  if (error) {
+    console.error('Error validando código:', error)
+    return { ok: false, error: 'Código no válido' }
+  }
+  // No es un código normal: ¿es un código Vitalora Rewards? (los dos tipos nunca
+  // comparten código: trigger rewards_codigo_libre en ambas tablas)
+  if (!data) return validarCodigoRewards(codigoLimpio, subtotal)
 
   // Usos totales (solo si tiene límite)
   if (data.max_usos && data.usos_actuales >= data.max_usos) {
@@ -88,6 +97,7 @@ export async function validarCodigo(params: {
       valor: data.valor,
       montoDescuento,
       esInfluencer: data.es_influencer ?? false,
+      rewardsMiembroId: null,
       descripcion: data.tipo === 'porcentaje' ? `${data.valor}% de descuento` : `$${data.valor} de descuento`,
       descuentoEnvio: data.descuento_envio || 'ninguno',
       envioPrecioFijo: data.envio_precio_fijo || 0,
@@ -96,8 +106,39 @@ export async function validarCodigo(params: {
   }
 }
 
+// Código Vitalora Rewards: 5% en productos, cualquiera lo puede usar (también su dueño),
+// sin límite de usos, sin mínimo, sin fechas y sin regla de envío. Solo miembros activos.
+// Con Rewards apagado (lib/rewards-config.ts) estos códigos no existen para el checkout.
+async function validarCodigoRewards(codigo: string, subtotal: number): Promise<ResultadoCodigo> {
+  if (!REWARDS_VISIBLE || !esCodigoRewards(codigo)) return { ok: false, error: 'Código no válido' }
+  let miembro
+  try {
+    miembro = await miembroPorCodigo(codigo)
+  } catch (e) {
+    console.error('Error validando código Rewards:', e)
+    return { ok: false, error: 'Código no válido' }
+  }
+  if (!miembro) return { ok: false, error: 'Código no válido' }
+  return {
+    ok: true,
+    datos: {
+      codigo: miembro.codigo,
+      tipo: 'porcentaje',
+      valor: PORCENTAJE_CODIGO,
+      montoDescuento: descuentoCodigo(subtotal),
+      esInfluencer: false,
+      descripcion: `${PORCENTAJE_CODIGO}% de descuento en productos (Vitalora Rewards)`,
+      rewardsMiembroId: miembro.id,
+      descuentoEnvio: 'ninguno',
+      envioPrecioFijo: 0,
+      ciudadRestringida: null,
+    },
+  }
+}
+
 // Nombre del descuento de un pedido, para correos y para el renglón de Mercado Pago.
-export function etiquetaDescuento(p: { codigo_descuento?: string | null; descuento_tipo?: string | null }): string {
+export function etiquetaDescuento(p: { codigo_descuento?: string | null; descuento_tipo?: string | null; rewards_miembro_id?: number | null }): string {
+  if (p.codigo_descuento && p.rewards_miembro_id) return `Código Rewards ${p.codigo_descuento}`
   if (p.codigo_descuento) return `Código ${p.codigo_descuento}`
   if (p.descuento_tipo === 'primera_compra') return `Descuento ${PORCENTAJE_PRIMERA_COMPRA}% primera compra`
   return 'Descuento'

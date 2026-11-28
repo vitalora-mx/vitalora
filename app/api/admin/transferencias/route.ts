@@ -127,8 +127,8 @@ export async function POST(req: NextRequest) {
         await supabaseAdmin.from('perfiles').update({ primera_compra_usada: true }).eq('id', pedido.user_id)
       }
 
-      // 5) Códigos de descuento
-      if (pedido.codigo_descuento) {
+      // 5) Códigos de descuento (los códigos Vitalora Rewards no tienen límite de usos: no aplican)
+      if (pedido.codigo_descuento && !pedido.rewards_miembro_id) {
         await supabaseAdmin.rpc('incrementar_uso_codigo', { codigo_param: pedido.codigo_descuento })
         if (pedido.email) {
           try {

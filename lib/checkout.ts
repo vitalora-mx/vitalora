@@ -39,6 +39,7 @@ export interface PedidoCalculado {
   descuentoTipo: 'codigo' | 'primera_compra' | null
   descuentoTitulo: string | null
   codigo: string | null
+  rewardsMiembroId: number | null  // dueño del código si es un código Vitalora Rewards
   costoEnvio: number            // incluye el cargo de zona extendida
   cargoZonaExtendida: number
   zonaVerificada: boolean       // false = Skydropx no respondió ("Zona sin verificar")
@@ -217,6 +218,7 @@ export async function calcularPedido(req: NextRequest, body: any): Promise<Resul
   let descuentoTipo: PedidoCalculado['descuentoTipo'] = null
   let descuentoTitulo: string | null = null
   let codigo: string | null = null
+  let rewardsMiembroId: number | null = null
   let reglaEnvio = null
 
   const codigoBody = texto(body?.codigoDescuento, 50)
@@ -225,7 +227,10 @@ export async function calcularPedido(req: NextRequest, body: any): Promise<Resul
     if (!r.ok) return error(400, `Código ${codigoBody.toUpperCase()}: ${r.error}`, { codigoInvalido: true })
     descuento = r.datos.montoDescuento
     descuentoTipo = 'codigo'
-    descuentoTitulo = etiquetaDescuento({ codigo_descuento: r.datos.codigo })
+    // Un código Rewards también sustituye a la primera compra, pero NO la gasta
+    // (primera_compra_usada solo se marca con descuento_tipo = 'primera_compra')
+    rewardsMiembroId = r.datos.rewardsMiembroId
+    descuentoTitulo = etiquetaDescuento({ codigo_descuento: r.datos.codigo, rewards_miembro_id: rewardsMiembroId })
     codigo = r.datos.codigo
     reglaEnvio = r.datos
   } else if (userId && await puedeUsarPrimeraCompra(userId)) {
@@ -257,7 +262,7 @@ export async function calcularPedido(req: NextRequest, body: any): Promise<Resul
   return {
     ok: true,
     pedido: {
-      lineas, subtotal, descuento, descuentoTipo, descuentoTitulo, codigo,
+      lineas, subtotal, descuento, descuentoTipo, descuentoTitulo, codigo, rewardsMiembroId,
       costoEnvio, cargoZonaExtendida,
       zonaVerificada: envio.zona.verificada,
       envioCotizacion: envio.zona.copia,
@@ -305,6 +310,7 @@ export async function guardarPedido(p: PedidoCalculado, extra: Record<string, un
       total: p.total,
       user_id: p.userId,
       codigo_descuento: p.codigo,
+      rewards_miembro_id: p.rewardsMiembroId,
     })
     .select('id')
     .single()

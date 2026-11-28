@@ -1,27 +1,28 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { mensajeCompartir } from '@/lib/rewards-config'
+import { mensajeCompartir, enlaceCodigo } from '@/lib/rewards-config'
 
 // Código personal de Rewards con botones de copiar y compartir.
 export default function TarjetaCodigo({ codigo }: { codigo: string }) {
-  const [copiado, setCopiado] = useState(false)
+  const [copiado, setCopiado] = useState<'codigo' | 'enlace' | null>(null)
   const [puedeCompartir, setPuedeCompartir] = useState(false)
 
   // navigator.share solo existe en algunos navegadores (sobre todo celulares)
   useEffect(() => { setPuedeCompartir(typeof navigator !== 'undefined' && typeof navigator.share === 'function') }, [])
   useEffect(() => {
     if (!copiado) return
-    const t = setTimeout(() => setCopiado(false), 2000)
+    const t = setTimeout(() => setCopiado(null), 2000)
     return () => clearTimeout(t)
   }, [copiado])
 
-  async function copiar() {
+  async function copiar(que: 'codigo' | 'enlace') {
+    const texto = que === 'codigo' ? codigo : enlaceCodigo(codigo)
     try {
-      await navigator.clipboard.writeText(codigo)
-      setCopiado(true)
+      await navigator.clipboard.writeText(texto)
+      setCopiado(que)
     } catch {
-      window.prompt('Copia tu código:', codigo)
+      window.prompt(que === 'codigo' ? 'Copia tu código:' : 'Copia tu enlace:', texto)
     }
   }
 
@@ -41,9 +42,15 @@ export default function TarjetaCodigo({ codigo }: { codigo: string }) {
       <div style={{ fontFamily: 'var(--font-italiana), serif', fontSize: 'clamp(32px, 9vw, 44px)', letterSpacing: '0.14em', color: '#C9A961', lineHeight: 1.1, marginBottom: '24px', userSelect: 'all' }}>
         {codigo}
       </div>
-      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-        <button type="button" onClick={copiar} style={{ ...boton, background: copiado ? '#C9A961' : 'transparent', color: copiado ? '#0E0E0E' : '#C9A961', border: '1px solid #C9A961' }}>
-          {copiado ? '¡Copiado!' : 'Copiar'}
+      <p style={{ fontSize: '12px', color: 'rgba(245,240,232,0.6)', margin: '-12px 0 20px', overflowWrap: 'anywhere' }}>
+        Con tu enlace, el código se aplica solo: {enlaceCodigo(codigo).replace('https://', '')}
+      </p>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '8px' }}>
+        <button type="button" onClick={() => copiar('codigo')} style={{ ...boton, background: copiado === 'codigo' ? '#C9A961' : 'transparent', color: copiado === 'codigo' ? '#0E0E0E' : '#C9A961', border: '1px solid #C9A961' }}>
+          {copiado === 'codigo' ? '¡Copiado!' : 'Copiar código'}
+        </button>
+        <button type="button" onClick={() => copiar('enlace')} style={{ ...boton, background: copiado === 'enlace' ? '#C9A961' : 'transparent', color: copiado === 'enlace' ? '#0E0E0E' : '#C9A961', border: '1px solid #C9A961' }}>
+          {copiado === 'enlace' ? '¡Copiado!' : 'Copiar enlace'}
         </button>
         <a href={`https://wa.me/?text=${encodeURIComponent(mensajeCompartir(codigo))}`} target="_blank" rel="noopener noreferrer"
           style={{ ...boton, background: '#C9A961', color: '#0E0E0E', border: '1px solid #C9A961' }}>

@@ -16,8 +16,12 @@ export const REWARDS_VISIBLE =
 
 export const SITIO_REWARDS = 'https://vitalora.com.mx'
 
-// Mensaje para compartir el código (WhatsApp y menú de compartir del celular).
-// Parte 3: cambiar el enlace por `${SITIO_REWARDS}/?codigo=${codigo}` cuando exista.
+// Enlace que aplica el código solo en el checkout (components/store/CodigoDesdeEnlace.tsx)
+export function enlaceCodigo(codigo: string): string {
+  return `${SITIO_REWARDS}/?codigo=${encodeURIComponent(codigo)}`
+}
+
+// Mensaje para compartir el código (WhatsApp y menú de compartir del celular)
 export function mensajeCompartir(codigo: string): string {
-  return `Usa mi código ${codigo} en ${SITIO_REWARDS.replace('https://', '')} y obtén 5% de descuento en cosméticos coreanos ✨`
+  return `Usa mi código ${codigo} y obtén 5% de descuento en cosméticos coreanos ✨ ${enlaceCodigo(codigo)}`
 }

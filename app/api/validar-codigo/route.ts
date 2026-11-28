@@ -23,6 +23,7 @@ export async function POST(req: NextRequest) {
     valor: d.valor,
     montoDescuento: d.montoDescuento,
     esInfluencer: d.esInfluencer,
+    esRewards: d.rewardsMiembroId !== null, // nunca se manda el id del miembro
     descripcion: d.descripcion,
     // Campos de envío
     descuentoEnvio: d.descuentoEnvio,          // 'ninguno' | 'gratis' | 'fijo'
