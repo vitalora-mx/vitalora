@@ -2,6 +2,10 @@
 
 import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
+import CampoContrasena from '@/components/store/CampoContrasena'
+
+const ETIQUETA: React.CSSProperties = { display: 'block', fontSize: '11px', letterSpacing: '0.1em', textTransform: 'uppercase', color: '#6B6B6B', marginBottom: '6px', fontWeight: 500 }
+const CAMPO: React.CSSProperties = { width: '100%', padding: '12px 14px', border: '1px solid #E8E4DA', borderRadius: '3px', fontSize: '14px', fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }
 
 function NuevaPasswordForm() {
   const searchParams = useSearchParams()
@@ -41,7 +45,7 @@ function NuevaPasswordForm() {
       const res = await fetch('/api/recuperar/cambiar', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token, password }),
+        body: JSON.stringify({ token, password, passwordConfirmacion: password2 }),
       })
       const data = await res.json()
       if (res.status === 400 && typeof data.error === 'string' && data.error.startsWith('El enlace no es válido')) {
@@ -91,25 +95,15 @@ function NuevaPasswordForm() {
         <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '26px', fontWeight: 600, color: '#0E0E0E', marginBottom: '8px' }}>Crea tu nueva contraseña</h1>
       </div>
 
-      <label style={{ display: 'block', fontSize: '11px', letterSpacing: '0.1em', textTransform: 'uppercase', color: '#6B6B6B', marginBottom: '6px', fontWeight: 500 }}>Nueva contraseña</label>
-      <div style={{ position: 'relative', marginBottom: '16px' }}>
-        <input type={verPass ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)}
-          style={{ width: '100%', padding: '12px 44px 12px 14px', border: '1px solid #E8E4DA', borderRadius: '3px', fontSize: '14px', fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }} />
-        <button type="button" onClick={() => setVerPass(!verPass)}
-          style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px', padding: '4px' }}>
-          {verPass ? '🙈' : '👁️'}
-        </button>
+      <div style={{ marginBottom: '16px' }}>
+        <CampoContrasena id="nueva-pass" etiqueta="Nueva contraseña" valor={password} onCambio={setPassword}
+          visible={verPass} onAlternar={() => setVerPass(v => !v)} autoComplete="new-password" placeholder="Mínimo 8 caracteres"
+          estiloEtiqueta={ETIQUETA} estiloInput={CAMPO} />
       </div>
-
-      <label style={{ display: 'block', fontSize: '11px', letterSpacing: '0.1em', textTransform: 'uppercase', color: '#6B6B6B', marginBottom: '6px', fontWeight: 500 }}>Confirma tu contraseña</label>
-      <div style={{ position: 'relative', marginBottom: '20px' }}>
-        <input type={verPass ? 'text' : 'password'} value={password2} onChange={e => setPassword2(e.target.value)}
-          onKeyDown={e => { if (e.key === 'Enter') cambiar() }}
-          style={{ width: '100%', padding: '12px 44px 12px 14px', border: '1px solid #E8E4DA', borderRadius: '3px', fontSize: '14px', fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }} />
-        <button type="button" onClick={() => setVerPass(!verPass)}
-          style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px', padding: '4px' }}>
-          {verPass ? '🙈' : '👁️'}
-        </button>
+      <div style={{ marginBottom: '20px' }}>
+        <CampoContrasena id="nueva-pass2" etiqueta="Confirma tu contraseña" valor={password2} onCambio={setPassword2}
+          visible={verPass} onAlternar={() => setVerPass(v => !v)} autoComplete="new-password" onEnter={cambiar}
+          estiloEtiqueta={ETIQUETA} estiloInput={CAMPO} />
       </div>
 
       {error && (

@@ -8,15 +8,15 @@
 // ============================================================
 import { randomInt } from 'crypto'
 import { createServiceClient } from '@/lib/supabase/service'
+import { formatearNumeroPedido } from '@/lib/utils'
 
-// Interruptor del programa. En false nada de Rewards se muestra ni se cobra.
-export const REWARDS_ACTIVO = false
+// Interruptor del programa (vive en lib/rewards-config.ts para que el navegador lo pueda leer).
+export { REWARDS_ACTIVO, REWARDS_VISIBLE } from '@/lib/rewards-config'
 
 // Reglas del programa (un solo lugar).
 export const PORCENTAJE_CODIGO = 5          // descuento al usar un código Rewards (solo productos)
 export const PORCENTAJE_GANANCIA = 10       // lo que gana el dueño del código
 export const TOPE_PUNTOS_PARA_GANAR = 50    // si los puntos usados pasan de este % de (subtotal − 5%), no hay ganancia
-export const MINIMO_PAGO = 10               // mínimo a pagar en productos (mínimo de OXXO; confirmar antes del lanzamiento)
 export const DIAS_ACREDITACION = 15         // días después de entregado_at para acreditar la ganancia
 
 export const COMO_SE_ENTERO = [
@@ -112,8 +112,16 @@ export type ResultadoNuevoMiembro =
 
 const INTENTOS_CODIGO = 10
 
+// Teléfono a 10 dígitos: quita espacios, guiones y la lada +52 si viene. null si no queda en 10.
+export function normalizarTelefono(valor: unknown): string | null {
+  let d = String(valor ?? '').replace(/\D/g, '')
+  if (d.length === 12 && d.startsWith('52')) d = d.slice(2)
+  return /^[0-9]{10}$/.test(d) ? d : null
+}
+
 // Crea el miembro con un código nuevo. Las validaciones de la inscripción
-// (18+, nombre/apellido en perfiles, etc.) las hace quien llama (Parte 2).
+// (18+, términos, nombre/apellido en perfiles) las hace quien llama
+// (app/api/rewards/inscripcion); aquí se registra la hora en que se aceptaron.
 export async function crearMiembro(params: {
   userId: string
   nombre: string
@@ -121,13 +129,14 @@ export async function crearMiembro(params: {
   telefono: string
   comoSeEntero: ComoSeEntero
 }): Promise<ResultadoNuevoMiembro> {
-  const telefono = String(params.telefono || '').replace(/\D/g, '')
-  if (!params.userId || !/^[0-9]{10}$/.test(telefono) || !COMO_SE_ENTERO.includes(params.comoSeEntero)) {
+  const telefono = normalizarTelefono(params.telefono)
+  if (!params.userId || !telefono || !COMO_SE_ENTERO.includes(params.comoSeEntero)) {
     return { ok: false, error: 'DATOS_INVALIDOS' }
   }
 
   const db = createServiceClient()
   const prefijo = prefijoCodigo(params.nombre, params.apellido)
+  const ahora = new Date().toISOString()
 
   for (let i = 0; i < INTENTOS_CODIGO; i++) {
     const codigo = codigoConNumeros(prefijo)
@@ -139,7 +148,8 @@ export async function crearMiembro(params: {
         user_id: params.userId,
         codigo,
         telefono,
-        mayor_edad_at: new Date().toISOString(),
+        mayor_edad_at: ahora,
+        terminos_aceptados_at: ahora,
         como_se_entero: params.comoSeEntero,
       })
       .select('id, user_id, codigo, telefono, estado, created_at')
@@ -267,11 +277,13 @@ export function descuentoCodigo(subtotal: number): number {
   return Math.round(Math.max(0, subtotal) * (PORCENTAJE_CODIGO / 100))
 }
 
-// Máximo de puntos que se pueden usar: deben quedar al menos MINIMO_PAGO por pagar en productos.
-// Con saldo ≤ 0 no se canjea.
+// Máximo de puntos que se pueden usar: hasta el total de los productos (subtotal − 5% del código).
+// El envío y el cargo de zona extendida NUNCA se pagan con puntos (van con Mercado Pago o
+// transferencia). Si el pedido completo queda en $0, se confirma con puntos (Parte 5);
+// así no genera puntos (pasa del 50%) y no es facturable. Con saldo ≤ 0 no se canjea.
 export function maxPuntosCanjeables(params: { subtotal: number; descuento: number; saldo: number }): number {
   const base = params.subtotal - params.descuento
-  return Math.max(0, Math.min(Math.floor(params.saldo), Math.floor(base - MINIMO_PAGO)))
+  return Math.max(0, Math.min(Math.floor(params.saldo), Math.floor(base)))
 }
 
 // Ganancia del dueño del código: piso(10% de (subtotal − 5% − puntos usados)), sin envío.
@@ -281,4 +293,88 @@ export function gananciaPorPedido(params: { subtotal: number; descuento: number;
   if (base <= 0) return 0
   if (params.puntosUsados > base * (TOPE_PUNTOS_PARA_GANAR / 100)) return 0
   return Math.max(0, Math.floor((base - params.puntosUsados) * (PORCENTAJE_GANANCIA / 100)))
+}
+
+// ------------------------------------------------------------
+// Historial para Mi cuenta. El concepto se arma aquí (servidor) para no
+// mandar al navegador el número de pedido ni datos de otras personas:
+// una ganancia por la compra de alguien más solo dice "Compra con tu código".
+// ------------------------------------------------------------
+
+export interface MovimientoVisible {
+  id: number
+  fecha: string
+  concepto: string
+  detalle: string | null
+  puntos: number
+  estado: 'pendiente' | 'acreditado' | 'cancelado'
+}
+
+const fechaCorta = (iso: string) =>
+  new Date(iso).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'America/Mexico_City' }).replace('.', '')
+
+export async function historialDe(
+  miembroId: number,
+  userId: string,
+  opciones: { antesDe?: number | null; limite?: number } = {}
+): Promise<{ movimientos: MovimientoVisible[]; hayMas: boolean }> {
+  const db = createServiceClient()
+  const limite = Math.min(Math.max(opciones.limite ?? 20, 1), 50)
+
+  let consulta = db
+    .from('rewards_movimientos')
+    .select('id, tipo, estado, puntos, pedido_id, disponible_desde, motivo, created_at')
+    .eq('miembro_id', miembroId)
+    .neq('tipo', 'cierre')
+    .order('id', { ascending: false })
+    .limit(limite + 1)
+  if (opciones.antesDe) consulta = consulta.lt('id', opciones.antesDe)
+
+  const { data, error } = await consulta
+  if (error) throw error
+  const filas = data ?? []
+  const pagina = filas.slice(0, limite)
+
+  // ¿Qué pedidos son del propio miembro? (solo esos muestran su número)
+  const idsPedidos = [...new Set(pagina.map(m => m.pedido_id).filter((id): id is number => !!id))]
+  const propios = new Set<number>()
+  if (idsPedidos.length) {
+    const { data: pedidos, error: errPedidos } = await db.from('pedidos').select('id, user_id').in('id', idsPedidos)
+    if (errPedidos) throw errPedidos
+    for (const p of pedidos ?? []) if (p.user_id === userId) propios.add(p.id)
+  }
+
+  const movimientos = pagina.map((m): MovimientoVisible => {
+    const propio = !!m.pedido_id && propios.has(m.pedido_id)
+    const numero = propio ? formatearNumeroPedido(m.pedido_id) : null
+    let concepto: string
+    let detalle: string | null = null
+    switch (m.tipo) {
+      case 'ganancia':
+        concepto = propio ? `Tu compra ${numero}` : 'Compra con tu código'
+        if (m.estado === 'pendiente') {
+          detalle = m.disponible_desde
+            ? `Disponible a partir del ${fechaCorta(m.disponible_desde)}`
+            : `Se acredita ${DIAS_ACREDITACION} días después de la entrega`
+        } else if (m.estado === 'cancelado') {
+          detalle = 'Cancelado: el pedido se canceló o se reembolsó'
+        }
+        break
+      case 'canje':
+        concepto = numero ? `Usaste puntos en tu pedido ${numero}` : 'Usaste puntos en un pedido'
+        break
+      case 'devolucion_canje':
+        concepto = numero ? `Te regresamos puntos del pedido ${numero}` : 'Te regresamos puntos'
+        break
+      case 'ajuste':
+        concepto = 'Ajuste por cancelación o reembolso'
+        break
+      default: // ajuste_manual
+        concepto = 'Ajuste'
+        detalle = m.motivo ?? null
+    }
+    return { id: m.id, fecha: fechaCorta(m.created_at), concepto, detalle, puntos: m.puntos, estado: m.estado }
+  })
+
+  return { movimientos, hayMas: filas.length > limite }
 }

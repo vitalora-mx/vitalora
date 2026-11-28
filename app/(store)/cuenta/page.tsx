@@ -6,6 +6,9 @@ import { useAuthStore, fetchCliente } from '@/store/authStore'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import FormularioResena from '@/components/store/producto/FormularioResena'
 import { formatearNumeroPedido } from '@/lib/utils'
+import { REWARDS_VISIBLE } from '@/lib/rewards-config'
+import MonederoRewards from '@/components/store/rewards/MonederoRewards'
+import CampoContrasena from '@/components/store/CampoContrasena'
 
 interface Pedido {
   id: number; estado: string; total: number; subtotal: number; costo_envio: number
@@ -46,9 +49,14 @@ export default function CuentaPage() {
   const { user, perfil, setPerfil, cerrarSesion, isLoggedIn } = useAuthStore()
   const [mounted, setMounted] = useState(false)
   const [esInfluencerCuenta, setEsInfluencerCuenta] = useState(false)
-  // ?tab=pedidos abre "Mis pedidos" (enlace del correo de entrega para dejar reseña)
-  const [tab, setTab] = useState(() =>
-    typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('tab') === 'pedidos' ? 'pedidos' : 'perfil')
+  // ?tab=pedidos abre "Mis pedidos" (enlace del correo de entrega para dejar reseña);
+  // ?tab=rewards abre el Monedero Rewards (correo de bienvenida y página /rewards)
+  const [tab, setTab] = useState(() => {
+    const t = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('tab') : null
+    if (t === 'pedidos') return 'pedidos'
+    if (t === 'rewards' && REWARDS_VISIBLE) return 'rewards'
+    return 'perfil'
+  })
   const [pedidos, setPedidos] = useState<Pedido[]>([])
   const [resenando, setResenando] = useState<{ id: number; nombre: string } | null>(null)
   const [resenaOk, setResenaOk] = useState(false)
@@ -58,7 +66,8 @@ export default function CuentaPage() {
   const [mensaje, setMensaje] = useState('')
 
   const [authMode, setAuthMode] = useState<'login' | 'registro'>('login')
-  const [authForm, setAuthForm] = useState({ email: '', password: '', nombre: '', apellido: '' })
+  const [authForm, setAuthForm] = useState({ email: '', password: '', passwordConfirmacion: '', nombre: '', apellido: '' })
+  const [verPass, setVerPass] = useState(false)
   const [authError, setAuthError] = useState('')
   const [authLoading, setAuthLoading] = useState(false)
 
@@ -108,7 +117,12 @@ export default function CuentaPage() {
   async function cargarDirecciones() { if (!user) return; const res = await fetchCliente('/api/cuenta/direcciones'); if (res.ok) { const data = await res.json(); setDirecciones(Array.isArray(data) ? data : []) } }
 
   async function handleAuth() {
-    setAuthLoading(true); setAuthError('')
+    setAuthError('')
+    if (authMode === 'registro') {
+      if (authForm.password.length < 8) { setAuthError('La contraseña debe tener al menos 8 caracteres.'); return }
+      if (authForm.password !== authForm.passwordConfirmacion) { setAuthError('Las contraseñas no coinciden. Escríbela igual en los dos campos.'); return }
+    }
+    setAuthLoading(true)
     const res = await fetch('/api/cuenta/auth', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: authMode, ...authForm }) })
     const data = await res.json()
     if (data.error) { setAuthError(data.error); setAuthLoading(false); return }
@@ -225,7 +239,7 @@ export default function CuentaPage() {
           </div>
           <div style={{ display: 'flex', marginBottom: '24px', borderBottom: '1px solid #EEE' }}>
             {(['login', 'registro'] as const).map(m => (
-              <button key={m} onClick={() => { setAuthMode(m); setAuthError('') }} style={{ flex: 1, padding: '12px', border: 'none', borderBottom: authMode === m ? '2px solid var(--black)' : '2px solid transparent', background: 'none', fontSize: '13px', letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: authMode === m ? 600 : 400, color: authMode === m ? 'var(--black)' : '#999', cursor: 'pointer', fontFamily: 'inherit' }}>{m === 'login' ? 'Iniciar Sesión' : 'Crear Cuenta'}</button>
+              <button key={m} onClick={() => { setAuthMode(m); setAuthError(''); setAuthForm(f => ({ ...f, passwordConfirmacion: '' })) }} style={{ flex: 1, padding: '12px', border: 'none', borderBottom: authMode === m ? '2px solid var(--black)' : '2px solid transparent', background: 'none', fontSize: '13px', letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: authMode === m ? 600 : 400, color: authMode === m ? 'var(--black)' : '#999', cursor: 'pointer', fontFamily: 'inherit' }}>{m === 'login' ? 'Iniciar Sesión' : 'Crear Cuenta'}</button>
             ))}
           </div>
           {authMode === 'registro' && (
@@ -235,7 +249,17 @@ export default function CuentaPage() {
             </div>
           )}
           <div style={{ marginBottom: '12px' }}><label style={L}>Correo electrónico</label><input type="email" value={authForm.email} onChange={e => setAuthForm({ ...authForm, email: e.target.value })} placeholder="correo@ejemplo.com" style={S} /></div>
-          <div style={{ marginBottom: '20px' }}><label style={L}>Contraseña</label><input type="password" value={authForm.password} onChange={e => setAuthForm({ ...authForm, password: e.target.value })} placeholder={authMode === 'registro' ? 'Mínimo 8 caracteres' : ''} style={S} onKeyDown={e => e.key === 'Enter' && handleAuth()} /></div>
+          <div style={{ marginBottom: authMode === 'registro' ? '12px' : '20px' }}>
+            <CampoContrasena id="cuenta-pass" etiqueta="Contraseña" valor={authForm.password} onCambio={v => setAuthForm({ ...authForm, password: v })}
+              visible={verPass} onAlternar={() => setVerPass(v => !v)} autoComplete={authMode === 'login' ? 'current-password' : 'new-password'}
+              placeholder={authMode === 'registro' ? 'Mínimo 8 caracteres' : ''} onEnter={authMode === 'login' ? handleAuth : undefined} estiloEtiqueta={L} estiloInput={S} />
+          </div>
+          {authMode === 'registro' && (
+            <div style={{ marginBottom: '20px' }}>
+              <CampoContrasena id="cuenta-pass2" etiqueta="Confirmar contraseña" valor={authForm.passwordConfirmacion} onCambio={v => setAuthForm({ ...authForm, passwordConfirmacion: v })}
+                visible={verPass} onAlternar={() => setVerPass(v => !v)} autoComplete="new-password" onEnter={handleAuth} estiloEtiqueta={L} estiloInput={S} />
+            </div>
+          )}
           {authMode === 'login' && <div style={{ textAlign: 'right', marginTop: '-8px', marginBottom: '16px' }}><a href="/recuperar" style={{ fontSize: '12px', color: 'var(--gold)', textDecoration: 'none' }}>¿Olvidaste tu contraseña?</a></div>}
           {authError && <p style={{ fontSize: '13px', color: '#D33', marginBottom: '12px' }}>{authError}</p>}
           <button onClick={handleAuth} disabled={authLoading} style={{ width: '100%', padding: '16px', background: authLoading ? '#888' : 'var(--black)', color: 'var(--bg-cream)', border: 'none', borderRadius: '6px', fontSize: '13px', letterSpacing: '0.15em', textTransform: 'uppercase', fontWeight: 600, cursor: authLoading ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}>{authLoading ? 'Procesando...' : authMode === 'login' ? 'Iniciar Sesión' : 'Crear Cuenta'}</button>
@@ -263,10 +287,27 @@ export default function CuentaPage() {
           </div>
         </div>
 
-        <div style={{ display: 'flex', gap: '0', borderBottom: '1px solid #DDD', marginBottom: '32px', overflowX: 'auto' }}>
-          {[{ key: 'perfil', label: 'Perfil' }, { key: 'direcciones', label: 'Mis Direcciones' }, { key: 'facturacion', label: 'Facturación' }, { key: 'pedidos', label: 'Mis Pedidos' }, { key: 'ayuda', label: 'Ayuda' }].map(t => (
-            <button key={t.key} onClick={() => { setTab(t.key); setMensaje('') }} style={{ padding: '14px 24px', border: 'none', borderBottom: tab === t.key ? '2px solid #111' : '2px solid transparent', background: 'none', fontSize: '13px', letterSpacing: '0.08em', textTransform: 'uppercase', fontWeight: tab === t.key ? 600 : 400, color: tab === t.key ? '#111' : '#999', cursor: 'pointer', fontFamily: 'inherit', marginBottom: '-1px', whiteSpace: 'nowrap' }}>{t.label}</button>
-          ))}
+        {/* Pestañas: la línea gris es una sombra interior (antes un borde + margen -1px que desbordaba
+            1px hacia abajo y hacía aparecer una barra de desplazamiento vertical con ▲▼ en Windows).
+            En celular se deslizan de lado, sin barra visible (.pestanas-cuenta en globals.css). */}
+        <div className="pestanas-cuenta" style={{ display: 'flex', alignItems: 'stretch', gap: '0', boxShadow: 'inset 0 -1px 0 #DDD', marginBottom: '32px', overflowX: 'auto', overflowY: 'hidden' }}>
+          {[{ key: 'perfil', label: 'Perfil' }, { key: 'direcciones', label: 'Mis Direcciones' }, { key: 'facturacion', label: 'Facturación' }, { key: 'pedidos', label: 'Mis Pedidos' }, ...(REWARDS_VISIBLE ? [{ key: 'rewards', label: 'Rewards' }] : []), { key: 'ayuda', label: 'Ayuda' }].map(t => {
+            const activa = tab === t.key
+            const base: React.CSSProperties = { border: 'none', background: 'none', fontSize: '13px', letterSpacing: '0.08em', textTransform: 'uppercase', cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap', flexShrink: 0 }
+            if (t.key === 'rewards') {
+              // Rewards destaca: dorado, ✦ y píldora crema-dorada; seleccionada, línea dorada
+              return (
+                <button key={t.key} onClick={() => { setTab(t.key); setMensaje('') }} style={{ ...base, padding: '8px 12px', borderBottom: activa ? '2px solid var(--gold)' : '2px solid transparent', display: 'flex', alignItems: 'center' }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '6px 14px', borderRadius: '100px', background: activa ? '#F3E7CC' : '#F8F0DE', border: '1px solid #EAD9B0', color: '#A8873F', fontWeight: 600, transition: 'background-color 150ms ease' }}>
+                    <span aria-hidden style={{ color: 'var(--gold)' }}>✦</span>{t.label}
+                  </span>
+                </button>
+              )
+            }
+            return (
+              <button key={t.key} onClick={() => { setTab(t.key); setMensaje('') }} style={{ ...base, padding: '14px 24px', borderBottom: activa ? '2px solid #111' : '2px solid transparent', fontWeight: activa ? 600 : 400, color: activa ? '#111' : '#999' }}>{t.label}</button>
+            )
+          })}
         </div>
 
         {mensaje && <div style={{ padding: '12px 16px', background: mensaje.includes('Error') ? '#FEE' : '#EFE', border: `1px solid ${mensaje.includes('Error') ? '#FAA' : '#ADA'}`, borderRadius: '6px', marginBottom: '24px', fontSize: '14px', color: mensaje.includes('Error') ? '#A33' : '#3A3' }}>{mensaje}</div>}
@@ -471,6 +512,9 @@ export default function CuentaPage() {
             )}
           </div>
         )}
+
+        {/* REWARDS */}
+        {tab === 'rewards' && REWARDS_VISIBLE && <MonederoRewards isMobile={isMobile} />}
 
         {/* AYUDA */}
         {tab === 'ayuda' && (

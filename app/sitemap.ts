@@ -1,6 +1,7 @@
 import { MetadataRoute } from 'next'
 import { createClient } from '@supabase/supabase-js'
 import { SUPLEMENTOS_ACTIVO, productoVisible, videoVisible } from '@/lib/tienda'
+import { REWARDS_ACTIVO } from '@/lib/rewards-config'
 
 const BASE = 'https://vitalora.com.mx'
 
@@ -12,6 +13,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...(SUPLEMENTOS_ACTIVO ? [{ url: `${BASE}/suplementos`, changeFrequency: 'daily' as const, priority: 0.9 }] : []),
     { url: `${BASE}/ritual`, changeFrequency: 'weekly', priority: 0.7 },
     { url: `${BASE}/ritual/videos`, changeFrequency: 'weekly', priority: 0.6 },
+    ...(REWARDS_ACTIVO ? [{ url: `${BASE}/rewards`, changeFrequency: 'monthly' as const, priority: 0.6 }] : []),
     { url: `${BASE}/nosotros`, changeFrequency: 'monthly', priority: 0.5 },
     { url: `${BASE}/contacto`, changeFrequency: 'monthly', priority: 0.4 },
     { url: `${BASE}/faq`, changeFrequency: 'monthly', priority: 0.4 },

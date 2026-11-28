@@ -64,6 +64,9 @@ export async function POST(req: NextRequest) {
     if (password.length > 72) {
       return NextResponse.json({ error: 'La contraseña es demasiado larga (máximo 72 caracteres).' }, { status: 400 })
     }
+    if (body?.passwordConfirmacion !== password) {
+      return NextResponse.json({ error: 'Las contraseñas no coinciden.' }, { status: 400 })
+    }
 
     const tokenHash = crypto.createHash('sha256').update(token).digest('hex')
 

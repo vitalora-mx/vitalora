@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { PROGRAMA_EMBAJADORAS_ACTIVO, MENSAJE_PROGRAMA_SUSPENDIDO } from '@/lib/inscripciones'
 import { SUPLEMENTOS_ACTIVO } from '@/lib/tienda'
+import { REWARDS_VISIBLE } from '@/lib/rewards-config'
 
 // Primera capa (rápida, sin red) para las APIs del panel:
 // si no hay cookie de sesión del admin, se rechaza de inmediato.
@@ -30,6 +31,16 @@ export function proxy(request: NextRequest) {
     destino.pathname = '/cosmeticos'
     destino.search = ''
     return NextResponse.redirect(destino, 307)
+  }
+
+  // ── Vitalora Rewards apagado (lib/rewards-config.ts): no existe para nadie ──
+  if (!REWARDS_VISIBLE) {
+    if (pathname === '/api/rewards' || pathname.startsWith('/api/rewards/')) {
+      return NextResponse.json({ error: 'No encontrado' }, { status: 404 })
+    }
+    if (pathname === '/rewards' || pathname.startsWith('/rewards/')) {
+      return new NextResponse('No encontrado', { status: 404, headers: { 'Cache-Control': 'no-store' } })
+    }
   }
 
   // ── Programa de embajadoras suspendido ──
@@ -63,5 +74,5 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/suplementos', '/suplementos/:path*', '/api/admin/:path*', '/api/influencer/:path*', '/influencer/portal/:path*'],
+  matcher: ['/suplementos', '/suplementos/:path*', '/api/admin/:path*', '/api/influencer/:path*', '/influencer/portal/:path*', '/rewards', '/rewards/:path*', '/api/rewards/:path*'],
 }

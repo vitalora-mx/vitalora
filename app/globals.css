@@ -127,3 +127,7 @@ body {
   .hero-desktop { display: none; }
   .hero-mobile { display: block; }
 }
+
+/* Pestañas de Mi cuenta: se deslizan de lado en celular sin mostrar la barra de desplazamiento */
+.pestanas-cuenta { scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+.pestanas-cuenta::-webkit-scrollbar { display: none; }

@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import MetodosPago from '@/components/store/MetodosPago'
 import { SUPLEMENTOS_ACTIVO } from '@/lib/tienda'
+import { REWARDS_VISIBLE } from '@/lib/rewards-config'
 
 export default function Footer() {
   const isMobile = useIsMobile()
@@ -94,6 +95,7 @@ export default function Footer() {
               {[
                 { label: 'Cosméticos', href: '/cosmeticos' },
                 ...(SUPLEMENTOS_ACTIVO ? [{ label: 'Suplementos', href: '/suplementos' }] : []),
+                ...(REWARDS_VISIBLE ? [{ label: 'Vitalora Rewards', href: '/rewards' }] : []),
                 { label: 'Nosotros', href: '/nosotros' },
               ].map((item) => (
                 <li key={item.label}>
